@@ -1,0 +1,35 @@
+{
+  "id": "./",
+  "name": "Envíos al CD — PANISA",
+  "short_name": "Envíos CD",
+  "description": "Ingreso de pedidos, Automatizador de entregas, Comprobador de QR y QR de garita para las entregas al CD de Walmart.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#f4f6f9",
+  "theme_color": "#0d2140",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ingreso de pedidos", "url": "./index.html#ingreso", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Automatizador de entregas", "url": "./index.html#entregas", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Comprobador de QR", "url": "./index.html#comprobador", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "QR de garita", "url": "./index.html#garita", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "application/vnd.ms-excel.sheet.macroEnabled.12": [".xlsm"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
+      },
+      "launch_type": "single-client"
+    }
+  ]
+}
