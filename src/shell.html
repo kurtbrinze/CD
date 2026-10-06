@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Envíos al CD — PANISA</title>
+<meta name="theme-color" content="#0d2140">
+<meta name="description" content="Herramientas para las entregas al CD de Walmart: ingreso de pedidos, Generador QR, comprobación y QR de garita.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --ink:#0d2140; --ink-2:#163057; --ink-line:#24406b;
+  --blue:#0053e2; --blue-d:#0043c0; --spark:#ffc220;
+  --paper:#f4f6f9; --card:#fff; --line:#d9e0ec;
+  --text:#1d2229; --muted:#5f6b7d; --ok:#2a8703; --warn:#a15c07; --bad:#b42318;
+  --rail:262px;
+  --font:"Bahnschrift","DIN Alternate","Barlow","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:var(--font);background:var(--paper);color:var(--text);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--spark);outline-offset:2px}
+.app{display:grid;grid-template-columns:var(--rail) 1fr;height:100vh;height:100dvh}
+
+/* ── Rail ─────────────────────────────────────── */
+.rail{background:var(--ink);color:#dfe7f5;display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top,0px)) 0 calc(14px + env(safe-area-inset-bottom,0px));min-height:0}
+.brand{display:flex;align-items:center;gap:11px;padding:0 18px 18px;border-bottom:1px solid var(--ink-line);margin-bottom:10px}
+.brand img{width:38px;height:38px;border-radius:9px}
+.brand b{display:block;font-size:16px;font-weight:700;color:#fff;letter-spacing:.1px}
+.brand span{display:block;font-size:12px;color:#93a6c6}
+.nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+.nav-item{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;color:#cfdaee;padding:9px 10px;border-radius:9px}
+.nav-item:hover{background:var(--ink-2);color:#fff}
+.nav-item[aria-current="page"]{background:var(--ink-2);color:#fff}
+.nav-item[aria-current="page"]::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:4px;border-radius:0 3px 3px 0;background:var(--spark)}
+.nav-num{flex:0 0 30px;height:30px;border-radius:6px;display:grid;place-items:center;font-weight:700;font-size:16px;font-stretch:85%;background:#1b3560;color:#fff;border-bottom:3px solid #0a1a33}
+.nav-item[aria-current="page"] .nav-num{background:var(--spark);color:var(--ink);border-bottom-color:#c89500}
+.nav-num svg{width:17px;height:17px}
+.nav-txt{flex:1;min-width:0}
+.nav-txt b{display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-txt small{display:block;font-size:11.5px;color:#8ea1c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-live{width:7px;height:7px;border-radius:50%;background:#4ade80;flex:0 0 7px;display:none}
+.nav-item.alive .nav-live{display:block}
+.nav-sep{height:1px;background:var(--ink-line);margin:10px 8px}
+.rail-foot{margin-top:auto;padding:12px 18px 0;font-size:12px;color:#8ea1c2;display:flex;flex-direction:column;gap:8px}
+.net{display:flex;align-items:center;gap:7px}
+.net i{width:8px;height:8px;border-radius:50%;background:#4ade80}
+.net.off i{background:#f59e0b}
+.rail-btn{background:#1b3560;border:1px solid var(--ink-line);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;text-align:left}
+.rail-btn:hover{background:#21406f}
+.rail-btn.spark{background:var(--spark);color:var(--ink);border-color:#c89500;font-weight:700}
+
+/* ── Main ─────────────────────────────────────── */
+.main{position:relative;min-width:0;min-height:0;overflow:hidden}
+.view{position:absolute;inset:0;display:none;flex-direction:column}
+.view.on{display:flex}
+#v-home{overflow:auto}
+.home{max-width:1080px;width:100%;margin:0 auto;padding:30px 28px 60px}
+.today{font-size:14px;color:var(--muted);margin:0 0 4px}
+.home h1{font-size:30px;line-height:1.15;margin:0 0 22px;font-weight:700;letter-spacing:-.3px;max-width:30ch}
+
+/* Dock doors */
+.dock{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:34px}
+.door{position:relative;text-align:left;border:0;padding:0;background:none;color:inherit;display:flex;flex-direction:column}
+.door-face{position:relative;height:150px;border-radius:10px 10px 4px 4px;background:
+  repeating-linear-gradient(180deg,#1b3560 0 17px,#14294b 17px 19px);overflow:hidden;
+  box-shadow:inset 0 0 0 1px #0a1a33}
+.door-face::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:repeating-linear-gradient(135deg,var(--spark) 0 10px,var(--ink) 10px 20px)}
+.door-num{position:absolute;left:16px;top:8px;font-size:78px;line-height:1;font-weight:700;font-stretch:75%;color:var(--spark)}
+.door-ico{position:absolute;right:14px;top:14px;width:34px;height:34px;color:#c9d6ee}
+.door-state{position:absolute;right:12px;bottom:20px;font-size:12px;font-weight:600;color:#fff;background:rgba(0,0,0,.35);padding:3px 8px;border-radius:5px;display:none}
+.door.alive .door-state{display:block}
+.door-txt{padding:10px 2px 0}
+.door-txt b{display:block;font-size:16px;font-weight:700}
+.door-txt span{display:block;font-size:13px;color:var(--muted);line-height:1.4}
+.door:hover .door-face{background:repeating-linear-gradient(180deg,#22417a 0 17px,#14294b 17px 19px)}
+.door:hover .door-txt b{color:var(--blue)}
+@media (prefers-reduced-motion:no-preference){
+  .door-face{transition:transform .18s ease}
+  .door:hover .door-face{transform:translateY(-3px)}
+}
+
+/* Section */
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 6px}
+.sec-h h2{font-size:20px;margin:0;font-weight:700}
+.sec-p{margin:0 0 14px;color:var(--muted);font-size:14px;max-width:72ch}
+.tpl-list{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tpl{display:grid;grid-template-columns:minmax(180px,1.1fr) minmax(200px,1.6fr) auto auto;gap:14px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
+.tpl:first-child{border-top:0}
+.tpl-name b{display:block;font-weight:700;font-size:15px}
+.tpl-name small{display:block;color:var(--muted);font-size:12.5px}
+.tpl-file{min-width:0}
+.tpl-file .fn{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-file .meta{font-size:12.5px;color:var(--muted)}
+.tpl-file .none{font-size:13.5px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap;border:1px solid}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.b-ok{color:var(--ok);background:#f1f9ee;border-color:#cde8c2}
+.b-stale{color:var(--warn);background:#fff8eb;border-color:#f6d9a4}
+.b-perm{color:var(--blue);background:#eef4ff;border-color:#c9daff}
+.b-none{color:var(--muted);background:#f3f5f8;border-color:var(--line)}
+.tpl-act{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:7px 12px;font-size:13.5px;font-weight:600}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-d);color:#fff}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+.btn.ghost:hover{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.tpl-add{padding:12px 18px;border-top:1px dashed var(--line);background:#fafbfd}
+.mode-note{font-size:12.5px;color:var(--muted);margin:10px 2px 0}
+.home-foot{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+
+/* ── Tool view ───────────────────────────────── */
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid var(--line);min-height:52px}
+.bar-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:9px;margin-right:6px}
+.bar-title .nav-num{flex:0 0 26px;height:26px;font-size:14px;background:var(--spark);color:var(--ink);border-bottom-color:#c89500}
+.bar-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#f7f9fc;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--text)}
+.chip:hover{border-color:var(--blue);color:var(--blue);background:#fff}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:#9aa6b8}
+.chip.ok .dot{background:var(--ok)}
+.chip.stale .dot{background:#e09a1a}
+.bar-msg{font-size:13px;padding:5px 10px;border-radius:7px;display:none;max-width:100%}
+.bar-msg.show{display:block}
+.bar-msg.ok{background:#f1f9ee;color:#215f05}
+.bar-msg.warn{background:#fff8eb;color:#7a4300}
+.bar-msg.info{background:#eef4ff;color:#103d8f}
+.bar-right{display:flex;gap:6px;margin-left:auto}
+.frame-wrap{flex:1;min-height:0;position:relative;background:var(--paper)}
+.frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--paper)}
+
+/* ── Correo del día ─────────────────────────── */
+#v-correo .scroll{flex:1;min-height:0;overflow:auto}
+.mail{max-width:940px;margin:0 auto;padding:22px 24px 60px}
+.mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.mcard h2{font-size:17px;margin:0 0 4px}
+.mcard .sub{font-size:13.5px;color:var(--muted);margin:0 0 12px}
+.date-line{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.date-line input[type=date]{font:inherit;font-size:16px;font-weight:700;padding:8px 11px;border:1.5px solid var(--blue);border-radius:8px;background:#f7f9ff}
+.dchips{display:flex;gap:6px;flex-wrap:wrap}
+.dchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600}
+.dchip:hover{border-color:var(--blue);color:var(--blue)}
+.dchip.sel{background:var(--blue);border-color:var(--blue);color:#fff}
+.src-note{font-size:13px;color:var(--muted);margin-top:8px}
+.facts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fact{font-size:13px;background:#f3f6fb;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.fact b{font-weight:700}
+.fact.bad{background:#fff8eb;border-color:#f6d9a4;color:#7a4300}
+.compose{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:16px}
+.compose-h{background:var(--ink);color:#fff;padding:10px 16px;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.compose-h small{color:#9fb2d3;font-weight:400}
+.crow{display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center;padding:6px 12px 6px 16px;border-bottom:1px solid var(--line)}
+.crow label{font-size:13px;color:var(--muted);font-weight:600}
+.crow input{font:inherit;font-size:14.5px;border:0;padding:7px 2px;width:100%;background:transparent;color:var(--text)}
+.crow input:focus,.cbody textarea:focus{outline:none;background:#f7f9ff}
+.cbody{padding:8px 12px 12px 16px;position:relative}
+.cbody textarea{font:inherit;font-size:14.5px;line-height:1.55;width:100%;min-height:230px;border:0;resize:vertical;padding:6px 2px;color:var(--text)}
+.cbody .btn{position:absolute;right:12px;top:10px}
+.copy{font-size:12.5px;padding:4px 10px}
+.attach-list{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.att{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+.att .an{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att .am{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.att input{width:17px;height:17px;accent-color:var(--blue)}
+.expect{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.exp{font-size:12.5px;font-weight:600;border-radius:999px;padding:4px 10px;border:1px solid}
+.exp.ok{color:var(--ok);background:#f1f9ee;border-color:#cde8c2}
+.exp.miss{color:var(--warn);background:#fff8eb;border-color:#f6d9a4}
+.dropbox{border:1.5px dashed #c7d0e0;border-radius:10px;padding:14px;text-align:center;font-size:13.5px;color:var(--muted);cursor:pointer}
+.dropbox.over,.dropbox:hover{border-color:var(--blue);background:#f7f9ff;color:var(--blue)}
+.send-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn.big{padding:11px 18px;font-size:15px}
+.hint{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:75ch}
+.warnbox{background:#fff8eb;border:1px solid #f6d9a4;color:#7a4300;border-radius:9px;padding:10px 14px;font-size:13.5px;margin-bottom:14px}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+@media (max-width:760px){ .crow{grid-template-columns:56px 1fr auto} .mail{padding:16px 12px 40px} .dock{grid-template-columns:repeat(2,1fr)} }
+
+/* ── Sugerido de envío ──────────────────────── */
+#v-sugerido .scroll{flex:1;min-height:0;overflow:auto}
+.envtab{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+.envtab table{border-collapse:collapse;width:100%;font-size:13px}
+.envtab th{position:sticky;top:0;background:#f3f6fb;text-align:left;font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
+.envtab td{padding:6px 9px;border-bottom:1px solid #edf0f5;white-space:nowrap}
+.envtab .n{text-align:right;font-variant-numeric:tabular-nums}
+.envtab td.sug{font-weight:700;color:var(--blue);background:#f5f8ff}
+.envtab th.sug{background:#e4ecff}
+.envtab td.tope{color:#7a4300}
+.envtab td.alto{color:var(--warn);font-weight:600}
+.envtab tr.dif td{background:#fffcf3}
+.envtab tr.dif td.sug{background:#fff3d6}
+.envtab .mut{color:var(--muted);font-size:12px}
+.envtab .mot{color:var(--muted);font-size:12.5px;white-space:normal;min-width:220px}
+#envio .mail, #envio{max-width:none}
+.envwrap{max-width:1280px;margin:0 auto;padding:22px 24px 60px}
+
+/* ── Dialog / toast ──────────────────────────── */
+dialog{border:0;border-radius:14px;padding:0;max-width:min(560px,92vw);width:100%;box-shadow:0 20px 60px rgba(13,33,64,.35);color:var(--text)}
+dialog::backdrop{background:rgba(13,33,64,.45)}
+.dlg{padding:22px 24px}
+.dlg h3{margin:0 0 6px;font-size:19px}
+.dlg p{margin:0 0 14px;color:var(--muted);font-size:14px}
+.dlg-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;max-height:52vh;overflow:auto}
+.dlg-opt{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 12px;text-align:left}
+.dlg-opt:hover{border-color:var(--blue);background:#f7f9ff}
+.dlg-opt small{color:var(--muted);font-size:12.5px}
+.dlg-opt.sug{border-color:var(--blue);box-shadow:inset 3px 0 0 var(--blue)}
+.dlg-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.field label{font-size:13px;font-weight:600}
+.field input{font:inherit;font-size:15px;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px}
+.field input:focus{border-color:var(--blue);outline:none}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:60;display:none;max-width:90vw}
+.toast.show{display:block}
+.hidden{display:none!important}
+
+/* ── Versión ─────────────────────────────────── */
+.ver{position:fixed;right:10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:40;font-size:11.5px;font-weight:600;letter-spacing:.2px;color:#5f6b7d;background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:6px;padding:2px 7px;pointer-events:none;user-select:none}
+@media (max-width:760px){ .ver{bottom:calc(66px + env(safe-area-inset-bottom,0px))} }
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width:980px){ .dock{grid-template-columns:repeat(2,1fr)} .tpl{grid-template-columns:1fr auto} .tpl-file{grid-column:1/-1;order:3} .tpl-act{grid-column:1/-1;order:4;justify-content:flex-start} }
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .rail{order:2;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ink-line)}
+  .brand,.nav-sep,.rail-foot{display:none}
+  .nav{flex-direction:row;flex:1;padding:0;gap:2px}
+  .nav-item{flex:1;flex-direction:column;gap:3px;padding:6px 2px;align-items:center;text-align:center}
+  .nav-item[aria-current="page"]::before{left:20%;right:20%;top:-6px;bottom:auto;width:auto;height:3px;border-radius:0 0 3px 3px}
+  .nav-txt small{display:none}
+  .nav-txt b{font-size:11px;white-space:normal;line-height:1.15}
+  .nav-live{position:absolute;top:6px;right:22%}
+  .main{order:1}
+  .home{padding:calc(20px + env(safe-area-inset-top,0px)) 16px 40px}
+  .home h1{font-size:24px}
+  .door-face{height:112px}
+  .door-num{font-size:60px}
+  .bar{padding-top:calc(8px + env(safe-area-inset-top,0px))}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Herramientas">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="">
+      <div><b>Envíos al CD</b><span>PANISA · CEDI Walmart</span></div>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div class="rail-foot">
+      <button class="rail-btn spark hidden" id="btn-update">Actualizar a la versión nueva</button>
+      <button class="rail-btn hidden" id="btn-install">Instalar la app</button>
+      <div class="net" id="net"><i></i><span>Con conexión</span></div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <section class="view on" id="v-home" aria-label="Inicio">
+      <div class="home">
+        <p class="today" id="today"></p>
+        <h1>¿Qué toca hoy en las entregas?</h1>
+
+        <div class="dock" id="dock"></div>
+
+        <div class="sec-h"><h2>Plantillas</h2></div>
+        <p class="sec-p" id="tpl-intro">Vinculá una vez los Excel que usás siempre. Cada herramienta los carga sola, y cuando actualizás el archivo en tu computadora la app lee la versión nueva sin volver a subirlo.</p>
+        <div class="tpl-list" id="tpl-list"></div>
+        <p class="mode-note" id="mode-note"></p>
+
+        <div class="home-foot">
+          <button class="btn" id="btn-offline">Preparar para usar sin internet</button>
+          <span id="offline-msg"></span>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="v-correo" aria-label="Correo del día">
+      <div class="bar"><div class="bar-title"><span class="nav-num">5</span>Correo del día</div>
+        <div class="bar-chips"><span class="chip" style="cursor:default;background:none;border-color:transparent;color:var(--muted);font-weight:400">Texto y destinatarios desde la pestaña eMAIL de Control OC</span></div>
+        <div class="bar-right"><button class="btn" id="mail-reload">Volver a leer Control OC</button></div>
+      </div>
+      <div class="scroll"><div class="mail" id="mail"></div></div>
+    </section>
+    <section class="view" id="v-sugerido" aria-label="Sugerido de envío">
+      <div class="bar"><div class="bar-title"><span class="nav-num">6</span>Sugerido de envío</div>
+        <div class="bar-chips"><span class="chip" style="cursor:default;background:none;border-color:transparent;color:var(--muted);font-weight:400">Columna I de la pestaña OC Table, solo para lo que pide la OC</span></div>
+      </div>
+      <div class="scroll"><div class="envwrap" id="envio"></div></div>
+    </section>
+    <!-- Las vistas de herramienta se crean bajo demanda -->
+  </main>
+</div>
+
+<div class="ver" aria-label="Versión de la app">V.2026.3</div>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script id="tool-sources" type="application/json">/*__TOOLS__*/</script>
+<script>
+'use strict';
+const APP_VERSION = '/*__VERSION__*/';
+const TOOL_SRC = JSON.parse(document.getElementById('tool-sources').textContent);
+
+// ═════════════ Catálogo de herramientas ═════════════
+const ICONS = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
+  ingreso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6M9 9h2"/></svg>',
+  entregas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h11v9H2z"/><path d="M13 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+  comprobador:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z"/><path d="M14 17l2.5 2.5L21 15"/></svg>',
+  sugerido:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  correo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/></svg>',
+  garita:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l4-3v15"/><path d="M7 12h14"/><path d="M10 12v-1M14 12v-1M18 12v-1"/><path d="M3 21h4"/></svg>',
+};
+const TOOLS = [
+  { id:'ingreso',     n:1, name:'Ingreso de pedidos',     short:'Pedidos',    desc:'OC en PDF a la plantilla CD PANISA, con FILTRAR y Hoja para Fragua.' },
+  { id:'entregas',    n:2, name:'Automatizador de entregas', short:'Entregas', desc:'Formularios y OC Listado de cada cita al Generador QR del día.' },
+  { id:'comprobador', n:3, name:'Comprobador de QR',      short:'Comprobar', desc:'Compara los PDF de QR contra el Consolidado u OC Listado.' },
+  { id:'garita',      n:4, name:'QR de garita',           short:'Garita',     desc:'Citas de la fecha de entrega desde Control OC, listas para imprimir.' },
+  { id:'correo',      n:5, name:'Correo del día',         short:'Correo',     desc:'Formulario de entrega a Walmart con QR y Consolidado adjuntos.', native:true },
+  { id:'sugerido',    n:6, name:'Sugerido de envío',      short:'Sugerido',   desc:'Calcula cuánto enviar por tienda e ítem, sin pasar lo que pide la OC.', native:true },
+];
+const toolById = id => TOOLS.find(t => t.id === id);
+
+// Destinos de archivo dentro de cada herramienta (input type=file)
+const TARGETS = [
+  { tool:'ingreso', input:'file-pdf',  label:'Orden de Compra (PDF)', ext:['pdf'] },
+  { tool:'ingreso', input:'file-xlsm', label:'Plantilla CD PANISA', ext:['xlsm'] },
+  { tool:'ingreso', input:'file-inv',  label:'Inventario diario', ext:['xlsm','xlsx'] },
+  { tool:'ingreso', input:'file-ctrl', label:'Control OC (cita del pedido)', ext:['xlsx','xlsm'] },
+  { tool:'entregas', input:'file-generador', label:'Generador de QR', ext:['xlsx'] },
+  ...[1,2,3,4].flatMap(n => [
+    { tool:'entregas', input:'file-formulario-'+n, label:'Formulario · cita '+n, ext:['xlsx'] },
+    { tool:'entregas', input:'file-oc-'+n, label:'OC Listado · cita '+n, ext:['xlsx'] },
+  ]),
+  { tool:'comprobador', input:'file-pdf-1', label:'PDF de QR 1', ext:['pdf'] },
+  { tool:'comprobador', input:'file-pdf-2', label:'PDF de QR 2', ext:['pdf'] },
+  { tool:'comprobador', input:'file-xlsx-1', label:'Excel 1 (Consolidado / OC Listado)', ext:['xlsx'] },
+  { tool:'comprobador', input:'file-xlsx-2', label:'Excel 2 (Consolidado / OC Listado)', ext:['xlsx'] },
+  { tool:'garita', input:'file-xlsx', label:'Control OC FBD POD', ext:['xlsx','xlsm'] },
+];
+
+// Tipos de plantilla vinculables
+const KINDS = {
+  cdpanisa:  { label:'Plantilla CD PANISA', help:'Una por Vendor Number · se actualiza cada semana', ext:['xlsm'], tool:'ingreso', input:'file-xlsm', staleDays:7, multi:true },
+  inventario:{ label:'Inventario diario', help:'Opcional · se copia a la pestaña INV', ext:['xlsm','xlsx'], tool:'ingreso', input:'file-inv', staleDays:1 },
+  generador: { label:'Generador de QR', help:'Plantilla con las 4 pestañas de cita', ext:['xlsx'], tool:'entregas', input:'file-generador', staleDays:null },
+  controloc: { label:'Control OC FBD POD', help:'Se actualiza a diario · garita, cita del pedido y correo', ext:['xlsx','xlsm'], tool:'garita', input:'file-xlsx', staleDays:1, also:{ ingreso:'file-ctrl' } },
+};
+const HAS_DIR = 'showDirectoryPicker' in window;
+if (HAS_DIR) KINDS.calculos = { label:'Carpeta de cálculos de envío', help:'Los Excel tipo "07_Octubre_2026_Panisa_2.xlsm" (pestaña OC Table)', dir:true, tool:'sugerido', staleDays:null };
+if (HAS_DIR) KINDS.carpeta = { label:'Carpeta de archivos generados', help:'Donde guardás los PDF de QR y el Generador QR del Automatizador', dir:true, tool:'correo', staleDays:null };
+const KIND_ORDER = ['cdpanisa','inventario','generador','controloc'].concat(HAS_DIR ? ['carpeta','calculos'] : []);
+
+// ═════════════ Utilidades ═════════════
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const extOf = name => (String(name).toLowerCase().match(/\.([a-z0-9]+)$/) || [,''])[1];
+const HAS_PICKER = 'showOpenFilePicker' in window;
+let toastTimer;
+function toast(msg, ms = 4200) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-GT', { weekday:'short', day:'numeric', month:'short' }) + ', ' + d.toLocaleTimeString('es-GT', { hour:'2-digit', minute:'2-digit' });
+}
+function startOfDay(d = new Date()) { const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+function vendorFromName(name) {
+  const m = String(name).match(/vendor\s*nbr[_\s-]*(\d{6,})/i) || String(name).match(/(?:^|\D)(\d{9})(?:\D|$)/);
+  return m ? m[1] : '';
+}
+
+// ═════════════ IndexedDB (plantillas + ajustes) ═════════════
+const DB = (() => {
+  let p;
+  const open = () => p || (p = new Promise((res, rej) => {
+    const r = indexedDB.open('envios-cd', 2);
+    r.onupgradeneeded = () => {
+      const db = r.result, names = db.objectStoreNames;
+      if (!names.contains('templates')) db.createObjectStore('templates', { keyPath:'id' });
+      if (!names.contains('kv')) db.createObjectStore('kv');
+      if (!names.contains('outputs')) db.createObjectStore('outputs', { keyPath:'id' });
+    };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const tx = async (store, mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction(store, mode); const s = t.objectStore(store); const out = fn(s); t.oncomplete = () => res(out && 'result' in out ? out.result : out); t.onerror = () => rej(t.error); }); };
+  return {
+    all: () => tx('templates', 'readonly', s => s.getAll()),
+    put: rec => tx('templates', 'readwrite', s => s.put(rec)),
+    del: id => tx('templates', 'readwrite', s => s.delete(id)),
+    get: k => tx('kv', 'readonly', s => s.get(k)),
+    set: (k, v) => tx('kv', 'readwrite', s => s.put(v, k)),
+    outAll: () => tx('outputs', 'readonly', s => s.getAll()),
+    outPut: rec => tx('outputs', 'readwrite', s => s.put(rec)),
+    outDel: id => tx('outputs', 'readwrite', s => s.delete(id)),
+  };
+})();
+
+let templates = [];
+async function loadTemplates() { try { templates = await DB.all(); } catch (e) { templates = []; } }
+
+// Devuelve el File actual de una plantilla. interactive=true solo dentro de un clic.
+async function fileFromTemplate(rec, interactive) {
+  if (rec.mode === 'handle' && rec.handle) {
+    let perm = await rec.handle.queryPermission({ mode:'read' });
+    if (perm !== 'granted' && interactive) perm = await rec.handle.requestPermission({ mode:'read' });
+    if (perm !== 'granted') { const e = new Error('Sin permiso'); e.code = 'perm'; throw e; }
+    const f = await rec.handle.getFile();
+    if (f.lastModified !== rec.lastModified || f.size !== rec.size) {
+      rec.lastModified = f.lastModified; rec.size = f.size; rec.name = f.name;
+      DB.put(rec).catch(() => {});
+    }
+    return f;
+  }
+  if (rec.blob) return new File([rec.blob], rec.name, { lastModified: rec.lastModified });
+  throw new Error('Plantilla sin archivo');
+}
+async function templateState(rec) {
+  if (!rec) return 'none';
+  if (rec.mode === 'dir') { try { return (await rec.handle.queryPermission({ mode:'read' })) === 'granted' ? 'ok' : 'perm'; } catch (e) { return 'missing'; } }
+  if (rec.mode === 'handle') {
+    try { if ((await rec.handle.queryPermission({ mode:'read' })) !== 'granted') return 'perm'; await fileFromTemplate(rec, false); }
+    catch (e) { return e.code === 'perm' ? 'perm' : 'missing'; }
+  }
+  const k = KINDS[rec.kind];
+  if (k.staleDays === 1) return rec.lastModified >= startOfDay() ? 'ok' : 'stale';
+  if (k.staleDays) return (Date.now() - rec.lastModified) <= k.staleDays * 864e5 ? 'ok' : 'stale';
+  return 'ok';
+}
+const STATE_BADGE = {
+  ok:     ['b-ok', 'Al día'],
+  dirok:  ['b-ok', 'Con acceso'],
+  stale:  ['b-stale', 'Revisar si está actualizado'],
+  perm:   ['b-perm', 'Falta dar acceso'],
+  missing:['b-stale', 'No se encuentra el archivo'],
+  none:   ['b-none', 'Sin vincular'],
+};
+
+// Vincular: con handle (Chrome/Edge en PC) o copia guardada (resto)
+async function pickFile(kind) {
+  const k = KINDS[kind];
+  if (HAS_PICKER) {
+    try {
+      const [h] = await window.showOpenFilePicker({ multiple:false, types:[{ description:k.label, accept:{ 'application/octet-stream': k.ext.map(e => '.' + e) } }] });
+      const f = await h.getFile();
+      return { file:f, handle:h };
+    } catch (e) { if (e.name === 'AbortError') return null; console.warn(e); }
+  }
+  return new Promise(res => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = k.ext.map(e => '.' + e).join(',');
+    inp.onchange = () => res(inp.files[0] ? { file: inp.files[0], handle: null } : null);
+    inp.click();
+  });
+}
+async function linkTemplate(kind, existingId) {
+  if (KINDS[kind].dir) {
+    let h; try { h = await window.showDirectoryPicker({ id:'envios-cd-' + kind, mode:'read' }); } catch (e) { return; }
+    const cur = templates.find(t => t.kind === kind);
+    await DB.put({ id: cur ? cur.id : kind, kind, name:h.name, mode:'dir', handle:h, lastModified:Date.now(), linkedAt:Date.now(), size:0 });
+    await loadTemplates(); renderHome(); refreshBars(); if (current === 'correo') renderCorreo(); if (current === 'sugerido') openEnvio(true);
+    toast('Carpeta "' + h.name + '" vinculada.');
+    return;
+  }
+  const picked = await pickFile(kind);
+  if (!picked) return;
+  const { file, handle } = picked;
+  if (!KINDS[kind].ext.includes(extOf(file.name))) { toast('Ese archivo no es ' + KINDS[kind].ext.map(e => '.' + e).join(' / ') + '.'); return; }
+  const rec = { id: existingId || (kind + '-' + Date.now()), kind, name:file.name, size:file.size, lastModified:file.lastModified, linkedAt:Date.now(),
+    mode: handle ? 'handle' : 'copy', handle: handle || null, blob: handle ? null : file };
+  if (kind === 'cdpanisa') {
+    let vendor = '';
+    try { vendor = await readVendorFromXlsm(file); } catch (e) {}
+    rec.vendor = vendor || vendorFromName(file.name);
+    if (!rec.vendor) rec.vendor = await askVendor(file.name);
+    if (!rec.vendor) return;
+    const dup = templates.find(t => t.kind === 'cdpanisa' && t.vendor === rec.vendor && t.id !== rec.id);
+    if (dup) rec.id = dup.id;
+  } else if (!KINDS[kind].multi) {
+    const cur = templates.find(t => t.kind === kind); if (cur) rec.id = cur.id;
+  }
+  await DB.put(rec); await loadTemplates(); renderHome(); refreshBars();
+  toast((rec.vendor ? 'Plantilla del vendor ' + rec.vendor : KINDS[kind].label) + ' vinculada.');
+}
+async function unlinkTemplate(id) {
+  const rec = templates.find(t => t.id === id); if (!rec) return;
+  const ok = await confirmDlg('Quitar plantilla', 'Se deja de cargar "' + rec.name + '" automáticamente. El archivo en tu computadora no se toca.', 'Quitar');
+  if (!ok) return;
+  await DB.del(id); await loadTemplates(); renderHome(); refreshBars();
+}
+async function grantAll() {
+  for (const rec of templates.filter(t => t.mode === 'handle')) {
+    try { await rec.handle.requestPermission({ mode:'read' }); } catch (e) {}
+  }
+  renderHome(); refreshBars();
+}
+
+// Lee el Vendor Number desde dentro del .xlsm usando el motor de "Ingreso de pedidos"
+let helperFrame = null;
+function ingresoHelper() {
+  if (helperFrame) return helperFrame;
+  helperFrame = new Promise(res => {
+    const f = document.createElement('iframe');
+    f.hidden = true; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+    f.addEventListener('load', () => res(f.contentWindow), { once:true });
+    f.srcdoc = TOOL_SRC.ingreso;
+    document.body.appendChild(f);
+  });
+  return helperFrame;
+}
+async function readVendorFromXlsm(file) {
+  const w = await ingresoHelper();
+  if (typeof w.getVendorNumber !== 'function') return '';
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const r = await w.getVendorNumber(bytes, w.eval('browserIo'));
+  return r ? String(r).trim() : '';
+}
+
+// ═════════════ Diálogos ═════════════
+function openDlg(html) { const d = $('dlg'); d.innerHTML = html; d.showModal(); return d; }
+function confirmDlg(title, text, okLabel) {
+  return new Promise(res => {
+    const d = openDlg('<div class="dlg"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p><div class="dlg-row"><button class="btn" data-a="no">Cancelar</button><button class="btn primary" data-a="ok">' + esc(okLabel) + '</button></div></div>');
+    d.onclick = e => { const a = e.target.closest('[data-a]'); if (!a) return; d.close(); res(a.dataset.a === 'ok'); };
+    d.oncancel = () => res(false);
+  });
+}
+function askVendor(fileName) {
+  return new Promise(res => {
+    const d = openDlg('<form class="dlg" method="dialog"><h3>¿De qué Vendor Number es?</h3><p>No encontré el Vendor Number dentro de "' + esc(fileName) + '". Escribilo para que la app sepa cuándo usar esta plantilla.</p>' +
+      '<div class="field"><label for="vn">Vendor Number</label><input id="vn" inputmode="numeric" pattern="\\d{6,}" required placeholder="240502811"></div>' +
+      '<div class="dlg-row"><button class="btn" value="no" formnovalidate>Cancelar</button><button class="btn primary" value="ok">Guardar</button></div></form>');
+    d.onclose = () => res(d.returnValue === 'ok' ? d.querySelector('#vn').value.trim() : '');
+  });
+}
+
+// ═════════════ Navegación y vistas ═════════════
+const views = {}; // id -> { section, frame, ready:Promise, alive }
+let current = 'home';
+
+function renderNav() {
+  $('nav').innerHTML =
+    '<button class="nav-item" data-go="home"><span class="nav-num">' + ICONS.home + '</span><span class="nav-txt"><b>Inicio</b><small>Plantillas y estado</small></span></button>' +
+    '<div class="nav-sep"></div>' +
+    TOOLS.map(t => '<button class="nav-item" data-go="' + t.id + '"><span class="nav-num">' + t.n + '</span><span class="nav-txt"><b><span class="long">' + esc(t.name) + '</span></b><small>' + esc(t.desc.split(',')[0].split('.')[0]) + '</small></span><span class="nav-live" title="Abierta"></span></button>').join('');
+  // Nombres cortos en móvil
+  const mq = matchMedia('(max-width:760px)');
+  const swap = () => document.querySelectorAll('#nav .nav-item').forEach(b => {
+    const t = toolById(b.dataset.go); const el = b.querySelector('.long'); if (t && el) el.textContent = mq.matches ? t.short : t.name;
+  });
+  mq.addEventListener('change', swap); swap();
+  $('nav').onclick = e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go, { user:true }); };
+}
+function renderDock() {
+  $('dock').innerHTML = TOOLS.map(t =>
+    '<button class="door" data-go="' + t.id + '"><div class="door-face"><span class="door-num">' + t.n + '</span><span class="door-ico">' + ICONS[t.id] + '</span><span class="door-state">Abierta</span></div>' +
+    '<div class="door-txt"><b>' + esc(t.name) + '</b><span>' + esc(t.desc) + '</span></div></button>').join('');
+  $('dock').onclick = e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go, { user:true }); };
+}
+function markAlive() {
+  TOOLS.filter(t => !t.native).forEach(t => {
+    const alive = !!(views[t.id] && views[t.id].alive);
+    document.querySelectorAll('[data-go="' + t.id + '"]').forEach(el => el.classList.toggle('alive', alive));
+  });
+}
+
+function go(id, opts = {}) {
+  current = id;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.querySelectorAll('#nav .nav-item').forEach(b => { if (b.dataset.go === id) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  if (id === 'home') { $('v-home').classList.add('on'); renderHome(); if (location.hash) history.replaceState(null, '', location.pathname + location.search); return; }
+  if (id === 'sugerido') { $('v-sugerido').classList.add('on'); if (location.hash !== '#sugerido') history.replaceState(null, '', '#sugerido'); openEnvio(!!opts.user); return; }
+  if (id === 'correo') { $('v-correo').classList.add('on'); if (location.hash !== '#correo') history.replaceState(null, '', '#correo'); openCorreo(!!opts.user); return; }
+  const v = ensureView(id, {});
+  v.section.classList.add('on');
+  if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+  v.ready.then(() => onToolShown(id, opts)).catch(() => {});
+  return v;
+}
+
+function ensureView(id, { background } = {}) {
+  if (views[id]) return background ? views[id].ready.then(() => views[id]) : views[id];
+  const t = toolById(id);
+  const sec = document.createElement('section');
+  sec.className = 'view'; sec.id = 'v-' + id; sec.setAttribute('aria-label', t.name);
+  sec.innerHTML =
+    '<div class="bar"><div class="bar-title"><span class="nav-num">' + t.n + '</span>' + esc(t.name) + '</div>' +
+    '<div class="bar-chips" data-chips></div>' +
+    '<div class="bar-right"><button class="btn" data-act="reset" title="Vuelve la herramienta a su estado inicial">Empezar de cero</button></div>' +
+    '<div class="bar-msg" data-msg style="flex-basis:100%"></div></div>' +
+    '<div class="frame-wrap"></div>';
+  document.querySelector('.main').appendChild(sec);
+  const frame = document.createElement('iframe');
+  frame.title = t.name;
+  frame.setAttribute('allow', 'clipboard-write');
+  const v = { id, section:sec, frame, alive:true, bar:sec.querySelector('.bar') };
+  v.ready = new Promise(res => frame.addEventListener('load', () => { wireTool(v); res(v); }, { once:true }));
+  frame.srcdoc = TOOL_SRC[id];
+  sec.querySelector('.frame-wrap').appendChild(frame);
+  sec.querySelector('[data-act="reset"]').onclick = () => resetTool(id);
+  views[id] = v;
+  markAlive();
+  renderBar(id);
+  return background ? v.ready : v;
+}
+async function resetTool(id) {
+  const v = views[id]; if (!v) return;
+  const ok = await confirmDlg('Empezar de cero', 'Se borran los archivos cargados y los resultados de "' + toolById(id).name + '" en esta sesión. Tus archivos guardados no se tocan.', 'Empezar de cero');
+  if (!ok) return;
+  v.section.remove(); delete views[id]; markAlive();
+  go(id, { user:true });
+}
+
+// ═════════════ Barra de cada herramienta ═════════════
+function barMsg(id, text, kind = 'info') {
+  const v = views[id]; if (!v) return;
+  const m = v.bar.querySelector('[data-msg]');
+  m.className = 'bar-msg ' + (text ? 'show ' + kind : '');
+  m.textContent = text || '';
+}
+async function renderBar(id) {
+  const v = views[id]; if (!v) return;
+  const box = v.bar.querySelector('[data-chips]');
+  const kinds = KIND_ORDER.filter(k => KINDS[k].tool === id || (KINDS[k].also && KINDS[k].also[id]));
+  if (!kinds.length) { box.innerHTML = '<span class="chip" style="cursor:default;background:none;border-color:transparent;color:var(--muted);font-weight:400">Cargá los PDF y Excel en la herramienta.</span>'; return; }
+  const chips = [];
+  for (const k of kinds) {
+    const recs = templates.filter(t => t.kind === k).sort((a, b) => (a.vendor || '').localeCompare(b.vendor || ''));
+    if (!recs.length) { chips.push('<button class="chip" data-link="' + k + '"><span class="dot"></span>Vincular ' + esc(KINDS[k].label) + '</button>'); continue; }
+    for (const r of recs) {
+      const st = await templateState(r);
+      const cls = st === 'ok' ? 'ok' : (st === 'stale' || st === 'missing') ? 'stale' : '';
+      const label = 'Cargar ' + (k === 'cdpanisa' ? 'CD PANISA ' + r.vendor : KINDS[k].label);
+      chips.push('<button class="chip ' + cls + '" data-use="' + esc(r.id) + '" title="' + esc(r.name + ' · modificado ' + fmtDate(r.lastModified)) + '"><span class="dot"></span>' + esc(label) + '</button>');
+    }
+  }
+  box.innerHTML = chips.join('');
+  box.onclick = async e => {
+    const u = e.target.closest('[data-use]'); const l = e.target.closest('[data-link]');
+    if (l) { await linkTemplate(l.dataset.link); return; }
+    if (!u) return;
+    const rec = templates.find(t => t.id === u.dataset.use);
+    try { await injectTemplate(id, rec, true); }
+    catch (err) { barMsg(id, err.code === 'perm' ? 'Hace falta dar acceso al archivo para cargarlo.' : 'No se pudo leer "' + rec.name + '". ¿Se movió o cambió de nombre? Volvé a vincularlo en Inicio.', 'warn'); }
+  };
+}
+function refreshBars() { Object.keys(views).forEach(renderBar); }
+
+// ═════════════ Inyección de archivos en las herramientas ═════════════
+let injecting = false;
+async function injectFile(id, inputId, file) {
+  const v = await ensureView(id, { background:true });
+  const w = v.frame.contentWindow, d = v.frame.contentDocument;
+  const input = d.getElementById(inputId);
+  if (!input) throw new Error('No encontré el campo ' + inputId);
+  const dt = new w.DataTransfer();
+  dt.items.add(new w.File([file], file.name, { type:file.type, lastModified:file.lastModified }));
+  injecting = true;
+  try { input.files = dt.files; input.dispatchEvent(new w.Event('change', { bubbles:true })); }
+  finally { injecting = false; }
+}
+async function injectTemplate(id, rec, interactive) {
+  const f = await fileFromTemplate(rec, interactive);
+  const k = KINDS[rec.kind];
+  await injectFile(id, (k.also && k.also[id]) || k.input, f);
+  if (id === 'ingreso' && rec.kind === 'cdpanisa') ingresoState.autoXlsm = rec.vendor;
+  const stale = (await templateState(rec)) === 'stale';
+  barMsg(id, 'Cargado: ' + f.name + ' (modificado ' + fmtDate(f.lastModified) + ')' + (stale ? '. Ojo: no parece actualizado.' : '.'), stale ? 'warn' : 'ok');
+  return f;
+}
+function filledIn(id, nameElId) {
+  const v = views[id]; if (!v) return false;
+  const el = v.frame.contentDocument.getElementById(nameElId);
+  return !!(el && el.textContent.trim());
+}
+
+// Al abrir una herramienta: carga automática de la plantilla fija
+async function onToolShown(id, { user }) {
+  const autoKind = { entregas:'generador', garita:'controloc' }[id];
+  if (!autoKind) return;
+  const nameEl = { entregas:'name-generador', garita:'name-xlsx' }[id];
+  if (filledIn(id, nameEl)) return;
+  const rec = templates.find(t => t.kind === autoKind);
+  if (!rec) return;
+  try { await injectTemplate(id, rec, !!user); }
+  catch (err) { barMsg(id, err.code === 'perm' ? 'Tocá "Cargar ' + KINDS[autoKind].label + '" arriba para dar acceso al archivo.' : 'No se pudo leer "' + rec.name + '". Volvé a vincularlo en Inicio.', 'warn'); }
+}
+
+// Conexiones propias de cada herramienta
+const ingresoState = { autoXlsm: null };
+function wireTool(v) {
+  if (v.id === 'entregas') {
+    const w = v.frame.contentWindow, orig = w.saveWithPicker;
+    if (typeof orig === 'function') {
+      w.saveWithPicker = async function (blob, name, ...rest) {
+        const r = await orig.call(this, blob, name, ...rest);
+        if (r !== 'cancelled' && /\.xlsx$/i.test(name)) saveOutput(name, blob);
+        return r;
+      };
+    }
+    return;
+  }
+  if (v.id !== 'ingreso') return;
+  const d = v.frame.contentDocument;
+  const onPdf = f => { if (f && extOf(f.name) === 'pdf') ingresoPdfLoaded(f); };
+  d.getElementById('file-pdf').addEventListener('change', e => onPdf(e.target.files && e.target.files[0]));
+  d.getElementById('dz-pdf').addEventListener('drop', e => onPdf(e.dataTransfer && e.dataTransfer.files[0]), true);
+  const manual = () => { if (!injecting) ingresoState.autoXlsm = null; };
+  d.getElementById('file-xlsm').addEventListener('change', manual);
+  d.getElementById('dz-xlsm').addEventListener('drop', manual, true);
+  d.getElementById('clear-xlsm').addEventListener('click', manual);
+}
+async function ingresoPdfLoaded(file) {
+  const v = views.ingreso, w = v.frame.contentWindow;
+  let info = null;
+  try { info = await w.getPdfHeaderInfo(new Uint8Array(await file.arrayBuffer()), w.eval('browserIo')); } catch (e) {}
+  const sup = info && info.supplierNumber ? String(info.supplierNumber).trim() : '';
+  if (!sup) { barMsg('ingreso', 'No pude leer el Supplier Number del PDF. Elegí la plantilla a mano.', 'warn'); return; }
+  const po = info.poNumber ? ' (PO ' + info.poNumber + ')' : '';
+  const xlsmFilled = filledIn('ingreso', 'fname-xlsm');
+  const rec = templates.find(t => t.kind === 'cdpanisa' && t.vendor === sup);
+  const msgs = [];
+  if (xlsmFilled && !ingresoState.autoXlsm) {
+    msgs.push('PDF del vendor ' + sup + po + '. Dejé la plantilla que elegiste.');
+  } else if (!rec) {
+    msgs.push('PDF del vendor ' + sup + po + '. No hay plantilla CD PANISA vinculada para ese vendor; cargala a mano o vinculala en Inicio.');
+  } else if (ingresoState.autoXlsm === sup && xlsmFilled) {
+    msgs.push('PDF del vendor ' + sup + po + '. La plantilla ya estaba cargada.');
+  } else {
+    try {
+      const f = await injectTemplate('ingreso', rec, false);
+      msgs.push('PDF del vendor ' + sup + po + ' → cargué "' + f.name + '" automáticamente.');
+    } catch (err) {
+      barMsg('ingreso', 'PDF del vendor ' + sup + po + '. Tocá "Cargar CD PANISA ' + sup + '" arriba para dar acceso a la plantilla.', 'info');
+      return;
+    }
+  }
+  const ctrl = templates.find(t => t.kind === 'controloc');
+  if (ctrl && !filledIn('ingreso', 'fname-ctrl')) {
+    try { await injectFile('ingreso', 'file-ctrl', await fileFromTemplate(ctrl, false)); msgs.push('Cargué el Control OC para la cita.'); }
+    catch (e) { msgs.push('El Control OC necesita acceso: tocá "Cargar Control OC FBD POD".'); }
+  }
+  const inv = templates.find(t => t.kind === 'inventario');
+  if (inv && !filledIn('ingreso', 'fname-inv')) {
+    try { await injectFile('ingreso', 'file-inv', await fileFromTemplate(inv, false)); msgs.push('También cargué el inventario "' + inv.name + '".'); }
+    catch (e) { msgs.push('El inventario necesita acceso: tocá "Cargar Inventario diario".'); }
+  }
+  barMsg('ingreso', msgs.join(' '), msgs[0].includes('No hay') ? 'warn' : 'ok');
+}
+
+// ═════════════ Correo del día ═════════════
+// Replica la pestaña eMAIL de Control OC: I1 = fecha de entrega; I2/I3 = OC de
+// cada vendor ese día; I4/I8 = citas; I5..I7 = día, número de día y hora.
+// Asunto = K1, cuerpo = K3:K11, Para = K13, CC = K14.
+const MAIL_FROM_DEFAULT = 'pamericana.gt@gmail.com';
+const mail = { data:null, dataKey:'', fecha:'', fechaSrc:'', fields:null, manual:[], found:[], excluded:new Set(), otroSeen:new Set(), scanning:false };
+
+// Ayudante oculto con el motor de lectura de Excel de "QR de garita"
+const helpers = {};
+function toolHelper(id) {
+  if (helpers[id]) return helpers[id];
+  helpers[id] = new Promise(res => {
+    const f = document.createElement('iframe');
+    f.hidden = true; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+    f.addEventListener('load', () => res(f.contentWindow), { once:true });
+    f.srcdoc = TOOL_SRC[id];
+    document.body.appendChild(f);
+  });
+  return helpers[id];
+}
+
+// Lee todas las celdas de una hoja: { A1: { v, f } }
+async function readSheetCells(w, buf, sheetName) {
+  const entries = w.readZipDirectory(buf);
+  const wbDoc = w.parseXml(await w.readZipText(buf, entries, 'xl/workbook.xml'), 'workbook.xml');
+  const relDoc = w.parseXml(await w.readZipText(buf, entries, 'xl/_rels/workbook.xml.rels'), 'rels');
+  const relTarget = {};
+  Array.from(relDoc.getElementsByTagName('Relationship')).forEach(r => { relTarget[r.getAttribute('Id')] = r.getAttribute('Target'); });
+  const sh = Array.from(wbDoc.getElementsByTagName('sheet')).find(s => s.getAttribute('name').trim().toLowerCase() === sheetName.toLowerCase());
+  if (!sh) return null;
+  const path = w.resolvePath('xl/workbook.xml', relTarget[w.relAttr(sh, 'id')] || '');
+  const sst = [];
+  const sstText = await w.readZipText(buf, entries, 'xl/sharedStrings.xml');
+  if (sstText) {
+    const sis = w.parseXml(sstText, 'sst').getElementsByTagName('si');
+    for (let i = 0; i < sis.length; i++) sst.push(Array.from(sis[i].getElementsByTagName('t')).map(t => t.textContent).join(''));
+  }
+  const doc = w.parseXml(await w.readZipText(buf, entries, path), sheetName);
+  const out = {};
+  Array.from(doc.getElementsByTagName('c')).forEach(c => {
+    const t = c.getAttribute('t'); const vEl = c.getElementsByTagName('v')[0]; const fEl = c.getElementsByTagName('f')[0];
+    const raw = vEl ? vEl.textContent : null;
+    let v = null;
+    if (t === 's') v = raw == null ? null : sst[parseInt(raw, 10)];
+    else if (t === 'inlineStr') v = Array.from(c.getElementsByTagName('t')).map(x => x.textContent).join('');
+    else if (t === 'str' || t === 'e') v = raw;
+    else if (raw != null && raw !== '') v = parseFloat(raw);
+    out[c.getAttribute('r')] = { v, f: fEl ? fEl.textContent : '' };
+  });
+  return out;
+}
+
+async function loadMailData(interactive) {
+  const rec = templates.find(t => t.kind === 'controloc');
+  if (!rec) { const e = new Error('Vinculá el Control OC FBD POD en Inicio.'); e.code = 'nolink'; throw e; }
+  const file = await fileFromTemplate(rec, interactive);
+  const key = file.name + '|' + file.lastModified + '|' + file.size;
+  if (mail.data && mail.dataKey === key) return mail.data;
+  const w = await toolHelper('garita');
+  const buf = await file.arrayBuffer();
+  const table = await w.readTable(buf, 'PANISA', 'OCs');
+  const records = w.buildRecords(table);
+  const cells = await readSheetCells(w, buf, 'eMAIL');
+  if (!cells) throw new Error('El Control OC no tiene la pestaña "eMAIL".');
+  const dv = await readSheetCells(w, buf, 'Data Val');
+  const dayMap = {};
+  if (dv) for (let r = 2; r <= 8; r++) { const en = dv['E' + r] && dv['E' + r].v, es = dv['F' + r] && dv['F' + r].v; if (en && es) dayMap[String(en).trim().toLowerCase()] = String(es).trim(); }
+  mail.data = { file, records, cells, dayMap };
+  mail.dataKey = key;
+  return mail.data;
+}
+
+const EN_DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+const ES_DAYS = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+function hm12(hhmm) { const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || ''); if (!m) return ''; let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; }
+function ymdDate(ymd) { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d); }
+
+// Calcula la columna I de eMAIL para la fecha elegida
+function computeI(data, fecha) {
+  const { records, cells, dayMap } = data;
+  const vend = ref => { const m = /"(\d{6,})"/.exec((cells[ref] && cells[ref].f) || ''); return m ? m[1] : (ref === 'I2' ? '240502812' : '240502811'); };
+  const v2 = vend('I2'), v3 = vend('I3');
+  const ocOf = v => { const r = records.find(x => x.fecha === fecha && x.vendor === v); return r ? r.oc : 'No hay OC'; };
+  const citaOf = oc => { const r = records.find(x => x.oc === oc); return r ? (r.cita || '0') : 'NO HAY CITA'; };
+  const I = {};
+  I.I1 = fecha.split('-').reverse().join('/');
+  I.I2 = ocOf(v2); I.I3 = ocOf(v3);
+  I.I4 = citaOf(I.I2); I.I8 = citaOf(I.I3);
+  const dow = ymdDate(fecha).getDay();
+  I.I5 = String(dayMap[EN_DAYS[dow]] || ES_DAYS[dow]).toUpperCase();
+  I.I6 = fecha.slice(8, 10);
+  const rc = records.find(x => x.cita === I.I4);
+  I.I7 = rc && rc.hora ? hm12(rc.hora) : 'NO HAY HORA DE ENTREGA';
+  return { I, vendors: [v2, v3] };
+}
+
+// Evalúa CONCAT("texto", I$4, ...) o "a"&B1 con los valores calculados
+function evalConcat(formula, lookup) {
+  let s = String(formula || '').trim().replace(/^=/, '');
+  const m = /^(?:_xlfn\.)?CONCAT(?:ENATE)?\(([\s\S]*)\)$/i.exec(s);
+  const parts = [];
+  let cur = '', q = false, depth = 0;
+  const body = m ? m[1] : s, sep = m ? ',' : '&';
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === '"') { if (q && body[i + 1] === '"') { cur += '""'; i++; continue; } q = !q; cur += ch; continue; }
+    if (!q && ch === '(') depth++;
+    if (!q && ch === ')') depth--;
+    if (!q && depth === 0 && ch === sep) { parts.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  parts.push(cur);
+  return parts.map(p => {
+    p = p.trim();
+    let mm = /^"([\s\S]*)"$/.exec(p);
+    if (mm) return mm[1].replace(/""/g, '"');
+    mm = /^(?:'?[^!']+'?!)?\$?([A-Z]{1,3})\$?(\d+)$/.exec(p);
+    if (mm) return lookup(mm[1] + mm[2]);
+    throw new Error('fórmula no soportada');
+  }).join('');
+}
+function cellText(v) { if (v == null) return ''; if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(v); return String(v); }
+
+function buildFields(data, fecha) {
+  const { cells } = data;
+  const { I, vendors } = computeI(data, fecha);
+  const issues = [];
+  const lookup = ref => (ref in I) ? I[ref] : cellText(cells[ref] && cells[ref].v);
+  const val = ref => {
+    const c = cells[ref];
+    if (!c) return '';
+    if (c.f) { try { return evalConcat(c.f, lookup); } catch (e) { issues.push('La celda ' + ref + ' tiene una fórmula que la app no reproduce; se usa el último valor guardado en Excel.'); return cellText(c.v); } }
+    return cellText(c.v);
+  };
+  const subject = val('K1').trim();
+  const lines = []; for (let r = 3; r <= 11; r++) lines.push(val('K' + r).replace(/\s+$/, ''));
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  if (I.I2 === 'No hay OC') issues.push('No hay OC del vendor ' + vendors[0] + ' con fecha de entrega ' + I.I1 + '.');
+  if (I.I3 === 'No hay OC') issues.push('No hay OC del vendor ' + vendors[1] + ' con fecha de entrega ' + I.I1 + '.');
+  if (I.I2 !== 'No hay OC' && !/\d/.test(I.I4)) issues.push('La OC ' + I.I2 + ' no tiene cita asignada.');
+  if (I.I3 !== 'No hay OC' && !/\d/.test(I.I8)) issues.push('La OC ' + I.I3 + ' no tiene cita asignada.');
+  if (/NO HAY/.test(I.I7)) issues.push('La cita ' + I.I4 + ' no tiene hora de entrega.');
+  return {
+    I, issues,
+    to: cellText(cells.K13 && cells.K13.v).trim(),
+    cc: cellText(cells.K14 && cells.K14.v).trim(),
+    subject, body: lines.join('\n'),
+    ocs: [I.I2, I.I3].filter(x => /^\d+$/.test(x)),
+  };
+}
+
+function garitaFecha() {
+  const v = views.garita;
+  try { return v ? (v.frame.contentWindow.eval('state.fecha') || '') : ''; } catch (e) { return ''; }
+}
+function todayYMD() { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
+function upcomingDates(data) {
+  const t = todayYMD();
+  const vset = new Set(computeI(data, t).vendors);
+  return Array.from(new Set(data.records.filter(r => vset.has(r.vendor) && r.fecha >= t).map(r => r.fecha))).sort().slice(0, 6);
+}
+function chipDate(ymd) { const d = ymdDate(ymd); return d.toLocaleDateString('es-GT', { weekday:'short', day:'2-digit', month:'short' }); }
+
+// ── Adjuntos ──
+async function saveOutput(name, blob) {
+  try {
+    await DB.outPut({ id:name, name, blob, savedAt:Date.now() });
+    const all = await DB.outAll();
+    for (const o of all) if (Date.now() - o.savedAt > 30 * 864e5) await DB.outDel(o.id);
+    if (current === 'correo') scanAttachments().then(renderCorreo);
+  } catch (e) {}
+}
+function matchFile(name, ocs) {
+  const n = name.toLowerCase();
+  if (/\.pdf$/.test(n)) {
+    const m = /orden de compra\s*(\d+)\s*cita\s*(\d+)/i.exec(name);
+    if (m && ocs.includes(m[1])) return { type:'qr', oc:m[1], cita:m[2] };
+  }
+  if (/\.xlsx$/.test(n) && /generador\s*qr/i.test(name)) {
+    const nums = (name.match(/\d{8,}/g) || []);
+    const hit = nums.filter(x => ocs.includes(x));
+    if (hit.length) return { type:'cons', ocs:hit };
+  }
+  return null;
+}
+const baseKey = name => name.toLowerCase().replace(/\s*\(\d+\)(?=\.[a-z]+$)/, '');
+async function scanAttachments(interactive) {
+  const f = mail.fields; if (!f) return;
+  const found = [];
+  const add = (file, src) => {
+    const m = matchFile(file.name, f.ocs);
+    if (!m) {
+      if (src !== 'manual') return;
+      const k = baseKey(file.name);
+      if (!mail.otroSeen.has(k)) { mail.otroSeen.add(k); mail.excluded.add(k); }
+      found.push({ file, src, type:'otro' }); return;
+    }
+    found.push({ file, src, ...m });
+  };
+  const dir = templates.find(t => t.kind === 'carpeta');
+  mail.dirState = dir ? 'ok' : 'none';
+  if (dir) {
+    try {
+      let perm = await dir.handle.queryPermission({ mode:'read' });
+      if (perm !== 'granted' && interactive) perm = await dir.handle.requestPermission({ mode:'read' });
+      if (perm !== 'granted') mail.dirState = 'perm';
+      else {
+        const walk = async (h, depth) => {
+          for await (const [nm, e] of h.entries()) {
+            if (e.kind === 'file' && /\.(pdf|xlsx)$/i.test(nm)) { if (matchFile(nm, f.ocs)) add(await e.getFile(), 'carpeta'); }
+            else if (e.kind === 'directory' && depth < 2) await walk(e, depth + 1);
+          }
+        };
+        await walk(dir.handle, 0);
+      }
+    } catch (e) { mail.dirState = 'missing'; }
+  }
+  try { for (const o of await DB.outAll()) add(new File([o.blob], o.name, { lastModified:o.savedAt }), 'app'); } catch (e) {}
+  mail.manual.forEach(file => add(file, 'manual'));
+  // Una versión por nombre (la más reciente); se descartan copias "(1)"
+  const best = {};
+  found.forEach(a => { const k = baseKey(a.file.name); if (!best[k] || a.file.lastModified > best[k].file.lastModified || a.src === 'manual') best[k] = a; });
+  const ord = { qr:0, cons:1, otro:2 };
+  mail.found = Object.values(best).sort((a, b) => (ord[a.type] - ord[b.type]) || a.file.name.localeCompare(b.file.name));
+  // Consolidado: si hay varios para las mismas OC, se queda el más reciente
+  const cons = mail.found.filter(a => a.type === 'cons');
+  if (cons.length > 1) {
+    const newest = cons.reduce((x, y) => y.file.lastModified > x.file.lastModified ? y : x);
+    cons.forEach(a => { if (a !== newest && a.ocs.every(o => newest.ocs.includes(o))) mail.excluded.add(baseKey(a.file.name)); });
+  }
+}
+const selectedAttachments = () => mail.found.filter(a => !mail.excluded.has(baseKey(a.file.name)));
+
+// ── Abrir / pintar ──
+async function openCorreo(interactive) {
+  const box = $('mail');
+  try {
+    const data = await loadMailData(interactive);
+    const gf = garitaFecha();
+    if (gf) { mail.fecha = gf; mail.fechaSrc = 'garita'; }
+    else if (!mail.fecha) { const up = upcomingDates(data); mail.fecha = up[0] || todayYMD(); mail.fechaSrc = 'auto'; }
+    await setMailDate(mail.fecha, mail.fechaSrc, interactive);
+  } catch (err) {
+    const perm = err.code === 'perm';
+    box.innerHTML = '<div class="mcard empty"><h2>' + (err.code === 'nolink' ? 'Falta el Control OC FBD POD' : perm ? 'Hace falta dar acceso al Control OC' : 'No se pudo leer el Control OC') + '</h2>' +
+      '<p class="sub">' + esc(err.code === 'nolink' ? 'El correo se arma con la pestaña eMAIL y la tabla PANISA de ese archivo.' : perm ? 'El navegador pide permiso para leer el archivo vinculado.' : (err.message || String(err))) + '</p>' +
+      (err.code === 'nolink' ? '<button class="btn primary" id="mail-link">Vincular Control OC</button>' : '<button class="btn primary" id="mail-retry">' + (perm ? 'Dar acceso' : 'Intentar de nuevo') + '</button>') + '</div>';
+    const l = $('mail-link'), r = $('mail-retry');
+    if (l) l.onclick = async () => { await linkTemplate('controloc'); openCorreo(true); };
+    if (r) r.onclick = () => openCorreo(true);
+  }
+}
+async function setMailDate(fecha, src, interactive) {
+  mail.fecha = fecha; mail.fechaSrc = src;
+  mail.fields = buildFields(mail.data, fecha);
+  mail.excluded = new Set(); mail.otroSeen = new Set();
+  await scanAttachments(interactive);
+  renderCorreo();
+}
+
+async function renderCorreo() {
+  const f = mail.fields, data = mail.data; if (!f || !data) return;
+  const from = (await DB.get('mailFrom').catch(() => null)) || MAIL_FROM_DEFAULT;
+  const up = upcomingDates(data);
+  const sel = selectedAttachments();
+  const expect = [];
+  f.ocs.forEach(oc => {
+    expect.push(['QR OC ' + oc, sel.some(a => a.type === 'qr' && a.oc === oc)]);
+  });
+  if (f.ocs.length) expect.push(['Consolidado (Generador QR)', f.ocs.every(oc => sel.some(a => a.type === 'cons' && a.ocs.includes(oc)))]);
+  const dir = templates.find(t => t.kind === 'carpeta');
+  const srcLbl = { carpeta:'carpeta ' + (dir ? dir.name : ''), app:'guardado desde Automatizador', manual:'agregado a mano' };
+  const ctrl = templates.find(t => t.kind === 'controloc');
+  const ctrlStale = ctrl && ctrl.lastModified < startOfDay();
+
+  $('mail').innerHTML =
+    (ctrlStale ? '<div class="warnbox">El Control OC se modificó por última vez el ' + esc(fmtDate(ctrl.lastModified)) + '. Si lo actualizaste hoy, guardalo en Excel y tocá "Volver a leer Control OC".</div>' : '') +
+    '<div class="mcard"><h2>Fecha de entrega</h2><p class="sub">La misma fecha que usás en QR de garita (columna CANCEL D de la tabla PANISA).</p>' +
+      '<div class="date-line"><input type="date" id="mail-date" value="' + esc(mail.fecha) + '"><div class="dchips">' +
+      up.map(d => '<button class="dchip' + (d === mail.fecha ? ' sel' : '') + '" data-d="' + d + '">' + esc(chipDate(d)) + '</button>').join('') + '</div></div>' +
+      '<div class="src-note">' + (mail.fechaSrc === 'garita' ? 'Tomada de QR de garita.' : mail.fechaSrc === 'auto' ? 'Próxima fecha con OC. Si elegís una fecha en QR de garita, se usa esa.' : 'Elegida a mano.') + '</div>' +
+      '<div class="facts"><span class="fact' + (/^\d+$/.test(f.I.I2) ? '' : ' bad') + '">OC <b>' + esc(f.I.I2) + '</b> · cita <b>' + esc(f.I.I4) + '</b></span>' +
+      '<span class="fact' + (/^\d+$/.test(f.I.I3) ? '' : ' bad') + '">OC <b>' + esc(f.I.I3) + '</b> · cita <b>' + esc(f.I.I8) + '</b></span>' +
+      '<span class="fact' + (/NO HAY/.test(f.I.I7) ? ' bad' : '') + '">Hora <b>' + esc(f.I.I7) + '</b></span></div>' +
+      (f.issues.length ? '<div class="warnbox" style="margin:12px 0 0">' + f.issues.map(esc).join('<br>') + '</div>' : '') +
+    '</div>' +
+
+    '<div class="compose"><div class="compose-h"><span>Mensaje nuevo</span><small>Podés corregir cualquier campo antes de enviarlo</small></div>' +
+      '<div class="crow"><label for="m-from">De</label><input id="m-from" value="' + esc(from) + '"><button class="btn copy" data-copy="m-from">Copiar</button></div>' +
+      '<div class="crow"><label for="m-to">Para</label><input id="m-to" value="' + esc(f.to) + '"><button class="btn copy" data-copy="m-to">Copiar</button></div>' +
+      '<div class="crow"><label for="m-cc">CC</label><input id="m-cc" value="' + esc(f.cc) + '"><button class="btn copy" data-copy="m-cc">Copiar</button></div>' +
+      '<div class="crow"><label for="m-subject">Asunto</label><input id="m-subject" value="' + esc(f.subject) + '"><button class="btn copy" data-copy="m-subject">Copiar</button></div>' +
+      '<div class="cbody"><textarea id="m-body" aria-label="Cuerpo del correo">' + esc(f.body) + '</textarea><button class="btn copy" data-copy="m-body">Copiar</button></div>' +
+    '</div>' +
+
+    '<div class="mcard"><h2>Adjuntos</h2><p class="sub">Los PDF de QR y el Consolidado (Generador QR) de las OC de esa fecha.</p>' +
+      '<div class="expect">' + expect.map(([t, ok]) => '<span class="exp ' + (ok ? 'ok' : 'miss') + '">' + (ok ? '✓ ' : 'Falta ') + esc(t) + '</span>').join('') + '</div>' +
+      '<div class="attach-list">' + (mail.found.length ? mail.found.map((a, i) => {
+        const k = baseKey(a.file.name);
+        return '<label class="att"><input type="checkbox" data-att="' + esc(k) + '"' + (mail.excluded.has(k) ? '' : ' checked') + '><span class="an" title="' + esc(a.file.name) + '">' + esc(a.file.name) + '</span>' +
+          '<span class="am">' + (a.type === 'otro' ? 'no es de esta fecha · ' : '') + esc(srcLbl[a.src]) + ' · ' + esc(fmtDate(a.file.lastModified)) + '</span><span class="am">' + Math.max(1, Math.round(a.file.size / 1024)) + ' KB</span></label>';
+      }).join('') : '<div class="hint" style="margin:0">Todavía no encontré archivos para estas OC.</div>') + '</div>' +
+      '<div class="dropbox" id="att-drop" tabindex="0">Arrastrá aquí los PDF de QR y el Excel del Generador, o tocá para elegirlos</div>' +
+      (HAS_DIR ? '<p class="hint">' + (dir
+          ? (mail.dirState === 'perm' ? '<button class="btn" id="att-grant">Dar acceso a la carpeta "' + esc(dir.name) + '"</button>' : 'Busco automáticamente en la carpeta <b>' + esc(dir.name) + '</b> (y sus subcarpetas). <button class="btn ghost" id="att-dir" style="color:var(--blue)">Cambiar carpeta</button>')
+          : 'Si guardás siempre los archivos del Automatizador en una misma carpeta, <button class="btn" id="att-dir">vinculala</button> y los adjunto solos.') + '</p>'
+        : '<p class="hint">El Excel del Generador que guardes desde el Automatizador queda disponible aquí automáticamente; los PDF de QR agregalos arriba.</p>') +
+    '</div>' +
+
+    '<div class="mcard"><h2>Enviar desde Outlook</h2>' +
+      '<div class="send-row"><button class="btn primary big" id="m-eml">Abrir en Outlook con adjuntos</button>' +
+      '<button class="btn big" id="m-copyall">Copiar asunto y cuerpo</button>' +
+      '<button class="btn big" id="m-mailto">Abrir sin adjuntos</button></div>' +
+      '<p class="hint">"Abrir en Outlook" descarga un borrador (.eml) con destinatarios, asunto, cuerpo y ' + sel.length + ' adjunto' + (sel.length === 1 ? '' : 's') + '. Abrilo con doble clic: Outlook lo muestra listo para enviar. Antes de enviar revisá que en <b>De</b> figure ' + esc(from) + '; si no, elegila en ese menú.</p>' +
+    '</div>';
+
+  // eventos
+  const md = $('mail-date');
+  md.onchange = () => md.value && setMailDate(md.value, 'manual');
+  document.querySelectorAll('#mail .dchip').forEach(b => b.onclick = () => setMailDate(b.dataset.d, 'manual'));
+  ['m-to', 'm-cc', 'm-subject', 'm-body'].forEach(id => $(id).addEventListener('input', () => {
+    const k = { 'm-to':'to', 'm-cc':'cc', 'm-subject':'subject', 'm-body':'body' }[id]; mail.fields[k] = $(id).value;
+  }));
+  $('m-from').addEventListener('change', () => DB.set('mailFrom', $('m-from').value.trim() || MAIL_FROM_DEFAULT));
+  document.querySelectorAll('#mail [data-copy]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.copy;
+    if (id === 'm-body') await copyRich($('m-body').value); else await navigator.clipboard.writeText($(id).value);
+    b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar'; }, 1400);
+  });
+  document.querySelectorAll('#mail [data-att]').forEach(c => c.onchange = () => { if (c.checked) mail.excluded.delete(c.dataset.att); else mail.excluded.add(c.dataset.att); renderCorreo(); });
+  const drop = $('att-drop');
+  const addFiles = files => { const list = Array.from(files || []); if (!list.length) return; list.forEach(f => { if (!matchFile(f.name, mail.fields.ocs)) toast('"' + f.name + '" no corresponde a las OC de esta fecha: queda en la lista sin marcar.'); }); mail.manual.push(...list); scanAttachmentsManual(list).then(renderCorreo); };
+  drop.onclick = () => { const i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.accept = '.pdf,.xlsx'; i.onchange = () => addFiles(i.files); i.click(); };
+  drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); drop.click(); } };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+  drop.ondragleave = () => drop.classList.remove('over');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
+  const g = $('att-grant'); if (g) g.onclick = async () => { await scanAttachments(true); renderCorreo(); };
+  const dd = $('att-dir'); if (dd) dd.onclick = () => linkTemplate('carpeta');
+  $('m-eml').onclick = buildEml;
+  $('m-copyall').onclick = async () => { await copyRich($('m-body').value, $('m-subject').value); toast('Asunto y cuerpo copiados. Pegalos en un correo nuevo de Outlook.'); };
+  $('m-mailto').onclick = () => {
+    const u = 'mailto:' + addrList($('m-to').value).replace(/\s/g, '') +
+      '?cc=' + encodeURIComponent(addrList($('m-cc').value).replace(/\s/g, '')) + '&subject=' + encodeURIComponent(mail.fields.subject) + '&body=' + encodeURIComponent(mail.fields.body);
+    location.href = u;
+  };
+}
+const scanAttachmentsManual = () => scanAttachments(false);
+
+function bodyHtml(text) {
+  return '<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt">' + text.split('\n').map(l => l.trim() ? esc(l) : '&nbsp;').map(l => '<div>' + l + '</div>').join('') + '</div>';
+}
+async function copyRich(body, subject) {
+  const text = (subject ? subject + '\n\n' : '') + body;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([text], { type:'text/plain' }), 'text/html': new Blob([(subject ? '<div><b>' + esc(subject) + '</b></div><br>' : '') + bodyHtml(body)], { type:'text/html' }) })]);
+  } catch (e) { await navigator.clipboard.writeText(text); }
+}
+
+// ── Borrador .eml para Outlook ──
+function b64Bytes(bytes) {
+  let bin = ''; const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  return btoa(bin).replace(/.{76}/g, '$&\r\n');
+}
+const b64Str = s => b64Bytes(new TextEncoder().encode(s));
+const encWord = s => /^[\x20-\x7e]*$/.test(s) ? s : '=?UTF-8?B?' + b64Bytes(new TextEncoder().encode(s)).replace(/\r\n/g, '') + '?=';
+const addrList = s => String(s || '').split(/[;,]/).map(x => x.trim()).filter(Boolean).join(', ');
+function mimeOf(name) { return /\.pdf$/i.test(name) ? 'application/pdf' : /\.xlsx$/i.test(name) ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/octet-stream'; }
+
+async function buildEml() {
+  const F = mail.fields;
+  const from = $('m-from').value.trim() || MAIL_FROM_DEFAULT;
+  const to = addrList($('m-to').value), cc = addrList($('m-cc').value);
+  const subject = $('m-subject').value, body = $('m-body').value;
+  if (!to) { toast('Falta el destinatario (Para).'); return; }
+  const atts = selectedAttachments();
+  const missing = [];
+  F.ocs.forEach(oc => { if (!atts.some(a => a.type === 'qr' && a.oc === oc)) missing.push('QR de la OC ' + oc); });
+  if (F.ocs.length && !F.ocs.every(oc => atts.some(a => a.type === 'cons' && a.ocs.includes(oc)))) missing.push('el Consolidado (Generador QR)');
+  if (missing.length && !(await confirmDlg('Faltan adjuntos', 'Falta ' + missing.join(', ') + '. ¿Armar el correo de todas formas?', 'Armar igual'))) return;
+  const b1 = '----=_EnviosCD_' + Date.now().toString(36), b2 = b1 + '_alt';
+  const L = [];
+  L.push('X-Unsent: 1', 'From: ' + from, 'To: ' + to);
+  if (cc) L.push('Cc: ' + cc);
+  L.push('Subject: ' + encWord(subject), 'Date: ' + new Date().toUTCString(), 'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="' + b1 + '"', '', 'This is a multi-part message in MIME format.', '',
+    '--' + b1, 'Content-Type: multipart/alternative; boundary="' + b2 + '"', '',
+    '--' + b2, 'Content-Type: text/plain; charset="utf-8"', 'Content-Transfer-Encoding: base64', '', b64Str(body.replace(/\r?\n/g, '\r\n')), '',
+    '--' + b2, 'Content-Type: text/html; charset="utf-8"', 'Content-Transfer-Encoding: base64', '', b64Str('<html><head><meta charset="utf-8"></head><body>' + bodyHtml(body) + '</body></html>'), '',
+    '--' + b2 + '--', '');
+  for (const a of atts) {
+    const bytes = new Uint8Array(await a.file.arrayBuffer());
+    const nm = encWord(a.file.name).replace(/"/g, '');
+    L.push('--' + b1, 'Content-Type: ' + mimeOf(a.file.name) + '; name="' + nm + '"', 'Content-Transfer-Encoding: base64',
+      'Content-Disposition: attachment; filename="' + nm + '"', '', b64Bytes(bytes), '');
+  }
+  L.push('--' + b1 + '--', '');
+  const blob = new Blob([L.join('\r\n')], { type:'message/rfc822' });
+  const name = (subject || 'Correo').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 120) + '.eml';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  toast('Borrador descargado: abrilo con doble clic para que Outlook lo muestre listo para enviar.', 6500);
+}
+
+$('mail-reload').onclick = () => { mail.dataKey = ''; mail.data = null; openCorreo(true); };
+
+
+// ═════════════ Sugerido de envío (pestaña "OC Table") ═════════════
+// Calcula la columna I (Sugerido Enviar) solo para las combinaciones tienda+ítem
+// que pide la OC (F numérico > 0) y nunca más de lo que pide la OC.
+//   Venta semanal esperada W = promedio de [ max(Prom 4 semanas K, Venta sem. anterior M),
+//                                            promedio FCST (Q, R) ]
+//   Venta diaria d = W / 7 (mínimo 1/7)
+//   Stock = INV (G, negativos = 0) + envíos de los días previos que aún no están en INV
+//   Sugerido = lo que falta para cubrir los días objetivo (10), redondeado al múltiplo
+//              de 5 cuando la OC viene en múltiplos de 5, tope = Pedido OC (F)
+//   y además Days on Hand del Excel (AD = (Enviar + INV) / O) nunca mayor a 14.
+const ENVIO_DEFAULTS = { target:10, maxDoh:14, transitDays:2 };
+const VENDOR_SUFFIX = { '240502811':'1', '240502812':'2' };
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const env = { params:{ ...ENVIO_DEFAULTS }, files:[], picked:null, results:[], filterItem:'', onlyDiff:false, sort:'tienda', manual:[] };
+
+function parseCalcName(name) {
+  const m = /^(\d{1,2})[_\s-]+([a-záéíóúñ]+)[_\s-]+(\d{4})[_\s-]+panisa[_\s-]*(\d)/i.exec(name.normalize('NFC'));
+  if (!m) return null;
+  let mes = m[2].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (mes === 'setiembre') mes = 'septiembre';
+  const mi = MESES_ES.indexOf(mes); if (mi < 0) return null;
+  return { fecha: m[3] + '-' + String(mi + 1).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0'), suf: m[4] };
+}
+const xmlDecode = s => String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+const num = v => { if (v == null || v === '') return null; const n = typeof v === 'number' ? v : parseFloat(String(v).trim()); return isFinite(n) ? n : null; };
+
+async function envioFolderFiles(interactive) {
+  const dir = templates.find(t => t.kind === 'calculos');
+  const out = [];
+  env.dirState = dir ? 'ok' : 'none';
+  if (dir) {
+    try {
+      let perm = await dir.handle.queryPermission({ mode:'read' });
+      if (perm !== 'granted' && interactive) perm = await dir.handle.requestPermission({ mode:'read' });
+      if (perm !== 'granted') env.dirState = 'perm';
+      else {
+        const walk = async (h, depth, path) => {
+          for await (const [nm, e] of h.entries()) {
+            if (e.kind === 'file' && /\.xlsm$/i.test(nm) && !nm.startsWith('~$')) { const p = parseCalcName(nm); if (p) out.push({ name:nm, handle:e, src:'carpeta', path, ...p }); }
+            else if (e.kind === 'directory' && depth < 2) await walk(e, depth + 1, path + nm + '/');
+          }
+        };
+        await walk(dir.handle, 0, '');
+      }
+    } catch (e) { env.dirState = 'missing'; }
+  }
+  env.manual.forEach(f => { const p = parseCalcName(f.name) || { fecha:'', suf:'' }; out.push({ name:f.name, file:f, src:'manual', ...p }); });
+  out.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || a.suf.localeCompare(b.suf));
+  return out;
+}
+
+// ── Lectura del libro ──
+async function readCalcWorkbook(file) {
+  const w = await ingresoHelper();
+  const io = w.eval('browserIo');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const entries = w.parseZip(bytes);
+  const readText = name => w.readEntryText(entries, name, io.inflateRaw);
+  const workbookXml = await readText('xl/workbook.xml');
+  const relsXml = await readText('xl/_rels/workbook.xml.rels');
+  if (!workbookXml) throw new Error('No parece un archivo de Excel válido.');
+  const nameToPath = w.getSheetNameToPath(workbookXml, relsXml);
+  const ocName = Object.keys(nameToPath).find(n => n.trim().toLowerCase() === 'oc table');
+  if (!ocName) throw new Error('El archivo no tiene la pestaña "OC Table".');
+  const sstXml = await readText('xl/sharedStrings.xml');
+  const sst = sstXml ? w.parseSharedStrings(sstXml) : [];
+  const val = raw => {
+    if (!raw) return null;
+    let v = w.readCellValue(raw);
+    if (v == null) { const m = raw.match(/<v\b[^>]*>([\s\S]*?)<\/v>/); if (m) v = /\bt="(str|e)"/.test(raw) || isNaN(parseFloat(m[1])) ? m[1] : parseFloat(m[1]); }
+    if (v && typeof v === 'object') return sst[v.sharedIndex];
+    return typeof v === 'string' ? xmlDecode(v) : v;
+  };
+  const stale = /<calcPr\b[^>]*fullCalcOnLoad="1"/.test(workbookXml);
+  // Formulario de Entrega: OC (D8), cita (D6), vendor (G10)
+  let form = {};
+  const fName = Object.keys(nameToPath).find(n => n.trim().toLowerCase() === 'formulario de entrega');
+  if (fName) {
+    const fr = w.parseAllRows(await readText(nameToPath[fName]));
+    const g = ref => { const m = /^([A-Z]+)(\d+)$/.exec(ref); const row = fr.get(+m[2]); return row ? val(row.get(ref)) : null; };
+    form = { oc: num(g('D8')), cita: num(g('D6')), vendor: num(g('G10')) };
+  }
+  const ocPath = nameToPath[ocName];
+  const ocXml = await readText(ocPath);
+  const rows = w.parseAllRows(ocXml);
+  const r2 = rows.get(2) || new Map();
+  const dayCols = {};
+  ['AA','AB','S','T','U','V','W','X'].forEach(c => { const v = num(val(r2.get(c + '2'))); if (v != null) dayCols[c] = v; });
+  const COLS = ['A','C','D','E','F','G','H','I','J','K','L','M','N','O','Q','R','S','T','U','V','W','X','AA','AB','AD'];
+  const data = [];
+  const iFormulaRows = [];
+  for (const [rn, cells] of rows.entries()) {
+    if (rn < 3) continue;
+    const iRaw = cells.get('I' + rn);
+    if (iRaw && /<f\b/.test(iRaw)) iFormulaRows.push(rn);
+    const rec = { row: rn };
+    COLS.forEach(c => { rec[c] = val(cells.get(c + rn)); });
+    data.push(rec);
+  }
+  return { file, bytes, entries, workbookXml, relsXml, nameToPath, ocPath, ocXml, data, dayCols, iFormulaRows, stale, form, sheetName: ocName };
+}
+
+// ── Cálculo ──
+function excelO(K, M) {
+  const k = num(K), m = num(M);
+  const base = (m != null && (k == null || m > k)) ? m : k;
+  if (base == null) return 0;
+  const q = Math.round(base / 7);
+  return q === 0 ? 1 / 7 : q;
+}
+function deliveryInfo(wbk, fecha, transitDays) {
+  // Columnas de la semana (sáb a vie) en el orden de "Total Enviado S Actual"
+  const weekOrder = ['AB','S','T','U','V','W'];
+  const day = fecha ? +fecha.slice(8, 10) : null;
+  const delivCol = day != null ? weekOrder.find(c => wbk.dayCols[c] === day) : null;
+  const transit = [];
+  if (day != null) {
+    const base = ymdDate(fecha);
+    for (let i = 1; i <= transitDays; i++) {
+      const d = new Date(base); d.setDate(d.getDate() - i);
+      const col = Object.keys(wbk.dayCols).find(c => wbk.dayCols[c] === d.getDate() && c !== 'X');
+      if (col) transit.push(col);
+    }
+  }
+  const idx = delivCol ? weekOrder.indexOf(delivCol) : -1;
+  const before = idx > 0 ? weekOrder.slice(0, idx) : (idx === 0 ? [] : null);
+  return { delivCol, transit, before };
+}
+function calcRow(r, P, dinfo) {
+  const F = num(r.F);
+  const K = num(r.K), M = num(r.M), Q = num(r.Q), R = num(r.R), G = num(r.G);
+  const fc = [Q, R].filter(v => v != null);
+  const fca = fc.length ? fc.reduce((a, b) => a + b, 0) / fc.length : null;
+  const km = [K, M].filter(v => v != null);
+  const kmMax = km.length ? Math.max(...km) : null;
+  const parts = [kmMax, fca].filter(v => v != null);
+  const W = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
+  const d = Math.max(W / 7, 1 / 7);
+  const G0 = Math.max(G || 0, 0);
+  const transit = dinfo.transit.reduce((a, c) => a + (num(r[c]) || 0), 0);
+  const stock = G0 + transit;
+  const step = F % 5 === 0 ? 5 : 1;
+  const need = d * P.target - stock;
+  let s = 0, motivo = '', tag = '';
+  if (need <= 0) { motivo = 'INV' + (transit ? ' + tránsito' : '') + ' cubre ' + fmt1(stock / d) + ' días'; tag = 'cubierto'; }
+  else {
+    s = step === 5 ? 5 * Math.ceil(need / 5 - 1e-9) : Math.ceil(need - 1e-9);
+    motivo = 'Faltan ' + Math.ceil(need) + ' para ' + P.target + ' días';
+    if (s > F) { s = F; motivo += '; tope OC'; tag = 'tope'; }
+  }
+  // Tope de Days on Hand con la fórmula del Excel: AD = (Enviar + INV) / O
+  const O = excelO(K, M);
+  const Gx = G || 0;
+  if (O > 0) {
+    let cut = false;
+    while (s > 0 && (s + Gx) / O > P.maxDoh + 1e-9) { s -= Math.min(step, s); cut = true; }
+    if (cut && s === 0 && stock <= 0) { s = Math.min(step, F); motivo += '; sin inventario: se envía el mínimo (' + s + ') aunque por la venta tan baja supera ' + P.maxDoh + ' días'; tag = 'min'; }
+    else if (cut) { motivo += '; recortado a ' + P.maxDoh + ' días'; tag = 'doh'; }
+  }
+  s = Math.max(0, Math.min(s, F));
+  const ad = O > 0 ? (s + Gx) / O : null;
+  const before = dinfo.before ? dinfo.before.reduce((a, c) => a + (num(r[c]) || 0), 0) : null;
+  const semana = before != null ? before + s : null;
+  if (G == null) motivo += ' · sin dato de INV';
+  if (!fc.length) motivo += ' · sin FCST';
+  return { s, W, d, stock, transit, ad, semana, motivo, tag, O };
+}
+const fmt1 = x => (Math.round(x * 10) / 10).toLocaleString('es-GT');
+
+function computeFile(wbk, fecha) {
+  const dinfo = deliveryInfo(wbk, fecha, env.params.transitDays);
+  const out = [];
+  for (const r of wbk.data) {
+    const F = num(r.F), A = num(r.A);
+    if (F == null || F <= 0 || A == null || !r.E) continue; // solo lo que pide la OC
+    const c = calcRow(r, env.params, dinfo);
+    out.push({ r, c, F, H: num(r.H) });
+  }
+  return { rows: out, dinfo };
+}
+
+// ── Escritura de la columna I ──
+async function writeSugerido(wbk, res) {
+  const w = await ingresoHelper();
+  const io = w.eval('browserIo');
+  const byRow = new Map(res.rows.map(x => [x.r.row, x.c.s]));
+  const edits = [];
+  const rowsToWrite = new Set([...wbk.iFormulaRows, ...byRow.keys()]);
+  for (const rn of rowsToWrite) edits.push({ ref: 'I' + rn, kind: 'number', value: String(byRow.has(rn) ? byRow.get(rn) : 0), keepStyle: true });
+  const newXml = w.applyCellEdits(wbk.ocXml, edits);
+  const changed = new Map();
+  changed.set(wbk.ocPath, w.utf8ToBytes(newXml));
+  // Se quitaron fórmulas de la columna I: la caché calcChain.xml queda obsoleta
+  let entries = wbk.entries;
+  if (entries.find(e => e.name === 'xl/calcChain.xml')) {
+    entries = entries.filter(e => e.name !== 'xl/calcChain.xml');
+    const ct = await w.readEntryText(wbk.entries, '[Content_Types].xml', io.inflateRaw);
+    if (ct && /calcChain/.test(ct)) changed.set('[Content_Types].xml', w.utf8ToBytes(ct.replace(/<Override[^>]*calcChain[^>]*\/>/, '')));
+    if (/calcChain/.test(wbk.relsXml)) changed.set('xl/_rels/workbook.xml.rels', w.utf8ToBytes(wbk.relsXml.replace(/<Relationship[^>]*calcChain[^>]*\/>/, '')));
+  }
+  return w.rebuildZip(entries, changed, io.deflateRaw);
+}
+
+// ── Vista ──
+async function openEnvio(interactive) {
+  const saved = await DB.get('envioParams').catch(() => null);
+  if (saved) env.params = { ...ENVIO_DEFAULTS, ...saved };
+  env.files = await envioFolderFiles(interactive);
+  try { await loadMailData(false); } catch (e) {}
+  renderEnvio();
+}
+function ocOptions() {
+  // Próximas entregas según Control OC (si está cargado)
+  const d = mail.data; if (!d) return [];
+  const t = todayYMD();
+  const vset = new Set(Object.keys(VENDOR_SUFFIX));
+  const recs = d.records.filter(r => vset.has(r.vendor) && r.fecha >= addDays(t, -7));
+  const byDate = {};
+  recs.forEach(r => { (byDate[r.fecha] = byDate[r.fecha] || []).push(r); });
+  return Object.keys(byDate).sort().map(f => ({ fecha:f, ocs: byDate[f] }));
+}
+function addDays(ymd, n) { const d = ymdDate(ymd); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+function renderEnvio() {
+  const box = $('envio');
+  const dir = templates.find(t => t.kind === 'calculos');
+  const dates = Array.from(new Set(env.files.map(f => f.fecha).filter(Boolean))).sort().reverse().slice(0, 8);
+  const opts = ocOptions();
+  const pickedLbl = env.picked ? env.picked.label : '';
+  box.innerHTML =
+    '<div class="mcard"><h2>¿Qué entrega u OC calculamos?</h2><p class="sub">Escribí el número de OC o elegí la fecha de entrega. Busco el Excel de cálculo (por ejemplo "07_Octubre_2026_Panisa_2.xlsm") en tu carpeta.</p>' +
+      '<div class="date-line"><input id="env-oc" inputmode="numeric" placeholder="OC, ej. 2301070122" style="font:inherit;font-size:16px;padding:8px 11px;border:1.5px solid var(--blue);border-radius:8px;width:230px" value="' + esc(env.ocQuery || '') + '"><button class="btn primary" id="env-go">Buscar</button>' +
+      '<input type="date" id="env-date" value="' + esc(env.fechaQuery || '') + '" style="font:inherit;font-size:15px;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px"></div>' +
+      '<div class="dchips" style="margin-top:10px">' +
+        (opts.length ? opts.filter(o => o.fecha >= todayYMD()).slice(0, 5).map(o => '<button class="dchip" data-fecha="' + o.fecha + '">' + esc(chipDate(o.fecha)) + ' · ' + o.ocs.map(r => esc(r.oc)).join(' / ') + '</button>').join('') :
+          dates.map(f => '<button class="dchip" data-fecha="' + f + '">' + esc(chipDate(f)) + '</button>').join('')) +
+      '</div>' +
+      '<p class="hint">' + (HAS_DIR ? (dir
+        ? (env.dirState === 'perm' ? '<button class="btn" id="env-grant">Dar acceso a la carpeta "' + esc(dir.name) + '"</button>' : 'Carpeta de cálculos: <b>' + esc(dir.name) + '</b> · ' + env.files.filter(f => f.src === 'carpeta').length + ' archivos. <button class="btn ghost" id="env-dir" style="color:var(--blue)">Cambiar</button>')
+        : 'Vinculá la carpeta donde guardás los Excel de cálculo de envío: <button class="btn" id="env-dir">Vincular carpeta</button>') : 'Este navegador no permite vincular carpetas.') +
+      ' También podés <a href="#" id="env-pick">elegir el archivo a mano</a>.</p>' +
+      '<div id="env-pickmsg"></div>' +
+    '</div>' +
+    '<div id="env-results"></div>';
+
+  $('env-go').onclick = () => { env.ocQuery = $('env-oc').value.trim(); findByOc(env.ocQuery); };
+  $('env-oc').onkeydown = e => { if (e.key === 'Enter') $('env-go').click(); };
+  $('env-date').onchange = () => { env.fechaQuery = $('env-date').value; if (env.fechaQuery) findByDate(env.fechaQuery); };
+  document.querySelectorAll('#envio [data-fecha]').forEach(b => b.onclick = () => { env.fechaQuery = b.dataset.fecha; $('env-date').value = b.dataset.fecha; findByDate(b.dataset.fecha); });
+  const g = $('env-grant'); if (g) g.onclick = async () => { env.files = await envioFolderFiles(true); renderEnvio(); };
+  const dd = $('env-dir'); if (dd) dd.onclick = () => linkTemplate('calculos');
+  $('env-pick').onclick = e => { e.preventDefault(); const i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.accept = '.xlsm'; i.onchange = async () => { env.manual.push(...i.files); env.files = await envioFolderFiles(false); const f = Array.from(i.files)[0]; const p = env.files.find(x => x.file === f); if (p) runFor([p], 'Archivo elegido: ' + f.name); }; i.click(); };
+  if (env.results.length) renderEnvioResults();
+}
+function pickMsg(html, kind) { const m = $('env-pickmsg'); if (m) m.innerHTML = html ? '<div class="' + (kind === 'warn' ? 'warnbox' : 'fact') + '" style="margin-top:10px">' + html + '</div>' : ''; }
+
+function findByOc(oc) {
+  if (!/^\d{6,}$/.test(oc)) { pickMsg('Escribí un número de OC válido.', 'warn'); return; }
+  const rec = mail.data && mail.data.records.find(r => r.oc === oc);
+  if (rec) {
+    const suf = VENDOR_SUFFIX[rec.vendor];
+    const f = env.files.find(x => x.fecha === rec.fecha && x.suf === suf);
+    if (f) return runFor([f], 'OC ' + oc + ' · entrega ' + chipDate(rec.fecha) + ' · vendor ' + rec.vendor, { oc, fecha: rec.fecha });
+    pickMsg('La OC ' + esc(oc) + ' es del vendor ' + esc(rec.vendor) + ' con entrega el ' + esc(chipDate(rec.fecha)) + ', pero no encontré "' + esc(nameFor(rec.fecha, suf)) + '" en la carpeta.', 'warn');
+    return;
+  }
+  // Sin Control OC: se busca la OC dentro de los archivos (celda D8 del Formulario de Entrega)
+  scanFilesForOc(oc);
+}
+function nameFor(fecha, suf) { const [y, m, d] = fecha.split('-'); const mes = MESES_ES[+m - 1]; return d + '_' + mes[0].toUpperCase() + mes.slice(1) + '_' + y + '_Panisa_' + suf + '.xlsm'; }
+async function scanFilesForOc(oc) {
+  pickMsg('Buscando la OC ' + esc(oc) + ' dentro de los archivos…');
+  for (const f of env.files.slice(0, 20)) {
+    try { const w = await readCalcWorkbook(await fileOf(f)); if (String(w.form.oc) === oc) return runFor([f], 'OC ' + oc + ' · ' + f.name, { oc, fecha: f.fecha }, w); } catch (e) {}
+  }
+  pickMsg('No encontré la OC ' + esc(oc) + ' en el Control OC ni en los últimos archivos de la carpeta.', 'warn');
+}
+function findByDate(fecha) {
+  const fs = env.files.filter(f => f.fecha === fecha);
+  if (!fs.length) { pickMsg('No hay archivos de cálculo para el ' + esc(chipDate(fecha)) + ' en la carpeta (busco nombres como "' + esc(nameFor(fecha, '1')) + '").', 'warn'); return; }
+  runFor(fs, 'Entrega ' + chipDate(fecha), { fecha });
+}
+async function fileOf(f) { return f.file || f.handle.getFile(); }
+
+async function runFor(list, label, ctx = {}, preRead) {
+  pickMsg('Calculando ' + esc(label) + '…');
+  env.results = [];
+  for (const f of list) {
+    try {
+      const wbk = preRead || await readCalcWorkbook(await fileOf(f));
+      const fecha = ctx.fecha || f.fecha || '';
+      const res = computeFile(wbk, fecha);
+      const warn = [];
+      if (wbk.stale) warn.push('Este archivo salió de Ingreso de pedidos y todavía no se abrió y guardó en Excel: los valores de INV, ventas y FCST pueden no estar calculados. Abrilo en Excel, guardalo y volvé a calcular.');
+      if (!res.rows.length) warn.push('No encontré combinaciones con Pedido OC en la pestaña OC Table.');
+      if (ctx.oc && wbk.form.oc && String(wbk.form.oc) !== ctx.oc) warn.push('Ojo: el Formulario de Entrega de este archivo tiene la OC ' + wbk.form.oc + ', no la ' + ctx.oc + '.');
+      if (!res.dinfo.transit.length && fecha) warn.push('No encontré en la fila 2 los días previos a la entrega: el cálculo no suma envíos en tránsito.');
+      if (!fecha) warn.push('No pude saber la fecha de entrega por el nombre del archivo: el cálculo no suma envíos en tránsito.');
+      env.results.push({ f, wbk, res, fecha, warn });
+    } catch (e) { env.results.push({ f, error: e.message || String(e) }); }
+  }
+  env.label = label; env.filterItem = '';
+  pickMsg('');
+  renderEnvioResults();
+}
+
+function statsOf(res) {
+  const rows = res.rows; const s = { n: rows.length, F: 0, S: 0, tope: 0, cero: 0, doh: 0, conH: 0, ex: 0, w5: 0, H: 0 };
+  rows.forEach(x => { s.F += x.F; s.S += x.c.s; if (x.c.s === x.F) s.tope++; if (x.c.s === 0) s.cero++; if (x.c.tag === 'doh') s.doh++;
+    if (x.H != null) { s.conH++; s.H += x.H; if (x.H === x.c.s) s.ex++; if (Math.abs(x.H - x.c.s) <= 5) s.w5++; } });
+  return s;
+}
+function renderEnvioResults() {
+  const box = $('env-results'); if (!box) return;
+  const P = env.params;
+  let html = '<div class="mcard"><h2>Ajustes del cálculo</h2><div class="date-line" style="gap:18px">' +
+    '<label style="font-size:14px">Días objetivo <input type="number" id="ep-target" min="5" max="14" value="' + P.target + '" style="width:64px;font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px"></label>' +
+    '<label style="font-size:14px">Máximo Days on Hand <input type="number" id="ep-max" min="7" max="21" value="' + P.maxDoh + '" style="width:64px;font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px"></label>' +
+    '<label style="font-size:14px">Días de envíos en tránsito <input type="number" id="ep-tr" min="0" max="3" value="' + P.transitDays + '" style="width:56px;font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px"></label>' +
+    '<button class="btn" id="ep-reset">Valores por defecto</button></div>' +
+    '<p class="hint">Venta semanal esperada = promedio entre el mayor de (Prom 4 semanas, Venta semana anterior) y el promedio de los dos FCST. Se suma lo enviado los días previos a la entrega que todavía no aparece en INV. Nunca más que el Pedido OC y Days on Hand (AD) nunca mayor al máximo.</p></div>';
+  for (const [i, x] of env.results.entries()) {
+    if (x.error) { html += '<div class="mcard"><h2>' + esc(x.f.name) + '</h2><div class="warnbox">' + esc(x.error) + '</div></div>'; continue; }
+    const st = statsOf(x.res);
+    const items = Array.from(new Set(x.res.rows.map(r => r.r.E))).sort();
+    const tr = x.res.dinfo.transit;
+    const dayLbl = c => ({ AA:'vie', AB:'sáb', S:'lun', T:'mar', U:'mié', V:'jue', W:'vie', X:'sáb' }[c] + ' ' + x.wbk.dayCols[c]);
+    let rows = x.res.rows.filter(r => !env.filterItem || r.r.E === env.filterItem);
+    if (env.onlyDiff) rows = rows.filter(r => r.H != null && r.H !== r.c.s);
+    const sorters = { tienda: (a, b) => a.r.row - b.r.row, sug: (a, b) => b.c.s - a.c.s, dif: (a, b) => Math.abs((b.H ?? b.c.s) - b.c.s) - Math.abs((a.H ?? a.c.s) - a.c.s) };
+    rows = rows.slice().sort(sorters[env.sort] || sorters.tienda);
+    const hasH = st.conH > 0;
+    html += '<div class="mcard"><div class="sec-h" style="margin-bottom:8px"><h2>' + esc(x.f.name) + '</h2>' +
+      '<button class="btn primary" data-save="' + i + '">Guardar Excel con Sugerido</button></div>' +
+      '<div class="facts">' +
+        (x.wbk.form.oc ? '<span class="fact">OC <b>' + esc(x.wbk.form.oc) + '</b>' + (x.wbk.form.cita ? ' · cita <b>' + esc(x.wbk.form.cita) + '</b>' : '') + '</span>' : '') +
+        (x.fecha ? '<span class="fact">Entrega <b>' + esc(chipDate(x.fecha)) + '</b></span>' : '') +
+        '<span class="fact">Tránsito: <b>' + (tr.length ? tr.map(dayLbl).join(' + ') : 'ninguno') + '</b></span>' +
+        '<span class="fact"><b>' + st.n + '</b> combinaciones de la OC</span>' +
+        '<span class="fact">Pedido OC <b>' + st.F.toLocaleString('es-GT') + '</b></span>' +
+        '<span class="fact" style="background:#eef4ff;border-color:#c9daff">Sugerido <b>' + st.S.toLocaleString('es-GT') + '</b></span>' +
+        '<span class="fact">' + st.tope + ' al tope de la OC · ' + st.cero + ' en 0</span>' +
+        (hasH ? '<span class="fact">Tu decisión (Enviar) <b>' + st.H.toLocaleString('es-GT') + '</b> · coincide exacto ' + Math.round(100 * st.ex / st.conH) + '% · ±5 ' + Math.round(100 * st.w5 / st.conH) + '%</span>' : '') +
+      '</div>' +
+      (x.warn.length ? '<div class="warnbox" style="margin:12px 0 0">' + x.warn.map(esc).join('<br>') + '</div>' : '') +
+      '<div class="date-line" style="margin:14px 0 8px;gap:8px"><div class="dchips"><button class="dchip' + (!env.filterItem ? ' sel' : '') + '" data-item="">Todos</button>' +
+        items.map(it => '<button class="dchip' + (env.filterItem === it ? ' sel' : '') + '" data-item="' + esc(it) + '">' + esc(it) + '</button>').join('') + '</div>' +
+        '<select id="env-sort-' + i + '" style="font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;margin-left:auto"><option value="tienda"' + (env.sort === 'tienda' ? ' selected' : '') + '>Orden de la hoja</option><option value="sug"' + (env.sort === 'sug' ? ' selected' : '') + '>Mayor sugerido</option>' + (hasH ? '<option value="dif"' + (env.sort === 'dif' ? ' selected' : '') + '>Mayor diferencia con Enviar</option>' : '') + '</select>' +
+        (hasH ? '<label style="font-size:13px"><input type="checkbox" data-onlydiff' + (env.onlyDiff ? ' checked' : '') + '> Solo distintos a Enviar</label>' : '') + '</div>' +
+      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Ítem</th><th class="n">Pedido OC</th><th class="n sug">Sugerido</th>' + (hasH ? '<th class="n">Enviar</th>' : '') + '<th class="n" title="Days on Hand con la fórmula del Excel: (Sugerido + INV) / O">DOH</th><th class="n">INV</th><th class="n">Tránsito</th><th class="n">Vta sem.</th><th class="n">Prom 4s</th><th class="n">Sem. ant.</th><th class="n">FCST</th><th class="n">Venta/sem esp.</th><th class="n" title="Enviado esta semana antes de la entrega + sugerido, contra la venta semanal esperada">Semana</th><th>Motivo</th></tr></thead><tbody>' +
+      rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null);
+        return '<tr' + (z.H != null && z.H !== c.s ? ' class="dif"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
+          '<td class="n">' + z.F + '</td><td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' + (hasH ? '<td class="n">' + (z.H ?? '') + '</td>' : '') +
+          '<td class="n">' + (c.ad != null ? fmt1(c.ad) : '') + '</td><td class="n">' + (num(r.G) ?? '—') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td>' +
+          '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td><td class="n">' + Math.round(c.W) + '</td><td class="n' + (c.semana != null && c.semana > c.W * 1.25 ? ' alto' : '') + '">' + (c.semana ?? '') + '</td>' +
+          '<td class="mot">' + esc(c.motivo) + '</td></tr>'; }).join('') +
+      '</tbody></table></div></div>';
+  }
+  box.innerHTML = html;
+  const saveP = () => { DB.set('envioParams', env.params).catch(() => {}); recompute(); };
+  const bind = (id, k, lo, hi) => { const el = $(id); el.onchange = () => { const v = Math.max(lo, Math.min(hi, parseInt(el.value, 10) || ENVIO_DEFAULTS[k])); env.params[k] = v; saveP(); }; };
+  bind('ep-target', 'target', 1, 21); bind('ep-max', 'maxDoh', 1, 30); bind('ep-tr', 'transitDays', 0, 3);
+  $('ep-reset').onclick = () => { env.params = { ...ENVIO_DEFAULTS }; saveP(); };
+  box.querySelectorAll('[data-item]').forEach(b => b.onclick = () => { env.filterItem = b.dataset.item; renderEnvioResults(); });
+  box.querySelectorAll('select[id^="env-sort-"]').forEach(s => s.onchange = () => { env.sort = s.value; renderEnvioResults(); });
+  box.querySelectorAll('[data-onlydiff]').forEach(c => c.onchange = () => { env.onlyDiff = c.checked; renderEnvioResults(); });
+  box.querySelectorAll('[data-save]').forEach(b => b.onclick = () => saveEnvio(env.results[+b.dataset.save], b));
+}
+function recompute() {
+  env.results.forEach(x => { if (!x.error) x.res = computeFile(x.wbk, x.fecha); });
+  renderEnvioResults();
+}
+async function saveEnvio(x, btn) {
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparando…';
+  try {
+    const bytes = await writeSugerido(x.wbk, x.res);
+    const blob = new Blob([bytes], { type:'application/vnd.ms-excel.sheet.macroEnabled.12' });
+    const dir = templates.find(t => t.kind === 'calculos');
+    if (window.showSaveFilePicker) {
+      try {
+        const h = await window.showSaveFilePicker({ suggestedName: x.f.name, startIn: dir ? dir.handle : 'downloads', types:[{ description:'Libro de Excel con macros', accept:{ 'application/vnd.ms-excel.sheet.macroEnabled.12':['.xlsm'] } }] });
+        const ws = await h.createWritable(); await ws.write(blob); await ws.close();
+        toast('Guardado "' + h.name + '" con la columna Sugerido Enviar.');
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        if (e.name === 'NoModificationAllowedError' || e.name === 'InvalidStateError') { toast('No se pudo escribir: cerrá el archivo en Excel y probá de nuevo.', 6000); return; }
+        throw e;
+      }
+    } else {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = x.f.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    }
+  } catch (e) { toast('No se pudo guardar: ' + (e.message || e), 6000); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+
+// ═════════════ Inicio ═════════════
+async function renderHome() {
+  $('today').textContent = new Date().toLocaleDateString('es-GT', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).replace(/^./, c => c.toUpperCase());
+  const rows = [];
+  let needPerm = false;
+  for (const k of KIND_ORDER) {
+    const kd = KINDS[k];
+    const recs = templates.filter(t => t.kind === k).sort((a, b) => (a.vendor || '').localeCompare(b.vendor || ''));
+    const list = recs.length ? recs : [null];
+    for (const r of list) {
+      const st = await templateState(r);
+      if (st === 'perm') needPerm = true;
+      const [bc, bt] = STATE_BADGE[r && r.mode === 'dir' && st === 'ok' ? 'dirok' : st];
+      const title = k === 'cdpanisa' && r ? kd.label + ' · ' + r.vendor : kd.label;
+      rows.push('<div class="tpl"><div class="tpl-name"><b>' + esc(title) + '</b><small>' + esc(kd.help) + '</small></div>' +
+        '<div class="tpl-file">' + (r ? '<div class="fn" title="' + esc(r.name) + '">' + (r.mode === 'dir' ? '📁 ' : '') + esc(r.name) + '</div><div class="meta">' + (r.mode === 'dir' ? 'Vinculada ' + esc(fmtDate(r.linkedAt)) : 'Modificado ' + esc(fmtDate(r.lastModified)) + (r.mode === 'copy' ? ' · copia guardada' : '')) + '</div>' : '<div class="none">Ningún archivo vinculado</div>') + '</div>' +
+        '<span class="badge ' + bc + '">' + bt + '</span>' +
+        '<div class="tpl-act">' + (r
+          ? (st === 'perm' ? '<button class="btn primary" data-grant>Dar acceso</button>' : '') + '<button class="btn" data-relink="' + esc(r.id) + '" data-kind="' + k + '">Cambiar</button><button class="btn ghost" data-unlink="' + esc(r.id) + '">Quitar</button>'
+          : '<button class="btn primary" data-link="' + k + '">Vincular</button>') + '</div></div>');
+    }
+    if (kd.multi && recs.length) rows.push('<div class="tpl-add"><button class="btn" data-link="' + k + '">Agregar plantilla de otro vendor</button></div>');
+  }
+  $('tpl-list').innerHTML = rows.join('');
+  $('mode-note').textContent = HAS_PICKER
+    ? 'Se guarda un vínculo al archivo, no una copia: si lo editás en Excel, la próxima carga ya trae los cambios. Si lo guardás con otro nombre (por ejemplo V16), usá "Cambiar".'
+    : 'En este navegador se guarda una copia del archivo. Cuando lo actualices, usá "Cambiar" para subir la versión nueva. En Chrome o Edge de escritorio se vincula el archivo directamente.';
+  $('tpl-list').onclick = async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-grant')) return grantAll();
+    if (b.dataset.link) return linkTemplate(b.dataset.link);
+    if (b.dataset.relink) return linkTemplate(b.dataset.kind, b.dataset.relink);
+    if (b.dataset.unlink) return unlinkTemplate(b.dataset.unlink);
+  };
+  markAlive();
+}
+
+// ═════════════ Archivos abiertos con la app (Windows: "Abrir con…") ═════════════
+function suggestTarget(file) {
+  const n = file.name.toLowerCase(), x = extOf(n);
+  if (x === 'pdf') return /generador\s*qr|orden de compra.*cita/.test(n) ? 'comprobador:file-pdf-1' : 'ingreso:file-pdf';
+  if (x === 'xlsm') return /vendor\s*nbr|cd[_\s]*panisa/.test(n) ? 'ingreso:file-xlsm' : /inv/.test(n) ? 'ingreso:file-inv' : '';
+  if (/control[_\s]*oc/.test(n)) return 'garita:file-xlsx';
+  if (/generador\s*qr/.test(n)) return /cita\s*\d/.test(n) ? 'comprobador:file-xlsx-1' : 'entregas:file-generador';
+  if (/formulario/.test(n)) return 'entregas:file-formulario-1';
+  if (/oc\s*listado|listado/.test(n)) return 'entregas:file-oc-1';
+  return '';
+}
+function chooseTarget(file) {
+  return new Promise(res => {
+    const x = extOf(file.name), sug = suggestTarget(file);
+    const opts = TARGETS.filter(t => t.ext.includes(x)).sort((a, b) => ((b.tool + ':' + b.input) === sug) - ((a.tool + ':' + a.input) === sug));
+    if (!opts.length) { toast('Ninguna herramienta usa archivos .' + x + '.'); return res(null); }
+    const d = openDlg('<div class="dlg"><h3>¿Dónde cargo este archivo?</h3><p>' + esc(file.name) + '</p><div class="dlg-list">' +
+      opts.map(t => { const k = t.tool + ':' + t.input; return '<button class="dlg-opt' + (k === sug ? ' sug' : '') + '" data-k="' + k + '"><span>' + esc(t.label) + '</span><small>' + esc(toolById(t.tool).name) + '</small></button>'; }).join('') +
+      '</div><div class="dlg-row"><button class="btn" data-k="">Cancelar</button></div></div>');
+    d.onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; d.close(); res(b.dataset.k || null); };
+    d.oncancel = () => res(null);
+  });
+}
+async function receiveFiles(files) {
+  for (const f of files) {
+    const k = await chooseTarget(f); if (!k) continue;
+    const [tool, input] = k.split(':');
+    go(tool, { user:false });
+    await views[tool].ready;
+    await injectFile(tool, input, f);
+  }
+}
+if ('launchQueue' in window) {
+  window.launchQueue.setConsumer(async params => {
+    if (!params.files || !params.files.length) return;
+    const files = []; for (const h of params.files) { try { files.push(await h.getFile()); } catch (e) {} }
+    if (files.length) receiveFiles(files);
+  });
+}
+
+// ═════════════ Sin conexión / instalación / actualización ═════════════
+function updateNet() { const n = $('net'); n.classList.toggle('off', !navigator.onLine); n.querySelector('span').textContent = navigator.onLine ? 'Con conexión' : 'Sin conexión'; }
+addEventListener('online', updateNet); addEventListener('offline', updateNet);
+
+$('btn-offline').onclick = async () => {
+  if (!navigator.onLine) { $('offline-msg').textContent = 'Necesitás internet para descargar los motores una vez.'; return; }
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    $('offline-msg').textContent = location.protocol === 'file:' ? 'El uso sin internet requiere abrir la app desde su dirección web (ver LEEME).' : 'Recargá la página una vez y volvé a intentarlo.';
+    return;
+  }
+  const b = $('btn-offline'); b.disabled = true;
+  $('offline-msg').textContent = 'Descargando Python/openpyxl, PDF.js y jsQR… puede tardar un minuto.';
+  try {
+    const e = await ensureView('entregas', { background:true });
+    const c = await ensureView('comprobador', { background:true });
+    await Promise.all([e.frame.contentWindow.ensurePyodide(), c.frame.contentWindow.ensurePyodide()]);
+    await DB.set('offlineReady', Date.now());
+    $('offline-msg').textContent = 'Listo: las cuatro herramientas funcionan sin internet en este equipo.';
+  } catch (err) {
+    $('offline-msg').textContent = 'No se completó la descarga (' + (err && err.message || err) + '). Probá de nuevo.';
+  } finally { b.disabled = false; markAlive(); }
+};
+
+let deferredInstall = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('btn-install').classList.remove('hidden'); });
+$('btn-install').onclick = async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; $('btn-install').classList.add('hidden'); };
+addEventListener('appinstalled', () => { $('btn-install').classList.add('hidden'); toast('App instalada. La encontrás en el menú Inicio o en el escritorio.'); });
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    const show = w => { $('btn-update').classList.remove('hidden'); $('btn-update').onclick = () => w.postMessage('skipWaiting'); };
+    if (reg.waiting && navigator.serviceWorker.controller) show(reg.waiting);
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      w && w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) show(w); });
+    });
+    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+  }).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload(); } });
+}
+DB.get('offlineReady').then(t => { if (t) $('offline-msg').textContent = 'Preparada para usar sin internet desde ' + fmtDate(t) + '.'; }).catch(() => {});
+
+// ═════════════ Arranque ═════════════
+(async function init() {
+  renderNav(); renderDock(); updateNet();
+  await loadTemplates();
+  const h = location.hash.slice(1);
+  go(toolById(h) ? h : 'home', { user:false });
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+})();
+</script>
+</body>
+</html>

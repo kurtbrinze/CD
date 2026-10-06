@@ -1,0 +1,2357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ingreso de Pedidos Walmart → Excel</title>
+<style>
+  :root {
+    --blue: #0071ce;
+    --blue-dark: #004f9a;
+    --yellow: #ffc220;
+    --green: #2e7d32;
+    --red: #c62828;
+    --gray-bg: #f4f6f8;
+    --gray-border: #d9dee3;
+    --text: #1a2733;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--gray-bg);
+    color: var(--text);
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 {
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+    color: var(--blue-dark);
+  }
+  header p { margin: 0; color: #5a6a78; font-size: 0.95rem; }
+
+  .steps {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .step-pill {
+    font-size: 0.78rem;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #e6edf3;
+    color: #5a6a78;
+    font-weight: 600;
+  }
+  .step-pill.active { background: var(--blue); color: white; }
+  .step-pill.done { background: var(--green); color: white; }
+
+  .card {
+    background: white;
+    border: 1px solid var(--gray-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    font-size: 1.05rem;
+    margin: 0 0 4px;
+    color: var(--blue-dark);
+  }
+  .card .hint { font-size: 0.85rem; color: #6b7a87; margin: 0 0 14px; }
+
+  .drop-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .drop-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
+  .drop-row.four-col { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 980px) { .drop-row.four-col { grid-template-columns: 1fr 1fr; } }
+  .cita-check { font-size: 0.85rem; border-radius: 8px; padding: 9px 12px; margin-top: 12px; line-height: 1.45; }
+  .cita-check.ok { background: #eef8ea; border: 1px solid #c7e6bb; color: #24610d; }
+  .cita-check.warn { background: #fff8e6; border: 1px solid #f3d9a0; color: #7a4a00; }
+  @media (max-width: 640px) {
+    .drop-row, .drop-row.three-col, .drop-row.four-col { grid-template-columns: 1fr; }
+  }
+
+  .dz-optional-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #8a6d00;
+    background: #fff3cd;
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .dropzone {
+    border: 2px dashed var(--gray-border);
+    border-radius: 10px;
+    padding: 22px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: #fbfcfd;
+    position: relative;
+  }
+  .dropzone:hover { border-color: var(--blue); }
+  .dropzone.dragover { border-color: var(--blue); background: #eaf4fd; }
+  .dropzone.filled { border-style: solid; border-color: var(--green); background: #f0f8f0; }
+  .dropzone .dz-icon { font-size: 1.8rem; margin-bottom: 6px; display: block; }
+  .dropzone .dz-label { font-weight: 600; font-size: 0.92rem; margin-bottom: 2px; }
+  .dropzone .dz-sub { font-size: 0.78rem; color: #7a8996; }
+  .dropzone .dz-filename {
+    margin-top: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--green);
+    word-break: break-all;
+  }
+  .dropzone input[type=file] { display: none; }
+  .dropzone .dz-clear {
+    position: absolute;
+    top: 6px; right: 8px;
+    background: none; border: none;
+    color: #9aa7b2;
+    font-size: 1rem;
+    cursor: pointer;
+    display: none;
+    line-height: 1;
+    padding: 4px;
+  }
+  .dropzone.filled .dz-clear { display: block; }
+  .dropzone .dz-clear:hover { color: var(--red); }
+
+  #preflight { margin-top: 16px; }
+  .preflight-box {
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.85rem;
+  }
+  .preflight-box.ok {
+    background: #eef7ee;
+    border: 1px solid #b9dcb9;
+    color: #2e5c2e;
+  }
+  .preflight-box.mismatch {
+    background: #fdecea;
+    border: 1.5px solid var(--red);
+    color: #7a1f1a;
+  }
+  .preflight-box.unknown {
+    background: #f0f3f6;
+    border: 1px solid var(--gray-border);
+    color: #5a6a78;
+  }
+  .preflight-box .pf-title { font-weight: 700; margin-bottom: 4px; }
+  .preflight-box .pf-detail { font-size: 0.82rem; opacity: 0.9; }
+  .preflight-confirm {
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.83rem;
+  }
+  .preflight-confirm input { margin-top: 3px; }
+
+  .actions { display: flex; justify-content: center; margin-top: 20px; }
+  button.primary {
+    background: var(--blue);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.primary:hover:not(:disabled) { background: var(--blue-dark); }
+  button.primary:disabled { background: #b7c3cc; cursor: not-allowed; }
+
+  button.secondary {
+    background: white;
+    color: var(--blue);
+    border: 1.5px solid var(--blue);
+    padding: 10px 24px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button.secondary:hover { background: #eaf4fd; }
+
+  #status { text-align: center; margin-top: 14px; font-size: 0.88rem; color: #5a6a78; min-height: 1.2em; }
+  #status.error { color: var(--red); font-weight: 600; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #c9d6de;
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-card { border-color: var(--green); }
+  .result-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .result-header .check {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--green); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+  }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr 1fr; } }
+  .summary-box {
+    background: var(--gray-bg);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .summary-box .num { font-size: 1.3rem; font-weight: 700; color: var(--blue-dark); }
+  .summary-box .lbl { font-size: 0.72rem; color: #6b7a87; margin-top: 2px; }
+
+  .inv-status-box + .inv-status-box { margin-top: 8px; }
+  .inv-status-box {
+    background: #eef7ee;
+    border: 1px solid #b9dcb9;
+    color: #2e5c2e;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin: 14px 0;
+  }
+
+  table.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+    margin-top: 10px;
+  }
+  table.items-table th, table.items-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--gray-border);
+  }
+  table.items-table th { color: #6b7a87; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+
+  .warnings-box {
+    background: #fff8e1;
+    border: 1px solid var(--yellow);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-size: 0.85rem;
+  }
+  .warnings-box .w-title { font-weight: 700; color: #8a6d00; margin-bottom: 6px; }
+  .warnings-box ul { margin: 0; padding-left: 18px; color: #6b5900; }
+  .warnings-box li { margin-bottom: 3px; }
+
+  .download-row { text-align: center; margin-top: 18px; }
+  .download-btn {
+    display: inline-block;
+    background: var(--green);
+    color: white;
+    text-decoration: none;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.98rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .download-btn:hover { background: #245e27; }
+  .download-hint { font-size: 0.75rem; color: #8a978f; margin-top: 8px; }
+
+  footer { text-align: center; margin-top: 30px; font-size: 0.75rem; color: #9aa7b2; }
+  .privacy-note {
+    text-align: center;
+    font-size: 0.78rem;
+    color: #7a8996;
+    margin: -6px 0 24px;
+  }
+  .privacy-note .lock { margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ingreso de Pedidos Walmart → Excel CD Panisa</h1>
+    <p>Sube la Orden de Compra (PDF) y la plantilla Excel correspondiente. La app ingresa la distribución, aplica el filtrado (equivalente al botón FILTRAR) y prepara la "Hoja para Fragua" — lista para descargar.</p>
+  </header>
+
+  <p class="privacy-note"><span class="lock">🔒</span>Todo el procesamiento ocurre en tu navegador. Ningún archivo se envía a ningún servidor.</p>
+
+  <div class="steps">
+    <span class="step-pill active" id="pill-1">1. Cargar archivos</span>
+    <span class="step-pill" id="pill-2">2. Procesar</span>
+    <span class="step-pill" id="pill-3">3. Descargar</span>
+  </div>
+
+  <div class="card">
+    <h2>Archivos del pedido</h2>
+    <p class="hint">Un pedido a la vez: la Orden de Compra en PDF y el archivo .xlsm de la plantilla que corresponde a ese Supplier Number. El archivo de inventario diario es opcional: si lo agregas, además se actualiza la pestaña "INV".</p>
+    <div class="drop-row four-col">
+      <div class="dropzone" id="dz-pdf" tabindex="0">
+        <button class="dz-clear" id="clear-pdf" title="Quitar archivo">✕</button>
+        <span class="dz-icon">📄</span>
+        <div class="dz-label">Orden de Compra (PDF)</div>
+        <div class="dz-sub">Arrastra aquí o haz clic para elegir</div>
+        <div class="dz-filename" id="fname-pdf"></div>
+        <input type="file" id="file-pdf" accept="application/pdf,.pdf">
+      </div>
+      <div class="dropzone" id="dz-xlsm" tabindex="0">
+        <button class="dz-clear" id="clear-xlsm" title="Quitar archivo">✕</button>
+        <span class="dz-icon">📊</span>
+        <div class="dz-label">Plantilla Excel (.xlsm)</div>
+        <div class="dz-sub">Arrastra aquí o haz clic para elegir</div>
+        <div class="dz-filename" id="fname-xlsm"></div>
+        <input type="file" id="file-xlsm" accept=".xlsm">
+      </div>
+      <div class="dropzone" id="dz-inv" tabindex="0">
+        <button class="dz-clear" id="clear-inv" title="Quitar archivo">✕</button>
+        <span class="dz-icon">📦</span>
+        <div class="dz-label">Inventario diario<span class="dz-optional-tag">opcional</span></div>
+        <div class="dz-sub">Arrastra aquí o haz clic para elegir</div>
+        <div class="dz-filename" id="fname-inv"></div>
+        <input type="file" id="file-inv" accept=".xlsm,.xlsx">
+      </div>
+      <div class="dropzone" id="dz-ctrl" tabindex="0">
+        <button class="dz-clear" id="clear-ctrl" title="Quitar archivo">✕</button>
+        <span class="dz-icon">🗓️</span>
+        <div class="dz-label">Control OC<span class="dz-optional-tag">para la cita</span></div>
+        <div class="dz-sub">Arrastra aquí o haz clic para elegir</div>
+        <div class="dz-filename" id="fname-ctrl"></div>
+        <input type="file" id="file-ctrl" accept=".xlsx,.xlsm">
+      </div>
+    </div>
+
+    <div id="preflight" style="display:none;"></div>
+    <div id="cita-check" class="cita-check" style="display:none;"></div>
+
+    <div class="actions">
+      <button class="primary" id="btn-process" disabled>Procesar pedido</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <div class="card result-card" id="result-card" style="display:none;">
+    <div class="result-header">
+      <span class="check">✓</span>
+      <h2 style="margin:0;">Pedido procesado</h2>
+    </div>
+    <p class="hint" id="result-sub"></p>
+
+    <div class="summary-grid">
+      <div class="summary-box"><div class="num" id="sum-items">–</div><div class="lbl">Productos</div></div>
+      <div class="summary-box"><div class="num" id="sum-stores">–</div><div class="lbl">Tiendas únicas</div></div>
+      <div class="summary-box"><div class="num" id="sum-units">–</div><div class="lbl">Unidades totales</div></div>
+    </div>
+
+    <div id="inv-status" style="display:none;"></div>
+
+    <table class="items-table" id="items-table">
+      <thead>
+        <tr><th>Ítem</th><th>Stock #</th><th>Pestaña</th><th>Tiendas</th><th>Unidades</th></tr>
+      </thead>
+      <tbody id="items-tbody"></tbody>
+    </table>
+
+    <div class="warnings-box" id="warnings-box" style="display:none;">
+      <div class="w-title">⚠ Avisos</div>
+      <ul id="warnings-list"></ul>
+    </div>
+
+    <div class="download-row">
+      <button type="button" class="download-btn" id="download-link">⬇ Descargar Excel procesado</button>
+      <div class="download-hint" id="download-hint"></div>
+    </div>
+    <div class="actions" style="margin-top:14px;">
+      <button class="secondary" id="btn-reset">Procesar otro pedido</button>
+    </div>
+  </div>
+
+  <footer>Proyecto: Envíos a CD de Walmart · Procesamiento 100% local en el navegador</footer>
+</div>
+
+<script>
+/* ===================================================================== */
+/* Bundled processing engine (pdfparse, parse_po, sharedstrings, xlsmzip, */
+/* workbooknav, sheetxml, listastorenbr, core, browser_io) — see project */
+/* docs for source module breakdown. Everything below runs 100% client-  */
+/* side; no network requests are made.                                   */
+/* ===================================================================== */
+'use strict';
+// ===== Bundled modules (auto-generated, do not edit directly) =====
+
+// ---- from pdfparse.js ----
+// Minimal PDF text extractor tailored for IronPdf-generated Walmart PO PDFs.
+// Works in Node (using zlib) when INFLATE is injected, or standalone if global exists.
+
+async function parsePdf(bytes, inflateFn) {
+  // bytes: Uint8Array of the whole PDF file
+  const latin1 = bytesToLatin1(bytes);
+
+  // ---- 1. Scan all "N G obj ... endobj" objects ----
+  const objects = {}; // objnum -> {dictText, streamBytes(raw, still compressed) or null}
+  const objRe = /(\d+)\s+0\s+obj/g;
+  let m;
+  while ((m = objRe.exec(latin1)) !== null) {
+    const objnum = parseInt(m[1], 10);
+    const start = m.index + m[0].length;
+    const endIdx = latin1.indexOf('endobj', start);
+    if (endIdx === -1) continue;
+    const body = latin1.slice(start, endIdx);
+    objects[objnum] = parseObjectBody(body, bytes, start);
+  }
+
+  // ---- 2. Find the Pages / Page objects and their Contents + Resources ----
+  const pages = [];
+  for (const [numStr, obj] of Object.entries(objects)) {
+    const d = obj.dictText;
+    if (/\/Type\s*\/Page(?!s)/.test(d)) {
+      pages.push({ objnum: parseInt(numStr, 10), dictText: d });
+    }
+  }
+  // Sort pages by their object number as a reasonable proxy if no explicit order found.
+  // (Better: follow /Kids in /Pages tree, but for our generator objnum order matches page order.)
+  pages.sort((a, b) => a.objnum - b.objnum);
+
+  const allLines = [];
+  for (const page of pages) {
+    const contentsRefs = extractRefs(page.dictText, 'Contents');
+    let streamText = '';
+    for (const ref of contentsRefs) {
+      const cobj = objects[ref];
+      if (!cobj || !cobj.streamRaw) continue;
+      const decompressed = await decodeStream(cobj, inflateFn);
+      streamText += bytesToLatin1(decompressed) + '\n';
+    }
+
+    // Resources -> Font map (name -> font object number)
+    const resourcesText = extractDictBlock(page.dictText, 'Resources', objects);
+    const fontMap = {}; // /F4 -> objnum
+    const fontBlock = extractDictBlock(resourcesText, 'Font', objects);
+    if (fontBlock) {
+      const fRe = /\/(\S+)\s+(\d+)\s+0\s+R/g;
+      let fm;
+      while ((fm = fRe.exec(fontBlock)) !== null) {
+        fontMap[fm[1]] = parseInt(fm[2], 10);
+      }
+    }
+
+    // Build CMap decoders per font name used on this page
+    const decoders = {}; // /F4 -> function(hexstring)->text
+    for (const [fname, fobjnum] of Object.entries(fontMap)) {
+      decoders[fname] = await buildFontDecoder(fobjnum, objects, inflateFn);
+    }
+
+    const lines = extractTextLines(streamText, decoders);
+    allLines.push(...lines);
+  }
+
+  return allLines; // array of strings, one per reconstructed PDF text line, across all pages, in order
+}
+
+function parseObjectBody(body, fileBytes, bodyStartOffsetInLatin1) {
+  const streamIdx = body.indexOf('stream');
+  if (streamIdx === -1) {
+    return { dictText: body, streamRaw: null };
+  }
+  const dictText = body.slice(0, streamIdx);
+  // stream data begins right after "stream" + EOL (\r\n or \n)
+  let dataStart = streamIdx + 'stream'.length;
+  if (body[dataStart] === '\r') dataStart++;
+  if (body[dataStart] === '\n') dataStart++;
+  const lengthMatch = dictText.match(/\/Length\s+(\d+)(?!\s+\d+\s+R)/);
+  let streamRaw;
+  if (lengthMatch) {
+    const len = parseInt(lengthMatch[1], 10);
+    // dataStart is an index into the latin1 string, which is 1:1 with fileBytes offsets
+    // (since bytesToLatin1 preserves byte offsets 1:1).
+    const absStart = bodyStartOffsetInLatin1 + dataStart;
+    streamRaw = fileBytesSlice(fileBytes, absStart, absStart + len);
+  } else {
+    // Fallback: find "endstream" and use everything before it (minus trailing EOL)
+    const endIdx = body.indexOf('endstream', dataStart);
+    let raw = body.slice(dataStart, endIdx);
+    if (raw.endsWith('\n')) raw = raw.slice(0, -1);
+    if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+    const absStart = bodyStartOffsetInLatin1 + dataStart;
+    streamRaw = fileBytesSlice(fileBytes, absStart, absStart + raw.length);
+  }
+  return { dictText, streamRaw };
+}
+
+function fileBytesSlice(bytes, start, end) {
+  return bytes.slice(start, end);
+}
+
+function extractRefs(dictText, key) {
+  // handles both "/Key N 0 R" and "/Key [N 0 R M 0 R]"
+  const single = new RegExp('/' + key + '\\s+(\\d+)\\s+0\\s+R');
+  const arr = new RegExp('/' + key + '\\s*\\[([^\\]]*)\\]');
+  let m = dictText.match(arr);
+  if (m) {
+    const refs = [];
+    const refRe = /(\d+)\s+0\s+R/g;
+    let rm;
+    while ((rm = refRe.exec(m[1])) !== null) refs.push(parseInt(rm[1], 10));
+    return refs;
+  }
+  m = dictText.match(single);
+  if (m) return [parseInt(m[1], 10)];
+  return [];
+}
+
+function extractDictBlock(dictText, key, objects) {
+  // Try inline nested dict first: /Key << ... >>
+  const inlineRe = new RegExp('/' + key + '\\s*<<');
+  const im = dictText.match(inlineRe);
+  if (im) {
+    const start = im.index + im[0].length;
+    let depth = 1;
+    let i = start;
+    while (i < dictText.length && depth > 0) {
+      if (dictText.slice(i, i + 2) === '<<') { depth++; i += 2; continue; }
+      if (dictText.slice(i, i + 2) === '>>') { depth--; i += 2; continue; }
+      i++;
+    }
+    return dictText.slice(start, i - 2);
+  }
+  // Try indirect reference: /Key N 0 R
+  const refRe = new RegExp('/' + key + '\\s+(\\d+)\\s+0\\s+R');
+  const rm = dictText.match(refRe);
+  if (rm && objects) {
+    const obj = objects[parseInt(rm[1], 10)];
+    if (obj) return obj.dictText;
+  }
+  return '';
+}
+
+async function decodeStream(obj, inflateFn) {
+  if (/\/FlateDecode/.test(obj.dictText) || /\/Filter\s*\/Fl/.test(obj.dictText)) {
+    return await inflateFn(obj.streamRaw);
+  }
+  return obj.streamRaw;
+}
+
+async function buildFontDecoder(fobjnum, objects, inflateFn) {
+  const fobj = objects[fobjnum];
+  if (!fobj) return (hex) => hexToLatin1Chars(hex); // fallback
+  const toUniRefs = extractRefs(fobj.dictText, 'ToUnicode');
+  if (toUniRefs.length === 0) {
+    // Simple 1-byte font (e.g. WinAnsiEncoding Type1) - decode as latin1 bytes
+    return (hex) => hexPairsToBytes(hex).map((b) => String.fromCharCode(b)).join('');
+  }
+  const cmapObj = objects[toUniRefs[0]];
+  const cmapText = bytesToLatin1(await decodeStream(cmapObj, inflateFn));
+  const map = parseToUnicodeCMap(cmapText);
+  return (hex) => {
+    const codes = hex4ToCodes(hex);
+    return codes.map((c) => map.get(c) || '').join('');
+  };
+}
+
+function parseToUnicodeCMap(text) {
+  const map = new Map();
+  const bfcharRe = /beginbfchar([\s\S]*?)endbfchar/g;
+  let m;
+  while ((m = bfcharRe.exec(text)) !== null) {
+    const body = m[1];
+    const pairRe = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
+    let pm;
+    while ((pm = pairRe.exec(body)) !== null) {
+      const src = parseInt(pm[1], 16);
+      const dst = parseInt(pm[2].slice(0, 4), 16); // take first 16 bits if multi
+      map.set(src, String.fromCharCode(dst));
+    }
+  }
+  const bfrangeRe = /beginbfrange([\s\S]*?)endbfrange/g;
+  while ((m = bfrangeRe.exec(text)) !== null) {
+    const body = m[1];
+    const rangeRe = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
+    let rm;
+    while ((rm = rangeRe.exec(body)) !== null) {
+      const startSrc = parseInt(rm[1], 16);
+      const endSrc = parseInt(rm[2], 16);
+      const startDst = parseInt(rm[3].slice(0, 4), 16);
+      for (let c = startSrc; c <= endSrc; c++) {
+        map.set(c, String.fromCharCode(startDst + (c - startSrc)));
+      }
+    }
+  }
+  return map;
+}
+
+function hex4ToCodes(hex) {
+  const codes = [];
+  for (let i = 0; i < hex.length; i += 4) {
+    codes.push(parseInt(hex.slice(i, i + 4), 16));
+  }
+  return codes;
+}
+
+function hexPairsToBytes(hex) {
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes.push(parseInt(hex.slice(i, i + 2), 16));
+  }
+  return bytes;
+}
+
+function hexToLatin1Chars(hex) {
+  return hexPairsToBytes(hex).map((b) => String.fromCharCode(b)).join('');
+}
+
+function extractTextLines(streamText, decoders) {
+  // Walk the content stream, tracking BT blocks, Tf (font), Tm (abs pos), Td (rel pos), Tj (show text)
+  const chunks = []; // {x, y, text}
+  let curFont = null;
+  let curX = 0, curY = 0;
+  let haveMatrix = false;
+
+  const NUM = '-?[\\d.]+';
+  const tokenRe = new RegExp(
+    'BT' +
+    '|ET' +
+    '|/(?<font>\\S+)\\s+' + NUM + '\\s+Tf' +
+    '|(?<ta>' + NUM + ')\\s+(?<tb>' + NUM + ')\\s+(?<tc>' + NUM + ')\\s+(?<td2>' + NUM + ')\\s+(?<te>' + NUM + ')\\s+(?<tf2>' + NUM + ')\\s+Tm' +
+    '|(?<tdx>' + NUM + ')\\s+(?<tdy>' + NUM + ')\\s+Td' +
+    '|<(?<hex>[0-9A-Fa-f]*)>\\s*Tj',
+    'g'
+  );
+
+  let mm;
+  while ((mm = tokenRe.exec(streamText)) !== null) {
+    const tok = mm[0];
+    const g = mm.groups;
+    if (tok === 'BT') {
+      haveMatrix = false;
+      continue;
+    }
+    if (tok === 'ET') {
+      continue;
+    }
+    if (g.font !== undefined) {
+      curFont = g.font;
+      continue;
+    }
+    if (g.te !== undefined) {
+      // Tm: a b c d e f Tm  -> position is (e, f)
+      curX = parseFloat(g.te);
+      curY = parseFloat(g.tf2);
+      haveMatrix = true;
+      continue;
+    }
+    if (g.tdx !== undefined) {
+      // Td: dx dy
+      curX += parseFloat(g.tdx);
+      curY += parseFloat(g.tdy);
+      continue;
+    }
+    if (g.hex !== undefined) {
+      // Tj with hex string content (possibly empty)
+      const hex = g.hex;
+      if (hex.length > 0 && curFont && decoders[curFont]) {
+        const text = decoders[curFont](hex);
+        chunks.push({ x: curX, y: curY, text });
+      }
+      continue;
+    }
+  }
+
+  // Group chunks into lines by Y (tolerance), then order by X within each line
+  chunks.sort((a, b) => a.y - b.y || a.x - b.x);
+  const lines = [];
+  let curLine = null;
+  const Y_TOL = 2.0;
+  for (const c of chunks) {
+    if (curLine && Math.abs(c.y - curLine.y) <= Y_TOL) {
+      curLine.parts.push(c);
+      curLine.y = (curLine.y + c.y) / 2;
+    } else {
+      curLine = { y: c.y, parts: [c] };
+      lines.push(curLine);
+    }
+  }
+  return lines.map((l) => {
+    l.parts.sort((a, b) => a.x - b.x);
+    return joinParts(l.parts);
+  });
+}
+
+function joinParts(parts) {
+  // Join text chunks on the same line, inserting a space when there's a visible gap
+  let out = '';
+  let lastEndX = null;
+  for (const p of parts) {
+    if (lastEndX !== null && p.x - lastEndX > 1.5 && out.length > 0 && !out.endsWith(' ') && !p.text.startsWith(' ')) {
+      out += ' ';
+    }
+    out += p.text;
+    lastEndX = p.x + estimateWidth(p.text);
+  }
+  return out.trim();
+}
+
+function estimateWidth(text) {
+  return text.length * 6; // rough estimate, good enough to decide if a space gap exists
+}
+
+function bytesToLatin1(bytes) {
+  let s = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK, bytes.length)));
+  }
+  return s;
+}
+
+// ---- from parse_po.js ----
+// Extracts a few header fields from the reconstructed PDF text lines, used
+// for a sanity cross-check against the target Excel file before writing
+// anything (e.g. "Supplier Number" should match the vendor number in the
+// .xlsm filename/content) — this is a safety net, not part of the core
+// distribution-parsing logic above.
+function extractHeaderInfo(lines) {
+  const info = { poNumber: null, shipStore: null, supplierNumber: null, supplierName: null };
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    let m;
+    if (info.poNumber === null && (m = line.match(/^Purchase Order Number\s+(\d+)\s+STORE\s+(\d+)/))) {
+      info.poNumber = m[1];
+      info.shipStore = m[2];
+      continue;
+    }
+    if (info.supplierNumber === null && (m = line.match(/^Supplier Number\s+(\d+)/))) {
+      info.supplierNumber = m[1];
+      continue;
+    }
+    if (info.supplierName === null && (m = line.match(/^Supplier Name\s+(.+)$/))) {
+      info.supplierName = m[1].trim();
+      continue;
+    }
+  }
+  return info;
+}
+
+function parsePO(lines) {
+  const items = {};
+  const meta = {};
+  let currentItem = null;
+  let inDist = false;
+
+  const itemLineRe = /^(\d{3})\s+(\d+)\s+(\S+)\s+(.*)$/;
+  const pureIntLineRe = /^(\d+)(\s+\d+)*$/;
+
+  for (let rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const m = line.match(itemLineRe);
+    if (m && parseInt(m[1], 10) === Object.keys(items).length + 1) {
+      currentItem = m[1];
+      items[currentItem] = [];
+      meta[currentItem] = { stock_no: parseInt(m[2], 10), gtin: m[3], rest: m[4] };
+      inDist = false;
+      continue;
+    }
+    if (line.startsWith('Distribution')) { inDist = true; continue; }
+    if (line.startsWith('Dist UOM') || line.startsWith('Location Qty')) continue;
+    if (line.startsWith('Allowance') || line.startsWith('Total Order') || line.startsWith('Total Line') || line.startsWith('Total Units')) {
+      inDist = false;
+      continue;
+    }
+    if (inDist && currentItem) {
+      if (pureIntLineRe.test(line)) {
+        const nums = line.split(/\s+/).map(Number);
+        if (nums.length % 2 === 0) {
+          const pairs = [];
+          for (let i = 0; i < nums.length; i += 2) pairs.push([nums[i], nums[i + 1]]);
+          items[currentItem].push(...pairs);
+        } else {
+          console.error('WARN odd count line:', line);
+        }
+      } else {
+        console.error('WARN unparsed line in dist:', line);
+      }
+    }
+  }
+  return { items, meta };
+}
+
+// ---- from sharedstrings.js ----
+function parseSharedStrings(xml) {
+  const strings = [];
+  const siRe = /<si>([\s\S]*?)<\/si>/g;
+  let m;
+  while ((m = siRe.exec(xml)) !== null) {
+    const body = m[1];
+    let text = '';
+    const tRe = /<t[^>]*>([\s\S]*?)<\/t>/g;
+    let tm;
+    let found = false;
+    while ((tm = tRe.exec(body)) !== null) {
+      found = true;
+      text += decodeXmlEntities(tm[1]);
+    }
+    if (!found) {
+      // <si><t/></si> empty case
+      text = '';
+    }
+    strings.push(text);
+  }
+  return strings;
+}
+
+function decodeXmlEntities(s) {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+// ---- from xlsmzip.js ----
+// Minimal ZIP reader/writer tailored for editing a handful of XML entries
+// inside an .xlsm while leaving every other entry byte-for-byte untouched
+// (so macros, drawings, ctrlProps, etc. survive intact).
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) {
+    c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  }
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function readUInt32LE(buf, off) { return (buf[off] | (buf[off + 1] << 8) | (buf[off + 2] << 16) | (buf[off + 3] << 24)) >>> 0; }
+function readUInt16LE(buf, off) { return buf[off] | (buf[off + 1] << 8); }
+
+function writeUInt32LE(arr, off, val) {
+  arr[off] = val & 0xff;
+  arr[off + 1] = (val >>> 8) & 0xff;
+  arr[off + 2] = (val >>> 16) & 0xff;
+  arr[off + 3] = (val >>> 24) & 0xff;
+}
+function writeUInt16LE(arr, off, val) {
+  arr[off] = val & 0xff;
+  arr[off + 1] = (val >>> 8) & 0xff;
+}
+
+// ---- Read a zip: parse the End Of Central Directory + Central Directory ----
+function parseZip(bytes) {
+  // Find EOCD signature 0x06054b50 scanning from the end (assumes no zip comment > reasonable size)
+  const EOCD_SIG = 0x06054b50;
+  let eocdOff = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 22 - 65557); i--) {
+    if (readUInt32LE(bytes, i) === EOCD_SIG) { eocdOff = i; break; }
+  }
+  if (eocdOff === -1) throw new Error('Not a valid zip file (EOCD not found)');
+
+  const cdCount = readUInt16LE(bytes, eocdOff + 10);
+  const cdOffset = readUInt32LE(bytes, eocdOff + 16);
+
+  const entries = [];
+  let p = cdOffset;
+  const CDH_SIG = 0x02014b50;
+  for (let i = 0; i < cdCount; i++) {
+    if (readUInt32LE(bytes, p) !== CDH_SIG) throw new Error('Bad central directory entry at ' + p);
+    const versionMadeBy = readUInt16LE(bytes, p + 4);
+    const method = readUInt16LE(bytes, p + 10);
+    const modTime = readUInt16LE(bytes, p + 12);
+    const modDate = readUInt16LE(bytes, p + 14);
+    const crc = readUInt32LE(bytes, p + 16);
+    const compSize = readUInt32LE(bytes, p + 20);
+    const uncompSize = readUInt32LE(bytes, p + 24);
+    const nameLen = readUInt16LE(bytes, p + 28);
+    const extraLen = readUInt16LE(bytes, p + 30);
+    const commentLen = readUInt16LE(bytes, p + 32);
+    const extAttr = readUInt32LE(bytes, p + 38);
+    const lfhOffset = readUInt32LE(bytes, p + 42);
+    const nameBytes = bytes.slice(p + 46, p + 46 + nameLen);
+    const name = latin1Decode(nameBytes);
+    entries.push({ name, method, modTime, modDate, crc, compSize, uncompSize, extAttr, lfhOffset, versionMadeBy });
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+
+  // For each entry, locate its raw compressed data via the local file header.
+  for (const e of entries) {
+    const lfh = e.lfhOffset;
+    if (readUInt32LE(bytes, lfh) !== 0x04034b50) throw new Error('Bad local file header for ' + e.name);
+    const lfhNameLen = readUInt16LE(bytes, lfh + 26);
+    const lfhExtraLen = readUInt16LE(bytes, lfh + 28);
+    const dataStart = lfh + 30 + lfhNameLen + lfhExtraLen;
+    e.rawData = bytes.slice(dataStart, dataStart + e.compSize);
+  }
+
+  return entries;
+}
+
+function latin1Decode(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return s;
+}
+function latin1Encode(str) {
+  const arr = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i) & 0xff;
+  return arr;
+}
+
+// ---- Rebuild a zip from entries, given a map of name -> {newUncompBytes} for changed entries ----
+// deflateRaw / inflateRaw are injected functions: (Uint8Array) -> Uint8Array
+async function rebuildZip(entries, changedEntries, deflateRaw) {
+  const parts = [];
+  let offset = 0;
+  const cdRecords = [];
+
+  for (const e of entries) {
+    let method = e.method;
+    let compData, crc, uncompSize;
+    if (changedEntries.has(e.name)) {
+      const newBytes = changedEntries.get(e.name);
+      uncompSize = newBytes.length;
+      crc = crc32(newBytes);
+      if (newBytes.length === 0) {
+        method = 0;
+        compData = newBytes;
+      } else {
+        method = 8;
+        compData = await deflateRaw(newBytes);
+      }
+    } else {
+      compData = e.rawData;
+      crc = e.crc;
+      uncompSize = e.uncompSize;
+    }
+    const nameBytes = latin1Encode(e.name);
+    const lfh = new Uint8Array(30 + nameBytes.length);
+    writeUInt32LE(lfh, 0, 0x04034b50);
+    writeUInt16LE(lfh, 4, 20); // version needed
+    writeUInt16LE(lfh, 6, 0); // flags
+    writeUInt16LE(lfh, 8, method);
+    writeUInt16LE(lfh, 10, e.modTime);
+    writeUInt16LE(lfh, 12, e.modDate);
+    writeUInt32LE(lfh, 14, crc);
+    writeUInt32LE(lfh, 18, compData.length);
+    writeUInt32LE(lfh, 22, uncompSize);
+    writeUInt16LE(lfh, 26, nameBytes.length);
+    writeUInt16LE(lfh, 28, 0); // extra len
+    lfh.set(nameBytes, 30);
+
+    const lfhOffset = offset;
+    parts.push(lfh);
+    offset += lfh.length;
+    parts.push(compData);
+    offset += compData.length;
+
+    cdRecords.push({ name: e.name, nameBytes, method, modTime: e.modTime, modDate: e.modDate, crc, compSize: compData.length, uncompSize, lfhOffset, extAttr: e.extAttr, versionMadeBy: e.versionMadeBy });
+  }
+
+  const cdStart = offset;
+  for (const r of cdRecords) {
+    const cdh = new Uint8Array(46 + r.nameBytes.length);
+    writeUInt32LE(cdh, 0, 0x02014b50);
+    writeUInt16LE(cdh, 4, r.versionMadeBy || 20);
+    writeUInt16LE(cdh, 6, 20); // version needed
+    writeUInt16LE(cdh, 8, 0); // flags
+    writeUInt16LE(cdh, 10, r.method);
+    writeUInt16LE(cdh, 12, r.modTime);
+    writeUInt16LE(cdh, 14, r.modDate);
+    writeUInt32LE(cdh, 16, r.crc);
+    writeUInt32LE(cdh, 20, r.compSize);
+    writeUInt32LE(cdh, 24, r.uncompSize);
+    writeUInt16LE(cdh, 28, r.nameBytes.length);
+    writeUInt16LE(cdh, 30, 0); // extra len
+    writeUInt16LE(cdh, 32, 0); // comment len
+    writeUInt16LE(cdh, 34, 0); // disk number
+    writeUInt16LE(cdh, 36, 0); // internal attr
+    writeUInt32LE(cdh, 38, r.extAttr || 0);
+    writeUInt32LE(cdh, 42, r.lfhOffset);
+    cdh.set(r.nameBytes, 46);
+    parts.push(cdh);
+    offset += cdh.length;
+  }
+  const cdSize = offset - cdStart;
+
+  const eocd = new Uint8Array(22);
+  writeUInt32LE(eocd, 0, 0x06054b50);
+  writeUInt16LE(eocd, 4, 0);
+  writeUInt16LE(eocd, 6, 0);
+  writeUInt16LE(eocd, 8, cdRecords.length);
+  writeUInt16LE(eocd, 10, cdRecords.length);
+  writeUInt32LE(eocd, 12, cdSize);
+  writeUInt32LE(eocd, 16, cdStart);
+  writeUInt16LE(eocd, 20, 0);
+  parts.push(eocd);
+  offset += eocd.length;
+
+  const out = new Uint8Array(offset);
+  let p = 0;
+  for (const part of parts) { out.set(part, p); p += part.length; }
+  return out;
+}
+
+// ---- from workbooknav.js ----
+function getSheetNameToPath(workbookXml, workbookRelsXml) {
+  const relMap = {}; // rId -> Target
+  const relRe = /<Relationship\b[^>]*\bId="(rId\d+)"[^>]*\bTarget="([^"]+)"[^>]*\/>/g;
+  let m;
+  while ((m = relRe.exec(workbookRelsXml)) !== null) {
+    relMap[m[1]] = m[2];
+  }
+  // Some files order Target before Id - handle generically by parsing attrs.
+  if (Object.keys(relMap).length === 0) {
+    const relRe2 = /<Relationship\b([^>]*)\/>/g;
+    while ((m = relRe2.exec(workbookRelsXml)) !== null) {
+      const attrs = m[1];
+      const idM = attrs.match(/\bId="(rId\d+)"/);
+      const targetM = attrs.match(/\bTarget="([^"]+)"/);
+      if (idM && targetM) relMap[idM[1]] = targetM[1];
+    }
+  }
+
+  const nameToPath = {};
+  const sheetRe = /<sheet\b([^>]*)\/>/g;
+  while ((m = sheetRe.exec(workbookXml)) !== null) {
+    const attrs = m[1];
+    const nameM = attrs.match(/\bname="([^"]*)"/);
+    const ridM = attrs.match(/\br:id="(rId\d+)"/);
+    if (!nameM || !ridM) continue;
+    const name = decodeXmlEntities(nameM[1]);
+    const target = relMap[ridM[1]];
+    if (!target) continue;
+    const path = target.startsWith('/xl/') ? target.slice(1) : (target.startsWith('xl/') ? target : 'xl/' + target.replace(/^\.?\//, ''));
+    nameToPath[name] = path;
+  }
+  return nameToPath;
+}
+
+// Returns sheet names in the order they appear in <sheets> (i.e. left-to-right
+// tab order in Excel), skipping hidden/veryHidden sheets. Used to find "the
+// last tab" of a workbook whose tab names/numbers change day to day.
+function getSheetNameOrder(workbookXml) {
+  const names = [];
+  const sheetRe = /<sheet\b([^>]*)\/>/g;
+  let m;
+  while ((m = sheetRe.exec(workbookXml)) !== null) {
+    const attrs = m[1];
+    const nameM = attrs.match(/\bname="([^"]*)"/);
+    if (!nameM) continue;
+    const stateM = attrs.match(/\bstate="([^"]*)"/);
+    if (stateM && (stateM[1] === 'hidden' || stateM[1] === 'veryHidden')) continue;
+    names.push(decodeXmlEntities(nameM[1]));
+  }
+  return names;
+}
+
+function decodeXmlEntities(s) {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+// ---- from sheetxml.js ----
+// Minimal, targeted OOXML <sheetData> row/cell editor.
+// Not a general XML library: it only understands the well-formed, predictable
+// structure Excel/LibreOffice produce for worksheet XML, which is all we need
+// to surgically insert/replace/clear specific cells without touching anything
+// else in the file (styles, drawings, macros, etc. are never parsed here).
+
+function colLetterToIndex(letters) {
+  let n = 0;
+  for (let i = 0; i < letters.length; i++) {
+    n = n * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return n; // 1-based (A=1)
+}
+
+function indexToColLetter(n) {
+  let s = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(65 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function splitRef(ref) {
+  const m = ref.match(/^([A-Z]+)(\d+)$/);
+  if (!m) throw new Error('Bad cell ref: ' + ref);
+  return { col: m[1], row: parseInt(m[2], 10), colIdx: colLetterToIndex(m[1]) };
+}
+
+function escapeXml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ---- Locate <sheetData>...</sheetData> within a full worksheet XML string ----
+function findSheetDataSpan(xml) {
+  const startTagMatch = xml.match(/<sheetData(\s[^>]*)?>/);
+  if (!startTagMatch) {
+    // self-closing empty sheetData (rare on a fresh sheet with zero rows)
+    const selfClose = xml.match(/<sheetData(\s[^>]*)?\/>/);
+    if (selfClose) {
+      return { openStart: selfClose.index, openEnd: selfClose.index + selfClose[0].length, closeStart: selfClose.index + selfClose[0].length, closeEnd: selfClose.index + selfClose[0].length, empty: true };
+    }
+    throw new Error('sheetData not found');
+  }
+  const openStart = startTagMatch.index;
+  const openEnd = openStart + startTagMatch[0].length;
+  const closeIdx = xml.indexOf('</sheetData>', openEnd);
+  if (closeIdx === -1) throw new Error('sheetData close tag not found');
+  return { openStart, openEnd, closeStart: closeIdx, closeEnd: closeIdx + '</sheetData>'.length, empty: false };
+}
+
+// ---- Split the sheetData inner content into an ordered array of row blocks ----
+// Each entry: {rowNum, raw} where raw is the full "<row ...>...</row>" (or self-closing) text.
+function splitRows(innerXml) {
+  const rows = [];
+  const rowRe = /<row\b[^>]*\/>|<row\b[^>]*>[\s\S]*?<\/row>/g;
+  let m;
+  while ((m = rowRe.exec(innerXml)) !== null) {
+    const rNumMatch = m[0].match(/\br="(\d+)"/);
+    const rowNum = rNumMatch ? parseInt(rNumMatch[1], 10) : null;
+    rows.push({ rowNum, raw: m[0] });
+  }
+  return rows;
+}
+
+// ---- Split a single row's inner content into an ordered array of cell blocks ----
+function splitCells(rowRaw) {
+  // returns {attrsXml, cells: [{ref, colIdx, raw}], selfClosingEmpty}
+  const openMatch = rowRaw.match(/^<row([^>]*)\/>$/);
+  if (openMatch) {
+    return { attrs: openMatch[1], cells: [] };
+  }
+  const openTagMatch = rowRaw.match(/^<row([^>]*)>/);
+  const attrs = openTagMatch[1];
+  const innerStart = openTagMatch[0].length;
+  const inner = rowRaw.slice(innerStart, rowRaw.length - '</row>'.length);
+  const cells = [];
+  const cellRe = /<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g;
+  let m;
+  while ((m = cellRe.exec(inner)) !== null) {
+    const refMatch = m[0].match(/\br="([A-Z]+\d+)"/);
+    const ref = refMatch[1];
+    cells.push({ ref, colIdx: colLetterToIndex(splitRef(ref).col), raw: m[0] });
+  }
+  return { attrs, cells };
+}
+
+function buildCellXml(ref, kind, value) {
+  if (kind === 'number') {
+    if (value === '' || value === null || value === undefined) {
+      return `<c r="${ref}"/>`;
+    }
+    return `<c r="${ref}"><v>${value}</v></c>`;
+  }
+  if (kind === 'inlineStr') {
+    return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+  }
+  if (kind === 'empty') {
+    return `<c r="${ref}"/>`;
+  }
+  throw new Error('Unknown cell kind: ' + kind);
+}
+
+function buildRowXml(rowNum, cells) {
+  // cells: array of {colIdx, raw}, must be sorted by colIdx ascending
+  const cellsXml = cells.map((c) => c.raw).join('');
+  return `<row r="${rowNum}">${cellsXml}</row>`;
+}
+
+// ---- High-level editor: apply a batch of cell edits to a worksheet XML string ----
+// edits: array of {ref, kind: 'number'|'inlineStr'|'empty', value}
+function applyCellEdits(worksheetXml, edits) {
+  const span = findSheetDataSpan(worksheetXml);
+  const inner = span.empty ? '' : worksheetXml.slice(span.openEnd, span.closeStart);
+  const rows = splitRows(inner);
+
+  const rowByNum = new Map();
+  for (const r of rows) rowByNum.set(r.rowNum, r);
+
+  // Group edits by row
+  const editsByRow = new Map();
+  for (const e of edits) {
+    const { row } = splitRef(e.ref);
+    if (!editsByRow.has(row)) editsByRow.set(row, []);
+    editsByRow.get(row).push(e);
+  }
+
+  for (const [rowNum, rowEdits] of editsByRow.entries()) {
+    let rowEntry = rowByNum.get(rowNum);
+    let cellsParsed;
+    let attrs = ` r="${rowNum}"`;
+    if (rowEntry) {
+      const parsed = splitCells(rowEntry.raw);
+      attrs = parsed.attrs;
+      cellsParsed = parsed.cells;
+    } else {
+      cellsParsed = [];
+    }
+    const cellByRef = new Map();
+    for (const c of cellsParsed) cellByRef.set(c.ref, c);
+
+    for (const e of rowEdits) {
+      const { colIdx } = splitRef(e.ref);
+      let raw = buildCellXml(e.ref, e.kind, e.value);
+      // keepStyle: conserva el formato (s="N") que ya tenía la celda
+      const prev = cellByRef.get(e.ref);
+      if (e.keepStyle && prev) {
+        const sm = prev.raw.match(/^<c\b[^>]*\bs="(\d+)"/);
+        if (sm) raw = raw.replace(/^<c r="([^"]+)"/, '<c r="$1" s="' + sm[1] + '"');
+      }
+      cellByRef.set(e.ref, { ref: e.ref, colIdx, raw });
+    }
+
+    const merged = Array.from(cellByRef.values()).sort((a, b) => a.colIdx - b.colIdx);
+    const newRowRaw = `<row${attrs}>${merged.map((c) => c.raw).join('')}</row>`;
+
+    if (rowEntry) {
+      rowEntry.raw = newRowRaw;
+    } else {
+      rowByNum.set(rowNum, { rowNum, raw: newRowRaw });
+    }
+  }
+
+  // Rebuild the full ordered row list (existing rows in original relative order,
+  // newly-created rows inserted in ascending rowNum order).
+  const allRowNums = Array.from(rowByNum.keys()).sort((a, b) => a - b);
+  const newInner = allRowNums.map((n) => rowByNum.get(n).raw).join('');
+
+  const before = worksheetXml.slice(0, span.openStart);
+  const after = worksheetXml.slice(span.closeEnd);
+  const openTag = span.empty ? '<sheetData>' : worksheetXml.slice(span.openStart, span.openEnd);
+  const closeTag = '</sheetData>';
+  return before + openTag + newInner + closeTag + after;
+}
+
+// ---- Read helpers (for cells we only need to inspect, e.g. A1 stock numbers) ----
+function getCellRaw(worksheetXml, ref) {
+  const span = findSheetDataSpan(worksheetXml);
+  if (span.empty) return null;
+  const inner = worksheetXml.slice(span.openEnd, span.closeStart);
+  const { row } = splitRef(ref);
+  const rows = splitRows(inner);
+  const rowEntry = rows.find((r) => r.rowNum === row);
+  if (!rowEntry) return null;
+  const { cells } = splitCells(rowEntry.raw);
+  const cell = cells.find((c) => c.ref === ref);
+  return cell ? cell.raw : null;
+}
+
+function getCellNumericValue(worksheetXml, ref) {
+  const raw = getCellRaw(worksheetXml, ref);
+  if (!raw) return null;
+  const m = raw.match(/<v>([^<]*)<\/v>/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  return isNaN(n) ? null : n;
+}
+
+// ---- Bulk read: parse the whole sheetData once into Map(rowNum -> Map(colLetter -> rawCellXml)) ----
+function parseAllRows(worksheetXml) {
+  const span = findSheetDataSpan(worksheetXml);
+  const result = new Map();
+  if (span.empty) return result;
+  const inner = worksheetXml.slice(span.openEnd, span.closeStart);
+  const rows = splitRows(inner);
+  for (const r of rows) {
+    if (r.rowNum === null) continue;
+    const { cells } = splitCells(r.raw);
+    const m = new Map();
+    for (const c of cells) m.set(c.ref, c.raw);
+    result.set(r.rowNum, m);
+  }
+  return result;
+}
+
+// Extract a usable "value" from a raw <c ...>...</c> string:
+// - for numeric cells: the number
+// - for cells with a cached formula value (<f>...</f><v>TEXT</v>): the raw text inside <v>
+// - for inline strings: the text
+// - for shared-string cells (t="s"): returns {sharedIndex: N} so caller can resolve via sharedStrings
+function readCellValue(raw) {
+  if (!raw) return null;
+  const typeMatch = raw.match(/\bt="([^"]+)"/);
+  const type = typeMatch ? typeMatch[1] : null;
+  const vMatch = raw.match(/<v>([\s\S]*?)<\/v>/);
+  if (type === 's') {
+    if (!vMatch) return null;
+    return { sharedIndex: parseInt(vMatch[1], 10) };
+  }
+  if (type === 'inlineStr') {
+    const tMatch = raw.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+    return tMatch ? tMatch[1] : '';
+  }
+  if (!vMatch) return null;
+  const text = vMatch[1];
+  if (type === 'str' || type === 'e') return text; // cached formula string/error value
+  const n = parseFloat(text);
+  return isNaN(n) ? text : n;
+}
+
+// ---- from listastorenbr.js ----
+// Builds Map(storeNumber -> {tslot: "1-010 761", name: "P VISTA HERMOSA"})
+// by reading 'Lista Store Nbr' columns A (STORE NBR), B (cached T-SLOT text
+// from its IFNA/INDEX/MATCH formula) and C (shared-string NOMBRE DE TIENDA).
+function buildStoreLookup(listaStoreNbrXml, sharedStrings) {
+  const rows = parseAllRows(listaStoreNbrXml);
+  const map = new Map();
+  for (const [rowNum, cells] of rows.entries()) {
+    if (rowNum < 2) continue;
+    const aRaw = cells.get('A' + rowNum);
+    const bRaw = cells.get('B' + rowNum);
+    const cRaw = cells.get('C' + rowNum);
+    if (!aRaw) continue;
+    const storeNum = readCellValue(aRaw);
+    if (typeof storeNum !== 'number') continue;
+    const tslotVal = bRaw ? readCellValue(bRaw) : null;
+    let tslot = typeof tslotVal === 'string' ? tslotVal : null;
+    if (tslot === 'Sin SLOT') tslot = null;
+    let name = null;
+    if (cRaw) {
+      const v = readCellValue(cRaw);
+      if (v && typeof v === 'object' && 'sharedIndex' in v) {
+        name = sharedStrings[v.sharedIndex] || null;
+      } else if (typeof v === 'string') {
+        name = v;
+      }
+    }
+    map.set(storeNum, { tslot, name });
+  }
+  return map;
+}
+
+// ---- from core.js ----
+const PRODUCT_SHEETS = ['5HD2', 'S26', '10HD7', 'S13', '10HR3', 'S19', '5CHD', 'S25', '1CHD', '6PC4', 'SR16', '5HM4'];
+const FRAGUA_PRODUCT_ORDER = ['S19', '5HM4', 'SR16', '10HD7', '10HR3', '5HD2', 'S13', 'S26', '6PC4', 'S25', '5CHD', '1CHD'];
+const FRAGUA_BLOCK_COUNT = 45;
+const FRAGUA_HEADER_ROW0 = 2; // first block header row
+const FRAGUA_ROW_STRIDE = 14;
+const FRAGUA_SLOT_COLS = [
+  { headerCol: 'A', nameCol: 'B' },
+  { headerCol: 'D', nameCol: 'E' },
+  { headerCol: 'G', nameCol: 'H' },
+  { headerCol: 'J', nameCol: 'K' },
+];
+
+async function textDecode(bytes) {
+  return Buffer && Buffer.from ? Buffer.from(bytes).toString('utf8') : new TextDecoder('utf-8').decode(bytes);
+}
+
+async function readEntryText(entries, name, inflate) {
+  const e = entries.find((x) => x.name === name);
+  if (!e) return null;
+  const raw = e.method === 8 ? await inflate(e.rawData) : e.rawData;
+  return bytesToUtf8(raw);
+}
+
+function bytesToUtf8(bytes) {
+  if (typeof TextDecoder !== 'undefined') return new TextDecoder('utf-8').decode(bytes);
+  return Buffer.from(bytes).toString('utf8');
+}
+function utf8ToBytes(str) {
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(str);
+  return new Uint8Array(Buffer.from(str, 'utf8'));
+}
+
+// Lightweight preflight check: reads the "Vendor Number" field from the
+// workbook's cover sheets ("Boleta Entrada" / "Formulario de Entrega", cell
+// next to the "Vendor Number" label) so the UI can warn the user *before*
+// processing if the PDF's Supplier Number doesn't match this Excel file.
+// Returns the vendor number as a string, or null if not found.
+async function getVendorNumber(xlsmBytes, io) {
+  const entries = parseZip(xlsmBytes);
+  const readText = (name) => readEntryText(entries, name, io.inflateRaw);
+
+  const workbookXml = await readText('xl/workbook.xml');
+  const workbookRelsXml = await readText('xl/_rels/workbook.xml.rels');
+  if (!workbookXml || !workbookRelsXml) return null;
+  const nameToPath = getSheetNameToPath(workbookXml, workbookRelsXml);
+
+  const sharedStringsXml = await readText('xl/sharedStrings.xml');
+  const sst = sharedStringsXml ? parseSharedStrings(sharedStringsXml) : [];
+  return findVendorNumberInSheets(nameToPath, readText, sst);
+}
+
+async function findVendorNumberInSheets(nameToPath, readText, sst) {
+  const labelIdx = sst.findIndex((s) => s && s.trim() === 'Vendor Number');
+  if (labelIdx === -1) return null;
+
+  const candidateSheets = ['Boleta Entrada', 'Formulario de Entrega'];
+  for (const sheetName of candidateSheets) {
+    const path = nameToPath[sheetName];
+    if (!path) continue;
+    const xml = await readText(path);
+    if (!xml) continue;
+    const rows = parseAllRows(xml);
+    for (const [rowNum, cells] of rows.entries()) {
+      for (const [ref, raw] of cells.entries()) {
+        const val = readCellValue(raw);
+        if (val && typeof val === 'object' && val.sharedIndex === labelIdx) {
+          const { col } = splitRefLocal(ref);
+          const nextCol = indexToColLetter(colLetterToIndex(col) + 1);
+          const neighborRaw = cells.get(nextCol + rowNum);
+          if (neighborRaw) {
+            const neighborVal = readCellValue(neighborRaw);
+            if (typeof neighborVal === 'number') return String(neighborVal);
+            if (typeof neighborVal === 'string' && neighborVal.trim()) return neighborVal.trim();
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function splitRefLocal(ref) {
+  const m = ref.match(/^([A-Z]+)(\d+)$/);
+  return { col: m[1], row: parseInt(m[2], 10) };
+}
+
+// Extracts the number after the "-" in a T-SLOT code like "2-055 21" -> 55.
+// Returns null if the string doesn't match the expected pattern.
+function tslotDashNumber(tslot) {
+  if (!tslot) return null;
+  const m = tslot.match(/-(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// Reads the LAST visible tab of a daily inventory workbook (its name/number
+// changes every day, e.g. "15", "16", "17", "18" — so we pick by tab
+// position, not by name) and returns its full cell data plus that workbook's
+// own shared strings (needed to resolve shared-string cell references before
+// copying values into a different workbook, whose shared-strings table is
+// entirely separate).
+async function readLastInventorySheet(inventoryBytes, io) {
+  const entries = parseZip(inventoryBytes);
+  const readText = (name) => readEntryText(entries, name, io.inflateRaw);
+
+  const workbookXml = await readText('xl/workbook.xml');
+  const workbookRelsXml = await readText('xl/_rels/workbook.xml.rels');
+  if (!workbookXml || !workbookRelsXml) {
+    throw new Error('El archivo de inventario no parece ser un .xlsm/.xlsx válido (falta workbook.xml).');
+  }
+  const nameToPath = getSheetNameToPath(workbookXml, workbookRelsXml);
+  const order = getSheetNameOrder(workbookXml);
+  if (order.length === 0) throw new Error('El archivo de inventario no tiene pestañas.');
+  const sheetName = order[order.length - 1];
+  const path = nameToPath[sheetName];
+  if (!path) throw new Error(`No se pudo ubicar la pestaña "${sheetName}" dentro del archivo de inventario.`);
+
+  const xml = await readText(path);
+  const sharedStringsXml = await readText('xl/sharedStrings.xml');
+  const sst = sharedStringsXml ? parseSharedStrings(sharedStringsXml) : [];
+  const rows = parseAllRows(xml);
+  return { sheetName, rows, sst };
+}
+
+// Builds an `applyCellEdits`-compatible edit list that copies every cell of
+// `rows` (as returned by parseAllRows on the SOURCE workbook) verbatim as
+// literal values — resolving shared-string references against the source's
+// own `sst` — so it can be written into a sheet in a DIFFERENT workbook
+// (whose shared-strings table/indices are unrelated).
+function buildFullSheetCopyEdits(rows, sst) {
+  const edits = [];
+  for (const cells of rows.values()) {
+    for (const [ref, raw] of cells.entries()) {
+      const val = readCellValue(raw);
+      if (val == null) continue; // leave untouched cells as-is (nothing to copy)
+      if (typeof val === 'number') {
+        edits.push({ ref, kind: 'number', value: val });
+      } else if (typeof val === 'object' && 'sharedIndex' in val) {
+        edits.push({ ref, kind: 'inlineStr', value: sst[val.sharedIndex] || '' });
+      } else if (typeof val === 'string') {
+        edits.push({ ref, kind: 'inlineStr', value: val });
+      }
+    }
+  }
+  return edits;
+}
+
+// Extracts PDF header fields (Supplier Number, PO Number, Ship Store) for
+// the same preflight check, without running the full item-matching pipeline.
+async function getPdfHeaderInfo(pdfBytes, io) {
+  const lines = await parsePdf(pdfBytes, io.inflate);
+  return extractHeaderInfo(lines);
+}
+
+// io = { inflate: (Uint8Array)->Uint8Array (zlib, for PDF FlateDecode),
+//        inflateRaw: (Uint8Array)->Uint8Array (raw deflate, for zip entries),
+//        deflateRaw: async (Uint8Array)->Promise<Uint8Array> }
+// opts = { inventoryBytes?: Uint8Array } — if provided, the last tab of that
+// daily inventory workbook is copied verbatim into the "INV" sheet.
+// ---- Control OC: busca la CITA de una OC en la tabla PANISA ----
+async function lookupCitaInControlOc(controlBytes, io, poNumber, tableName) {
+  tableName = tableName || 'PANISA';
+  const entries = parseZip(controlBytes);
+  const readText = (name) => readEntryText(entries, name, io.inflateRaw);
+  const workbookXml = await readText('xl/workbook.xml');
+  const workbookRelsXml = await readText('xl/_rels/workbook.xml.rels');
+  if (!workbookXml || !workbookRelsXml) throw new Error('El Control OC no parece un archivo de Excel válido.');
+  const nameToPath = getSheetNameToPath(workbookXml, workbookRelsXml);
+  let hit = null;
+  for (const [sheetName, path] of Object.entries(nameToPath)) {
+    const slash = path.lastIndexOf('/');
+    const relsXml = await readText(path.slice(0, slash) + '/_rels/' + path.slice(slash + 1) + '.rels');
+    if (!relsXml) continue;
+    const rels = relsXml.match(/<Relationship\b[^>]*>/g) || [];
+    for (const r of rels) {
+      if (!/\/table"/.test(r)) continue;
+      const t = (r.match(/Target="([^"]+)"/) || [])[1];
+      if (!t) continue;
+      const parts = (t.startsWith('/') ? t.slice(1) : path.slice(0, slash) + '/' + t).split('/');
+      const norm = [];
+      for (const seg of parts) { if (seg === '..') norm.pop(); else if (seg && seg !== '.') norm.push(seg); }
+      const tXml = await readText(norm.join('/'));
+      if (!tXml) continue;
+      const tag = (tXml.match(/<table\b[^>]*>/) || [''])[0];
+      const dn = (tag.match(/displayName="([^"]+)"/) || tag.match(/\bname="([^"]+)"/) || [])[1] || '';
+      if (dn.toLowerCase() !== tableName.toLowerCase()) continue;
+      const cols = (tXml.match(/<tableColumn\b[^>]*>/g) || []).map((c) => ((c.match(/\bname="([^"]*)"/) || [])[1] || '').replace(/&amp;/g, '&').trim().toUpperCase());
+      hit = { sheetName, path, ref: (tag.match(/\bref="([^"]+)"/) || [])[1], cols };
+      break;
+    }
+    if (hit) break;
+  }
+  if (!hit) throw new Error('No encontré la tabla ' + tableName + ' en el Control OC.');
+  const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(hit.ref || '');
+  if (!m) throw new Error('Rango de la tabla ' + tableName + ' no reconocido.');
+  const c0 = colLetterToIndex(m[1]), r0 = parseInt(m[2], 10), r1 = parseInt(m[4], 10);
+  const iOc = hit.cols.indexOf('OC'), iCita = hit.cols.indexOf('CITA');
+  if (iOc < 0 || iCita < 0) throw new Error('A la tabla ' + tableName + ' le falta la columna ' + (iOc < 0 ? 'OC' : 'CITA') + '.');
+  const colOc = indexToColLetter(c0 + iOc), colCita = indexToColLetter(c0 + iCita); // 1-based
+  const sstXml = await readText('xl/sharedStrings.xml');
+  const sst = sstXml ? parseSharedStrings(sstXml) : [];
+  const val = (raw) => { const v = readCellValue(raw); return v && typeof v === 'object' ? sst[v.sharedIndex] : v; };
+  const rows = parseAllRows(await readText(hit.path));
+  const target = String(poNumber).replace(/^0+/, '');
+  for (let r = r0 + 1; r <= r1; r++) {
+    const cells = rows.get(r); if (!cells) continue;
+    const oc = val(cells.get(colOc + r));
+    if (oc == null || String(oc).trim().replace(/\.0+$/, '').replace(/^0+/, '') !== target) continue;
+    const cita = val(cells.get(colCita + r));
+    const citaStr = cita == null ? '' : (typeof cita === 'number' ? String(Math.round(cita)) : String(cita).trim());
+    return { found: true, cita: citaStr, row: r };
+  }
+  return { found: false, cita: '' };
+}
+
+async function processOrder(pdfBytes, xlsmBytes, io, opts) {
+  const warnings = [];
+  const inventoryBytes = opts && opts.inventoryBytes;
+
+  // 1. Parse PDF
+  const lines = await parsePdf(pdfBytes, io.inflate);
+  const pdfHeader = extractHeaderInfo(lines);
+  const { items, meta } = parsePO(lines);
+  if (Object.keys(items).length === 0) {
+    throw new Error('No se pudo extraer ningún producto del PDF. Verifica que sea una Orden de Compra de Walmart en el formato esperado.');
+  }
+
+  // 2. Parse zip
+  const entries = parseZip(xlsmBytes);
+  const readText = (name) => readEntryText(entries, name, io.inflateRaw);
+
+  const workbookXml = await readText('xl/workbook.xml');
+  const workbookRelsXml = await readText('xl/_rels/workbook.xml.rels');
+  if (!workbookXml || !workbookRelsXml) throw new Error('El archivo Excel no parece ser un .xlsm válido (falta workbook.xml).');
+  const nameToPath = getSheetNameToPath(workbookXml, workbookRelsXml);
+
+  const sharedStringsXml = await readText('xl/sharedStrings.xml');
+  const sst = sharedStringsXml ? parseSharedStrings(sharedStringsXml) : [];
+
+  // 2b. Cross-check: PDF "Supplier Number" vs. the Excel's "Vendor Number" field
+  const xlsmVendorNumber = await findVendorNumberInSheets(nameToPath, readText, sst);
+  let vendorMismatch = false;
+  if (pdfHeader.supplierNumber && xlsmVendorNumber && pdfHeader.supplierNumber !== xlsmVendorNumber) {
+    vendorMismatch = true;
+    warnings.push(`El Supplier Number del PDF (${pdfHeader.supplierNumber}) no coincide con el Vendor Number del Excel (${xlsmVendorNumber}) — verifica que sean el archivo y la plantilla correctos.`);
+  }
+
+  // 3. Map stock numbers -> product sheet name
+  const stockNoToSheet = {};
+  const sheetXmlCache = new Map(); // path -> current xml (mutated as we go)
+  for (const s of PRODUCT_SHEETS) {
+    const path = nameToPath[s];
+    if (!path) { warnings.push(`No se encontró la pestaña "${s}" en el Excel.`); continue; }
+    const xml = await readText(path);
+    sheetXmlCache.set(path, xml);
+    const a1 = getCellNumericValue(xml, 'A1');
+    if (a1 != null) stockNoToSheet[a1] = s;
+  }
+
+  // 4. Match PDF items to sheets
+  const itemAssignments = []; // {itemNo, sheetName, path, pairs}
+  const productPairs = {}; // sheetName -> pairs[]
+  for (const [itemNo, m] of Object.entries(meta)) {
+    const sheetName = stockNoToSheet[m.stock_no];
+    if (!sheetName) {
+      warnings.push(`Ítem ${itemNo} (Supplier Stock # ${m.stock_no}) no coincide con ninguna pestaña del Excel — se omitió.`);
+      continue;
+    }
+    const pairs = items[itemNo];
+    itemAssignments.push({ itemNo, sheetName, pairs, meta: m });
+    productPairs[sheetName] = pairs;
+  }
+  if (itemAssignments.length === 0) {
+    throw new Error('Ningún producto del PDF coincide con las pestañas del Excel. ¿Es el Excel correcto para este pedido?');
+  }
+
+  // 5. Write H30:Q.. and freeze H4:W27 for each assigned sheet
+  for (const a of itemAssignments) {
+    const path = nameToPath[a.sheetName];
+    let xml = sheetXmlCache.get(path);
+    const edits = [];
+    const MAX_INPUT_ROWS = 37; // H30..H66
+    const maxPairsInput = MAX_INPUT_ROWS * 5;
+    if (a.pairs.length > maxPairsInput) {
+      warnings.push(`"${a.sheetName}": ${a.pairs.length} tiendas exceden la capacidad de la zona de captura (${maxPairsInput}); se truncó.`);
+    }
+    a.pairs.slice(0, maxPairsInput).forEach(([loc, qty], idx) => {
+      const r = 30 + Math.floor(idx / 5);
+      const pairPos = idx % 5;
+      const colLoc = indexToColLetter(8 + pairPos * 2); // H,J,L,N,P (1-based: H=8)
+      const colQty = indexToColLetter(9 + pairPos * 2); // I,K,M,O,Q
+      edits.push({ ref: colLoc + r, kind: 'number', value: loc });
+      edits.push({ ref: colQty + r, kind: 'number', value: qty });
+    });
+
+    // Freeze H4:W27 (10 pairs per row, 24 rows) mirroring the FILTRAR button's paste-values step
+    const MAX_FREEZE_ROWS = 24;
+    const maxPairsFreeze = MAX_FREEZE_ROWS * 10;
+    a.pairs.slice(0, maxPairsFreeze).forEach(([loc, qty], idx) => {
+      const r = 4 + Math.floor(idx / 10);
+      const pairPos = idx % 10;
+      const colLoc = indexToColLetter(8 + pairPos * 2); // H..V odd offsets
+      const colQty = indexToColLetter(9 + pairPos * 2);
+      edits.push({ ref: colLoc + r, kind: 'number', value: loc });
+      edits.push({ ref: colQty + r, kind: 'number', value: qty });
+    });
+
+    xml = applyCellEdits(xml, edits);
+    sheetXmlCache.set(path, xml);
+  }
+
+  // 6. Compute unique sorted store list (Tiendas!E) from ALL entered pairs
+  const allLocs = new Set();
+  for (const a of itemAssignments) for (const [loc] of a.pairs) allLocs.add(loc);
+  const uniqueStores = Array.from(allLocs).sort((x, y) => x - y);
+
+  // 7. Store lookup (T-SLOT + name) from 'Lista Store Nbr'
+  const lsnPath = nameToPath['Lista Store Nbr'];
+  const lsnXml = await readText(lsnPath);
+  const storeLookup = buildStoreLookup(lsnXml, sst);
+
+  const storesWithSlot = [];
+  for (const store of uniqueStores) {
+    const info = storeLookup.get(store);
+    if (!info || !info.tslot) {
+      warnings.push(`Tienda ${store} no tiene SEC ENTREGA (T-SLOT) asignado en "Lista Store Nbr" — se omitió de la columna G y de "Hoja para Fragua".`);
+      continue;
+    }
+    storesWithSlot.push({ store, tslot: info.tslot, name: info.name });
+  }
+  // Sort ascending by the number after the "-" in the T-SLOT code (e.g. "2-055 21" -> 55),
+  // not by the T-SLOT string as a whole (the prefix digit before the dash is not part of the
+  // sort key). T-SLOT codes are consistently "<digit>-<3-digit number> <trailing number>".
+  storesWithSlot.sort((a, b) => {
+    const na = tslotDashNumber(a.tslot);
+    const nb = tslotDashNumber(b.tslot);
+    if (na != null && nb != null && na !== nb) return na - nb;
+    return a.tslot < b.tslot ? -1 : a.tslot > b.tslot ? 1 : 0;
+  });
+
+  // 8. Write Tiendas E (ascending unique) + G (ascending by T-SLOT dash number), clear G tail
+  const tiendasPath = nameToPath['Tiendas'];
+  let tiendasXml = await readText(tiendasPath);
+  const tiendasEdits = [];
+  uniqueStores.forEach((store, idx) => {
+    tiendasEdits.push({ ref: 'E' + (2 + idx), kind: 'number', value: store });
+  });
+  const G_TABLE_LAST_ROW = 1851;
+  storesWithSlot.forEach((s, idx) => {
+    tiendasEdits.push({ ref: 'G' + (2 + idx), kind: 'inlineStr', value: s.tslot });
+  });
+  for (let r = 2 + storesWithSlot.length; r <= G_TABLE_LAST_ROW; r++) {
+    tiendasEdits.push({ ref: 'G' + r, kind: 'empty' });
+  }
+  tiendasXml = applyCellEdits(tiendasXml, tiendasEdits);
+
+  // 9. Compute + write "Hoja para Fragua"
+  const fraguaPath = nameToPath['Hoja para Fragua'];
+  let fraguaXml = await readText(fraguaPath);
+  const fraguaEdits = [];
+  const totalSlots = FRAGUA_BLOCK_COUNT * 4;
+  if (storesWithSlot.length > totalSlots) {
+    warnings.push(`"Hoja para Fragua" solo tiene capacidad para ${totalSlots} tiendas; hay ${storesWithSlot.length} tiendas con pedido. Solo se listarán las primeras ${totalSlots} (mayor SEC ENTREGA primero).`);
+  }
+
+  for (let blockIdx = 0; blockIdx < FRAGUA_BLOCK_COUNT; blockIdx++) {
+    const headerRow = FRAGUA_HEADER_ROW0 + FRAGUA_ROW_STRIDE * blockIdx;
+    for (let slotIdx = 0; slotIdx < 4; slotIdx++) {
+      const globalSlot = blockIdx * 4 + slotIdx;
+      const cols = FRAGUA_SLOT_COLS[slotIdx];
+      const s = storesWithSlot[globalSlot];
+      if (s) {
+        fraguaEdits.push({ ref: cols.headerCol + headerRow, kind: 'inlineStr', value: s.tslot });
+        fraguaEdits.push({ ref: cols.nameCol + headerRow, kind: 'inlineStr', value: s.name || '' });
+      } else {
+        fraguaEdits.push({ ref: cols.headerCol + headerRow, kind: 'empty' });
+        fraguaEdits.push({ ref: cols.nameCol + headerRow, kind: 'empty' });
+      }
+      for (let p = 0; p < FRAGUA_PRODUCT_ORDER.length; p++) {
+        const productRow = headerRow + 1 + p;
+        const qtyRef = cols.nameCol + productRow;
+        let qty = null;
+        if (s) {
+          const productSheet = FRAGUA_PRODUCT_ORDER[p];
+          const pairs = productPairs[productSheet];
+          if (pairs) {
+            const found = pairs.find(([loc]) => loc === s.store);
+            if (found) qty = found[1];
+          }
+        }
+        if (qty != null) {
+          fraguaEdits.push({ ref: qtyRef, kind: 'number', value: qty });
+        } else {
+          fraguaEdits.push({ ref: qtyRef, kind: 'empty' });
+        }
+      }
+    }
+  }
+  fraguaXml = applyCellEdits(fraguaXml, fraguaEdits);
+
+  // 9b. Optional: copy the last tab of the daily inventory workbook into "INV"
+  let invUpdate = null;
+  let invXmlForChanged = null;
+  if (inventoryBytes) {
+    const invPath = nameToPath['INV'];
+    if (!invPath) {
+      warnings.push('Se proporcionó un archivo de inventario, pero este Excel no tiene una pestaña "INV" — no se actualizó.');
+    } else {
+      const { sheetName: invSourceSheetName, rows: invRows, sst: invSst } = await readLastInventorySheet(inventoryBytes, io);
+      const invEdits = buildFullSheetCopyEdits(invRows, invSst);
+      let invXml = await readText(invPath);
+      invXml = applyCellEdits(invXml, invEdits);
+      invXmlForChanged = { path: invPath, xml: invXml };
+      invUpdate = { sourceSheetName: invSourceSheetName, rowCount: invRows.size, cellCount: invEdits.length };
+    }
+  }
+
+  // 9c. "Formulario de Entrega": D8 = No. de PO (del PDF), D6 = número de cita
+  // (tabla PANISA del Control OC, columna CITA de esa OC)
+  let formularioUpdate = null;
+  let formXmlForChanged = null;
+  const formSheetName = Object.keys(nameToPath).find((n) => n.trim().toLowerCase() === 'formulario de entrega');
+  if (!formSheetName) {
+    warnings.push('El Excel no tiene la pestaña "Formulario de Entrega": no se ingresaron la OC ni la cita.');
+  } else {
+    const formPath = nameToPath[formSheetName];
+    const formEdits = [];
+    const po = String(pdfHeader.poNumber || '').trim();
+    formularioUpdate = { po: '', cita: '', citaStatus: 'sin-control' };
+    if (/^\d+$/.test(po)) {
+      formEdits.push({ ref: 'D8', kind: 'number', value: String(parseInt(po, 10)), keepStyle: true });
+      formularioUpdate.po = po;
+      const controlOcBytes = opts && opts.controlOcBytes;
+      if (controlOcBytes) {
+        try {
+          const r = await lookupCitaInControlOc(controlOcBytes, io, po, 'PANISA');
+          if (!r.found) {
+            formularioUpdate.citaStatus = 'sin-oc';
+            warnings.push('La OC ' + po + ' no está en la tabla PANISA del Control OC: la celda D6 (número de cita) quedó sin cambios.');
+          } else if (!/^\d+$/.test(r.cita)) {
+            formularioUpdate.citaStatus = 'sin-cita';
+            warnings.push('La OC ' + po + ' todavía no tiene cita en el Control OC' + (r.cita ? ' (dice "' + r.cita + '")' : '') + ': la celda D6 quedó sin cambios.');
+          } else {
+            formEdits.push({ ref: 'D6', kind: 'number', value: r.cita, keepStyle: true });
+            formularioUpdate.cita = r.cita;
+            formularioUpdate.citaStatus = 'ok';
+          }
+        } catch (e) {
+          formularioUpdate.citaStatus = 'error';
+          warnings.push('No se pudo leer la cita del Control OC (' + (e && e.message ? e.message : e) + '): la celda D6 quedó sin cambios.');
+        }
+      } else {
+        warnings.push('No se cargó el Control OC: la celda D6 (número de cita) quedó sin cambios.');
+      }
+    } else {
+      warnings.push('No se encontró el Purchase Order Number en el PDF: D8 y D6 del Formulario de Entrega quedaron sin cambios.');
+    }
+    if (formEdits.length) {
+      const baseXml = sheetXmlCache.has(formPath) ? sheetXmlCache.get(formPath) : await readText(formPath);
+      formXmlForChanged = { path: formPath, xml: applyCellEdits(baseXml, formEdits) };
+    }
+  }
+
+  // 10. Rebuild zip with all changed sheet entries
+  const changed = new Map();
+  for (const [path, xml] of sheetXmlCache.entries()) {
+    changed.set(path, utf8ToBytes(xml));
+  }
+  changed.set(tiendasPath, utf8ToBytes(tiendasXml));
+  changed.set(fraguaPath, utf8ToBytes(fraguaXml));
+  if (invXmlForChanged) {
+    changed.set(invXmlForChanged.path, utf8ToBytes(invXmlForChanged.xml));
+  }
+  if (formXmlForChanged) {
+    changed.set(formXmlForChanged.path, utf8ToBytes(formXmlForChanged.xml));
+  }
+
+  // 10b. We just overwrote a bunch of formula cells with static values (and
+  // cleared others), so the workbook's cached "xl/calcChain.xml" (Excel's
+  // formula-recalculation-order cache) no longer matches reality. Leaving it
+  // in place makes real Microsoft Excel treat the file as corrupted ("We
+  // found a problem with some content...") on open, because it cross-checks
+  // calcChain against the actual formulas present. calcChain.xml is purely a
+  // performance cache — Excel rebuilds it automatically — so the correct fix
+  // is to drop it entirely (plus its Content_Types override and workbook
+  // relationship) rather than trying to keep it in sync.
+  let filteredEntries = entries;
+  const calcChainEntry = entries.find((e) => e.name === 'xl/calcChain.xml');
+  if (calcChainEntry) {
+    filteredEntries = entries.filter((e) => e.name !== 'xl/calcChain.xml');
+
+    const contentTypesXml = await readText('[Content_Types].xml');
+    if (contentTypesXml && /calcChain/.test(contentTypesXml)) {
+      const newContentTypes = contentTypesXml.replace(/<Override[^>]*calcChain[^>]*\/>/, '');
+      changed.set('[Content_Types].xml', utf8ToBytes(newContentTypes));
+    }
+
+    if (workbookRelsXml && /calcChain/.test(workbookRelsXml)) {
+      const newWorkbookRels = workbookRelsXml.replace(/<Relationship[^>]*calcChain[^>]*\/>/, '');
+      changed.set('xl/_rels/workbook.xml.rels', utf8ToBytes(newWorkbookRels));
+    }
+  }
+
+  // 10c. Force Excel to fully recalculate every formula when the file is
+  // opened (rather than trusting cached <v> values, which are now stale for
+  // every formula that reads the cells we just wrote/cleared — e.g. the
+  // "Hoja para Fragua" totals). Without this, Excel may show old/zero totals
+  // until the user manually forces a recalculation.
+  let finalWorkbookXml = workbookXml;
+  if (/<calcPr\b/.test(finalWorkbookXml)) {
+    if (/fullCalcOnLoad\s*=/.test(finalWorkbookXml)) {
+      finalWorkbookXml = finalWorkbookXml.replace(/fullCalcOnLoad\s*=\s*"[^"]*"/, 'fullCalcOnLoad="1"');
+    } else {
+      finalWorkbookXml = finalWorkbookXml.replace(/<calcPr\b/, '<calcPr fullCalcOnLoad="1" ');
+    }
+  } else {
+    finalWorkbookXml = finalWorkbookXml.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>');
+  }
+  if (finalWorkbookXml !== workbookXml) {
+    changed.set('xl/workbook.xml', utf8ToBytes(finalWorkbookXml));
+  }
+
+  const outBytes = await rebuildZip(filteredEntries, changed, io.deflateRaw);
+
+  return {
+    bytes: outBytes,
+    warnings,
+    summary: {
+      items: itemAssignments.map((a) => ({ itemNo: a.itemNo, sheetName: a.sheetName, stockNo: a.meta.stock_no, storeCount: a.pairs.length, totalQty: a.pairs.reduce((s, [, q]) => s + q, 0) })),
+      uniqueStoreCount: uniqueStores.length,
+      storesWithSlotCount: storesWithSlot.length,
+      totalUnits: itemAssignments.reduce((s, a) => s + a.pairs.reduce((s2, [, q]) => s2 + q, 0), 0),
+      pdfHeader,
+      xlsmVendorNumber,
+      vendorMismatch,
+      invUpdate,
+      formularioUpdate,
+    },
+  };
+}
+
+// ---- from browser_io.js ----
+// Browser-native (also Node 18+ compatible) compression I/O using the
+// Compression Streams API. Replaces the Node zlib-based `io` object used
+// during development/testing with one that works inside a real browser.
+
+async function streamBytes(bytes, format, StreamCtor) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new StreamCtor(format));
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+// zlib-wrapped deflate (used for PDF FlateDecode streams: 2-byte zlib header + deflate + adler32)
+async function inflateZlib(bytes) {
+  return streamBytes(bytes, 'deflate', DecompressionStream);
+}
+
+// raw deflate, no zlib/gzip wrapper (used for ZIP entries, method 8)
+async function inflateRawRaw(bytes) {
+  return streamBytes(bytes, 'deflate-raw', DecompressionStream);
+}
+
+async function deflateRawRaw(bytes) {
+  return streamBytes(bytes, 'deflate-raw', CompressionStream);
+}
+
+const browserIo = {
+  inflate: inflateZlib,
+  inflateRaw: inflateRawRaw,
+  deflateRaw: deflateRawRaw,
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  const state = {
+    pdfFile: null, xlsmFile: null, invFile: null, resultBytes: null, resultName: null,
+    preflightMismatch: false, preflightOverride: false, preflightToken: 0,
+  };
+
+  const dzPdf = document.getElementById('dz-pdf');
+  const dzXlsm = document.getElementById('dz-xlsm');
+  const dzInv = document.getElementById('dz-inv');
+  const filePdf = document.getElementById('file-pdf');
+  const fileXlsm = document.getElementById('file-xlsm');
+  const fileInv = document.getElementById('file-inv');
+  const fnamePdf = document.getElementById('fname-pdf');
+  const fnameXlsm = document.getElementById('fname-xlsm');
+  const fnameInv = document.getElementById('fname-inv');
+  const clearPdf = document.getElementById('clear-pdf');
+  const clearXlsm = document.getElementById('clear-xlsm');
+  const clearInv = document.getElementById('clear-inv');
+  const dzCtrl = document.getElementById('dz-ctrl');
+  const fileCtrl = document.getElementById('file-ctrl');
+  const fnameCtrl = document.getElementById('fname-ctrl');
+  const clearCtrl = document.getElementById('clear-ctrl');
+  const citaCheckEl = document.getElementById('cita-check');
+  const btnProcess = document.getElementById('btn-process');
+  const btnReset = document.getElementById('btn-reset');
+  const statusEl = document.getElementById('status');
+  const resultCard = document.getElementById('result-card');
+  const preflightEl = document.getElementById('preflight');
+  const pill1 = document.getElementById('pill-1');
+  const pill2 = document.getElementById('pill-2');
+  const pill3 = document.getElementById('pill-3');
+
+  function setupDropzone(dz, input, onFile) {
+    dz.addEventListener('click', (e) => {
+      if (e.target.closest('.dz-clear')) return;
+      input.click();
+    });
+    dz.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+    });
+    input.addEventListener('change', () => {
+      if (input.files && input.files[0]) onFile(input.files[0]);
+    });
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) onFile(f);
+    });
+  }
+
+  function setPdfFile(f) {
+    state.pdfFile = f;
+    fnamePdf.textContent = f.name;
+    dzPdf.classList.add('filled');
+    resetPreflight();
+    updateProcessBtn();
+    runPreflightIfReady();
+    runCitaCheck();
+  }
+  function setXlsmFile(f) {
+    state.xlsmFile = f;
+    fnameXlsm.textContent = f.name;
+    dzXlsm.classList.add('filled');
+    resetPreflight();
+    updateProcessBtn();
+    runPreflightIfReady();
+  }
+  function clearPdfFile() {
+    state.pdfFile = null;
+    citaCheckEl.style.display = 'none';
+    filePdf.value = '';
+    fnamePdf.textContent = '';
+    dzPdf.classList.remove('filled');
+    resetPreflight();
+    updateProcessBtn();
+  }
+  function clearXlsmFile() {
+    state.xlsmFile = null;
+    fileXlsm.value = '';
+    fnameXlsm.textContent = '';
+    dzXlsm.classList.remove('filled');
+    resetPreflight();
+    updateProcessBtn();
+  }
+  function setInvFile(f) {
+    state.invFile = f;
+    fnameInv.textContent = f.name;
+    dzInv.classList.add('filled');
+    updateProcessBtn();
+  }
+  function clearInvFile() {
+    state.invFile = null;
+    fileInv.value = '';
+    fnameInv.textContent = '';
+    dzInv.classList.remove('filled');
+    updateProcessBtn();
+  }
+
+  function setCtrlFile(f) {
+    state.ctrlFile = f;
+    fnameCtrl.textContent = f.name;
+    dzCtrl.classList.add('filled');
+    runCitaCheck();
+  }
+  function clearCtrlFile() {
+    state.ctrlFile = null;
+    fileCtrl.value = '';
+    fnameCtrl.textContent = '';
+    dzCtrl.classList.remove('filled');
+    runCitaCheck();
+  }
+  // Muestra antes de procesar qué OC y cita se van a escribir en el Formulario de Entrega
+  async function runCitaCheck() {
+    const myToken = (state.citaToken = (state.citaToken || 0) + 1);
+    if (!state.pdfFile) { citaCheckEl.style.display = 'none'; return; }
+    let po = '';
+    try { const h = await getPdfHeaderInfo(await readFileAsBytes(state.pdfFile), browserIo); po = (h && h.poNumber) || ''; } catch (e) {}
+    if (myToken !== state.citaToken) return;
+    const show = (cls, html) => { citaCheckEl.className = 'cita-check ' + cls; citaCheckEl.innerHTML = html; citaCheckEl.style.display = 'block'; };
+    if (!po) { show('warn', 'No se encontró el Purchase Order Number en el PDF.'); return; }
+    if (!state.ctrlFile) { show('warn', 'Formulario de Entrega: se ingresará la OC <b>' + escapeHtml(po) + '</b> en D8. Carga el Control OC para ingresar también la cita en D6.'); return; }
+    show('ok', 'Buscando la cita de la OC ' + escapeHtml(po) + ' en el Control OC…');
+    try {
+      const r = await lookupCitaInControlOc(await readFileAsBytes(state.ctrlFile), browserIo, po, 'PANISA');
+      if (myToken !== state.citaToken) return;
+      if (r.found && /^\d+$/.test(r.cita)) show('ok', '✓ Formulario de Entrega: OC <b>' + escapeHtml(po) + '</b> en D8 y cita <b>' + escapeHtml(r.cita) + '</b> en D6.');
+      else if (r.found) show('warn', 'La OC <b>' + escapeHtml(po) + '</b> todavía no tiene cita en el Control OC' + (r.cita ? ' ("' + escapeHtml(r.cita) + '")' : '') + '. Se ingresará solo la OC en D8.');
+      else show('warn', 'La OC <b>' + escapeHtml(po) + '</b> no está en la tabla PANISA del Control OC. Se ingresará solo la OC en D8.');
+    } catch (e) {
+      if (myToken !== state.citaToken) return;
+      show('warn', 'No se pudo leer el Control OC: ' + escapeHtml(e && e.message ? e.message : String(e)));
+    }
+  }
+
+  function resetPreflight() {
+    state.preflightMismatch = false;
+    state.preflightOverride = false;
+    preflightEl.style.display = 'none';
+    preflightEl.innerHTML = '';
+  }
+
+  function updateProcessBtn() {
+    const filesReady = !!(state.pdfFile && state.xlsmFile);
+    btnProcess.disabled = !filesReady || (state.preflightMismatch && !state.preflightOverride);
+  }
+
+  async function runPreflightIfReady() {
+    if (!(state.pdfFile && state.xlsmFile)) return;
+    const myToken = ++state.preflightToken;
+    preflightEl.style.display = 'block';
+    preflightEl.innerHTML = '<div class="preflight-box unknown"><span class="spinner"></span>Verificando que el PDF y el Excel correspondan al mismo proveedor…</div>';
+    let pdfHeader = null;
+    let xlsmVendorNumber = null;
+    try {
+      const [pdfBytes, xlsmBytes] = await Promise.all([
+        readFileAsBytes(state.pdfFile),
+        readFileAsBytes(state.xlsmFile),
+      ]);
+      if (myToken !== state.preflightToken) return; // a newer file selection superseded this check
+      [pdfHeader, xlsmVendorNumber] = await Promise.all([
+        getPdfHeaderInfo(pdfBytes, browserIo).catch(() => null),
+        getVendorNumber(xlsmBytes, browserIo).catch(() => null),
+      ]);
+    } catch (e) {
+      pdfHeader = null;
+      xlsmVendorNumber = null;
+    }
+    if (myToken !== state.preflightToken) return;
+    renderPreflight(pdfHeader, xlsmVendorNumber);
+  }
+
+  function renderPreflight(pdfHeader, xlsmVendorNumber) {
+    const pdfSupplier = pdfHeader && pdfHeader.supplierNumber;
+    if (!pdfSupplier || !xlsmVendorNumber) {
+      state.preflightMismatch = false;
+      preflightEl.innerHTML =
+        '<div class="preflight-box unknown"><div class="pf-title">ℹ No se pudo verificar automáticamente la correspondencia PDF ↔ Excel</div>' +
+        '<div class="pf-detail">Revisa manualmente que el Supplier Number del PDF coincida con la plantilla antes de continuar.</div></div>';
+      updateProcessBtn();
+      return;
+    }
+    if (pdfSupplier === xlsmVendorNumber) {
+      state.preflightMismatch = false;
+      preflightEl.innerHTML =
+        '<div class="preflight-box ok"><div class="pf-title">✓ El PDF y el Excel corresponden al mismo proveedor (' + escapeHtml(pdfSupplier) + ')</div>' +
+        '<div class="pf-detail">PO ' + escapeHtml(pdfHeader.poNumber || '—') + ' · ' + escapeHtml(pdfHeader.supplierName || '') + '</div></div>';
+      updateProcessBtn();
+      return;
+    }
+    // Mismatch — block processing until the user explicitly confirms.
+    state.preflightMismatch = true;
+    preflightEl.innerHTML =
+      '<div class="preflight-box mismatch"><div class="pf-title">⚠ El PDF y el Excel NO corresponden al mismo proveedor</div>' +
+      '<div class="pf-detail">Supplier Number del PDF: <strong>' + escapeHtml(pdfSupplier) + '</strong> · Vendor Number del Excel: <strong>' + escapeHtml(xlsmVendorNumber) + '</strong></div>' +
+      '<label class="preflight-confirm"><input type="checkbox" id="preflight-override-cb"> Entiendo el riesgo y quiero continuar de todas formas.</label>' +
+      '</div>';
+    const cb = document.getElementById('preflight-override-cb');
+    cb.addEventListener('change', () => {
+      state.preflightOverride = cb.checked;
+      updateProcessBtn();
+    });
+    updateProcessBtn();
+  }
+
+  setupDropzone(dzPdf, filePdf, setPdfFile);
+  setupDropzone(dzXlsm, fileXlsm, setXlsmFile);
+  setupDropzone(dzInv, fileInv, setInvFile);
+  setupDropzone(dzCtrl, fileCtrl, setCtrlFile);
+  clearCtrl.addEventListener('click', (e) => { e.stopPropagation(); clearCtrlFile(); });
+  clearPdf.addEventListener('click', (e) => { e.stopPropagation(); clearPdfFile(); });
+  clearXlsm.addEventListener('click', (e) => { e.stopPropagation(); clearXlsmFile(); });
+  clearInv.addEventListener('click', (e) => { e.stopPropagation(); clearInvFile(); });
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg || '';
+    statusEl.className = isError ? 'error' : '';
+  }
+
+  function readFileAsBytes(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function setPill(step) {
+    pill1.className = 'step-pill' + (step >= 1 ? (step > 1 ? ' done' : ' active') : '');
+    pill2.className = 'step-pill' + (step === 2 ? ' active' : (step > 2 ? ' done' : ''));
+    pill3.className = 'step-pill' + (step === 3 ? ' active' : '');
+  }
+
+  function suggestOutputName(xlsmName) {
+    if (!xlsmName) return 'pedido_procesado.xlsm';
+    const dot = xlsmName.lastIndexOf('.');
+    const base = dot > -1 ? xlsmName.slice(0, dot) : xlsmName;
+    const ext = dot > -1 ? xlsmName.slice(dot) : '.xlsm';
+    return base + '_procesado' + ext;
+  }
+
+  async function handleProcess() {
+    if (!state.pdfFile || !state.xlsmFile) return;
+    btnProcess.disabled = true;
+    resultCard.style.display = 'none';
+    setPill(2);
+    setStatus('⏳ Leyendo archivos…');
+    try {
+      const [pdfBytes, xlsmBytes, inventoryBytes, controlOcBytes] = await Promise.all([
+        readFileAsBytes(state.pdfFile),
+        readFileAsBytes(state.xlsmFile),
+        state.invFile ? readFileAsBytes(state.invFile) : Promise.resolve(null),
+        state.ctrlFile ? readFileAsBytes(state.ctrlFile) : Promise.resolve(null),
+      ]);
+
+      setStatus(state.invFile
+        ? '⏳ Extrayendo distribución del PDF, aplicando cambios al Excel y actualizando INV…'
+        : '⏳ Extrayendo distribución del PDF y aplicando cambios al Excel…');
+      // Give the browser a paint frame so the status message shows before the
+      // (synchronous-ish) heavy work starts.
+      await new Promise((r) => setTimeout(r, 30));
+
+      const opts = {};
+      if (inventoryBytes) opts.inventoryBytes = inventoryBytes;
+      if (controlOcBytes) opts.controlOcBytes = controlOcBytes;
+      const result = await processOrder(pdfBytes, xlsmBytes, browserIo, opts);
+
+      setStatus('');
+      setPill(3);
+      showResult(result);
+    } catch (err) {
+      console.error(err);
+      setStatus('✕ ' + (err && err.message ? err.message : 'Ocurrió un error al procesar el pedido.'), true);
+      setPill(1);
+    } finally {
+      updateProcessBtn();
+    }
+  }
+
+  function showResult(result) {
+    document.getElementById('sum-items').textContent = result.summary.items.length;
+    document.getElementById('sum-stores').textContent = result.summary.uniqueStoreCount;
+    document.getElementById('sum-units').textContent = result.summary.totalUnits.toLocaleString('es-CL');
+    document.getElementById('result-sub').textContent =
+      'Se aplicó el ingreso de datos, el filtrado de tiendas (equivalente a FILTRAR) y la actualización de "Hoja para Fragua". Revisa el resumen antes de descargar.';
+
+    const invStatusEl = document.getElementById('inv-status');
+    const fu = result.summary.formularioUpdate;
+    const formHtml = fu && fu.po
+      ? '<div class="inv-status-box">🧾 Formulario de Entrega: OC <b>' + escapeHtml(fu.po) + '</b> en D8' +
+        (fu.cita ? ' y cita <b>' + escapeHtml(fu.cita) + '</b> en D6.' : '; la cita (D6) quedó sin cambios — ver avisos.') + '</div>'
+      : '';
+    if (result.summary.invUpdate || formHtml) {
+      const iu = result.summary.invUpdate;
+      invStatusEl.innerHTML = formHtml + (iu ?
+        '<div class="inv-status-box">📦 Pestaña "INV" actualizada con los datos de la pestaña "' +
+        escapeHtml(iu.sourceSheetName) + '" del archivo de inventario (' + iu.rowCount.toLocaleString('es-CL') + ' filas).</div>' : '');
+      invStatusEl.style.display = 'block';
+    } else {
+      invStatusEl.style.display = 'none';
+      invStatusEl.innerHTML = '';
+    }
+
+    const tbody = document.getElementById('items-tbody');
+    tbody.innerHTML = '';
+    for (const it of result.summary.items) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escapeHtml(it.itemNo) + '</td>' +
+        '<td>' + escapeHtml(String(it.stockNo)) + '</td>' +
+        '<td>' + escapeHtml(it.sheetName) + '</td>' +
+        '<td>' + it.storeCount + '</td>' +
+        '<td>' + it.totalQty.toLocaleString('es-CL') + '</td>';
+      tbody.appendChild(tr);
+    }
+
+    const warningsBox = document.getElementById('warnings-box');
+    const warningsList = document.getElementById('warnings-list');
+    warningsList.innerHTML = '';
+    if (result.warnings && result.warnings.length > 0) {
+      for (const w of result.warnings) {
+        const li = document.createElement('li');
+        li.textContent = w;
+        warningsList.appendChild(li);
+      }
+      warningsBox.style.display = 'block';
+    } else {
+      warningsBox.style.display = 'none';
+    }
+
+    state.resultBytes = result.bytes;
+    state.resultName = suggestOutputName(state.xlsmFile.name);
+    document.getElementById('download-hint').textContent = window.showSaveFilePicker
+      ? ''
+      : 'Tu navegador no admite elegir carpeta de destino — se descargará a tu carpeta de descargas habitual.';
+
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // Downloads the processed file. In Chromium-based browsers this opens the
+  // native "Save As" dialog (via the File System Access API) so the user
+  // picks the folder each time; other browsers fall back to a normal
+  // download into the browser's default downloads folder.
+  async function downloadResult() {
+    if (!state.resultBytes) return;
+    const suggestedName = state.resultName || 'pedido_procesado.xlsm';
+    const downloadLink = document.getElementById('download-link');
+
+    if (window.showSaveFilePicker) {
+      downloadLink.disabled = true;
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName,
+          types: [{
+            description: 'Excel con macros (.xlsm)',
+            accept: { 'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm'] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(new Blob([state.resultBytes]));
+        await writable.close();
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return; // user cancelled the dialog
+        console.error('showSaveFilePicker failed, falling back to normal download:', err);
+        // fall through to the classic download below
+      } finally {
+        downloadLink.disabled = false;
+      }
+    }
+
+    // Fallback for browsers without the File System Access API (Firefox, Safari, etc.)
+    const blob = new Blob([state.resultBytes], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = suggestedName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function resetAll() {
+    clearPdfFile();
+    clearXlsmFile();
+    clearInvFile();
+    state.resultBytes = null;
+    state.resultName = null;
+    resultCard.style.display = 'none';
+    setStatus('');
+    setPill(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  btnProcess.addEventListener('click', handleProcess);
+  btnReset.addEventListener('click', resetAll);
+  document.getElementById('download-link').addEventListener('click', downloadResult);
+})();
+</script>
+</body>
+</html>

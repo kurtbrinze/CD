@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Comprobador de QR — CEDI Walmart</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f4f6f9;color:#1d2229;min-height:100vh}
+.app{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+.hdr{background:linear-gradient(135deg,#0053e2 60%,#0043c0 100%);border-radius:14px;padding:26px 32px;margin-bottom:22px;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:rgba(255,255,255,.05);border-radius:50%}
+.hdr-eyebrow{color:rgba(255,255,255,.72);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.hdr-title{color:#fff;font-size:24px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px}
+.hdr-desc{color:rgba(255,255,255,.75);font-size:13px;line-height:1.55;max-width:64ch}
+
+.steps{display:flex;gap:10px;margin-bottom:20px}
+.step{flex:1;background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,.06);display:flex;gap:10px;align-items:flex-start;border:1.5px solid transparent}
+.step.active{border-color:#0053e2}
+.step.done{border-color:#2a8703}
+.step-num{width:22px;height:22px;border-radius:50%;background:#e5e9f2;color:#5b6472;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step.active .step-num{background:#0053e2;color:#fff}
+.step.done .step-num{background:#2a8703;color:#fff}
+.step-label{font-size:12px;font-weight:700;color:#1d2229;line-height:1.3}
+.step-sub{font-size:11px;color:#8a94a6;margin-top:1px}
+@media(max-width:640px){.steps{flex-direction:column}}
+
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);padding:22px 24px;margin-bottom:18px}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0053e2;margin-bottom:4px}
+.card-help{font-size:12.5px;color:#6b7280;margin-bottom:16px;line-height:1.5}
+
+.drops{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.drops{grid-template-columns:1fr}}
+.drop{border:1.5px dashed #c7d0e0;border-radius:10px;padding:16px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+.drop:hover{border-color:#0053e2;background:#f7f9ff}
+.drop.over{border-color:#0053e2;background:#eef3ff}
+.drop.filled{border-style:solid;border-color:#2a8703;background:#f5fbf3}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-icon{font-size:20px;margin-bottom:6px}
+.drop-label{font-size:12.5px;font-weight:700;color:#1d2229;margin-bottom:3px}
+.drop-hint{font-size:11px;color:#9aa3b2;line-height:1.4}
+.drop-file{font-size:11.5px;color:#2a8703;font-weight:700;margin-top:6px;word-break:break-all}
+
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
+.btn{padding:11px 22px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:background .15s,transform .1s,opacity .15s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:#0053e2;color:#fff}
+.btn-primary:hover:not(:disabled){background:#0043c0}
+.btn-secondary{background:#fff;color:#1d2229;border:1.5px solid #d1d5db}
+.btn-secondary:hover{background:#f9fafb}
+.btn-download{background:#2a8703;color:#fff}
+.btn-download:hover{background:#1e6502}
+
+.toggle-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12.5px;color:#4b5563}
+.toggle-row input{width:16px;height:16px}
+
+.log{background:#0f172a;color:#cbd5e1;border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;max-height:260px;overflow-y:auto;display:none;margin-top:16px}
+.log.show{display:block}
+.log .l-info{color:#93c5fd}
+.log .l-ok{color:#86efac}
+.log .l-err{color:#fca5a5;font-weight:700}
+.log .l-warn{color:#fcd34d}
+
+.err-banner{display:none;background:#fef2f2;border:1.5px solid #fecaca;color:#991b1b;border-radius:9px;padding:12px 16px;font-size:13px;line-height:1.5;margin-top:16px}
+.err-banner.show{display:block}
+
+.oc-result{border:1.5px solid #d7e2fb;border-radius:10px;padding:16px 18px;margin-top:16px;background:#fafbff}
+.oc-result-hdr{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.oc-tag{background:#0053e2;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:.3px}
+.oc-name{font-size:13.5px;font-weight:700;color:#1d2229}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+@media(max-width:640px){.stat-row{grid-template-columns:1fr 1fr}}
+.stat{background:#f0f5ff;border:1px solid #d7e2fb;border-radius:9px;padding:8px 10px;text-align:center}
+.stat.ok{background:#f0fbf0;border-color:#c8ecc8}
+.stat.warn{background:#fff8ec;border-color:#fbe4b8}
+.stat.err{background:#fef2f2;border-color:#fecaca}
+.stat-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#5b6bb0}
+.stat.ok .stat-lbl{color:#1e7a1e}
+.stat.warn .stat-lbl{color:#92400e}
+.stat.err .stat-lbl{color:#b42318}
+.stat-val{font-size:17px;font-weight:800;color:#1d2229;margin-top:2px}
+
+.cmp-tbl-wrap{max-height:340px;overflow-y:auto;border:1px solid #e5e9f2;border-radius:8px;margin-top:10px}
+table.cmp-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.cmp-tbl th{position:sticky;top:0;background:#f4f6f9;text-align:left;padding:7px 9px;font-weight:700;color:#4b5563;border-bottom:1.5px solid #e5e9f2}
+table.cmp-tbl td{padding:6px 9px;border-bottom:1px solid #eef1f6}
+table.cmp-tbl tr.row-mismatch td{background:#fff8f8}
+table.cmp-tbl tr.row-onlypdf td{background:#fffbea}
+table.cmp-tbl tr.row-onlyexcel td{background:#fffbea}
+.badge{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:5px}
+.badge.ok{background:#e6f7e6;color:#1e7a1e}
+.badge.mismatch{background:#fde2e1;color:#b42318}
+.badge.onlypdf{background:#fef3c7;color:#92400e}
+.badge.onlyexcel{background:#fef3c7;color:#92400e}
+
+.cita-btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+.foot-note{font-size:11.5px;color:#9aa3b2;margin-top:22px;text-align:center;line-height:1.6}
+.engine-note{font-size:11px;color:#9aa3b2;margin-top:6px}
+.debug-card{border:1.5px solid #fde68a;background:#fffdf5}
+.debug-img-wrap{margin-top:14px}
+.debug-img-label{font-size:12px;font-weight:700;color:#92400e;margin-bottom:6px}
+.debug-img{max-width:100%;border:1px solid #e5e9f2;border-radius:6px;display:block}
+.qr-block-lbl{font-size:11.5px;font-weight:700;color:#4b5563;margin:10px 0 6px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div class="hdr-eyebrow">Walmart Guatemala · CEDI</div>
+    <div class="hdr-title">Comprobador de QR</div>
+    <div class="hdr-desc">Subí los PDF de QR generados y el/los Excel (Consolidado u OC Listado) de cada Orden de Compra. Extraigo los datos impresos en el PDF, los cruzo con el contenido real de los códigos QR, y los comparo contra el Excel — sin contar filas con 0 cajas.</div>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="step-1"><div class="step-num">1</div><div><div class="step-label">Subís PDFs y Excel</div><div class="step-sub">Hasta 2 de cada uno, no importa el orden</div></div></div>
+    <div class="step" id="step-2"><div class="step-num">2</div><div><div class="step-label">Se emparejan por OC</div><div class="step-sub">Detecto el número de OC en cada archivo</div></div></div>
+    <div class="step" id="step-3"><div class="step-num">3</div><div><div class="step-label">Comparás y descargás</div><div class="step-sub">CSV de datos + reporte de comparación</div></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📄 PDFs de QR</div>
+    <div class="card-help">Los archivos "Generador QR - Orden de Compra ... .pdf". Podés subir 1 o 2.</div>
+    <div class="drops">
+      <label class="drop" id="drop-pdf-1">
+        <input type="file" id="file-pdf-1" accept=".pdf"/>
+        <div class="drop-icon">📄</div>
+        <div class="drop-label">PDF de QR — 1</div>
+        <div class="drop-file" id="name-pdf-1"></div>
+      </label>
+      <label class="drop" id="drop-pdf-2">
+        <input type="file" id="file-pdf-2" accept=".pdf"/>
+        <div class="drop-icon">📄</div>
+        <div class="drop-label">PDF de QR — 2</div>
+        <div class="drop-file" id="name-pdf-2"></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Excel (Consolidado u OC Listado)</div>
+    <div class="card-help">Aceptan tanto una pestaña "Consolidado por tienda" del Generador como un "OC Listado" crudo — detecto las columnas solo. Podés subir 1 o 2.</div>
+    <div class="drops">
+      <label class="drop" id="drop-xlsx-1">
+        <input type="file" id="file-xlsx-1" accept=".xlsx"/>
+        <div class="drop-icon">📊</div>
+        <div class="drop-label">Excel — 1</div>
+        <div class="drop-file" id="name-xlsx-1"></div>
+      </label>
+      <label class="drop" id="drop-xlsx-2">
+        <input type="file" id="file-xlsx-2" accept=".xlsx"/>
+        <div class="drop-icon">📊</div>
+        <div class="drop-label">Excel — 2</div>
+        <div class="drop-file" id="name-xlsx-2"></div>
+      </label>
+    </div>
+
+    <div class="toggle-row">
+      <input type="checkbox" id="chk-qr-verify" checked/>
+      <label for="chk-qr-verify">Verificar también el contenido real de los QR, no solo el texto impreso (puede tardar unos segundos más)</label>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-procesar" disabled>⚡ Procesar y comparar</button>
+      <button class="btn btn-secondary" id="btn-limpiar">🗑 Empezar de nuevo</button>
+    </div>
+    <div class="engine-note">Motor Excel: Python (openpyxl) vía Pyodide. Lectura de PDF: PDF.js. Verificación de QR: jsQR.</div>
+
+    <div class="log" id="log"></div>
+    <div class="err-banner" id="err-banner"></div>
+  </div>
+
+  <div id="results-container"></div>
+
+  <div class="foot-note">Todo se procesa en tu navegador — ningún archivo se sube a un servidor.</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+function b64ToUtf8(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+const ENGINE2_PY_B64 = "IiIiCmVuZ2luZTIucHkg4oCUIG1vdG9yIGRlIGxlY3R1cmEgZGUgRXhjZWwgcGFyYSBlbCBDb21wcm9iYWRvciBkZSBRUi4KQ29ycmUgZGVudHJvIGRlIFB5b2RpZGUgZW4gZWwgbmF2ZWdhZG9yLiBMZWUgdGFudG8gaG9qYXMgIkNvbnNvbGlkYWRvCnBvciB0aWVuZGEiICh5YSBjb24gU3RvcmUgTmFtZS9VUEMgcmVzdWVsdG9zKSBjb21vICJPQyBMaXN0YWRvIgpjcnVkb3MgKGNvbiBjb2x1bW5hICJBIEVudmlhciIpLCBkZXRlY3RhbmRvIGxhcyBjb2x1bW5hcyBwb3Igbm9tYnJlLgoiIiIKaW1wb3J0IGpzb24KaW1wb3J0IHJlCmltcG9ydCB1bmljb2RlZGF0YQppbXBvcnQgb3BlbnB5eGwKCgpkZWYgbm9ybShzKToKICAgIGlmIHMgaXMgTm9uZToKICAgICAgICByZXR1cm4gIiIKICAgIHMgPSBzdHIocykKICAgIHMgPSB1bmljb2RlZGF0YS5ub3JtYWxpemUoIk5GS0QiLCBzKS5lbmNvZGUoImFzY2lpIiwgImlnbm9yZSIpLmRlY29kZSgpCiAgICByZXR1cm4gcmUuc3ViKHIiXHMrIiwgIiAiLCBzKS5zdHJpcCgpLmxvd2VyKCkKCgpkZWYgX2ZtdF9pdGVtX25icih2KToKICAgIGlmIHYgaXMgTm9uZToKICAgICAgICByZXR1cm4gIiIKICAgIGlmIGlzaW5zdGFuY2UodiwgZmxvYXQpIGFuZCB2LmlzX2ludGVnZXIoKToKICAgICAgICByZXR1cm4gc3RyKGludCh2KSkKICAgIHJldHVybiBzdHIodikuc3RyaXAoKQoKCmRlZiBmaW5kX29jX21hcmtlcih3cywgY29sX3N0b3JlLCBjb2xfcGVkaWRvKToKICAgIGZvciByIGluIHJhbmdlKDIsIG1pbih3cy5tYXhfcm93LCAxNSkgKyAxKToKICAgICAgICBzdiA9IHdzLmNlbGwociwgY29sX3N0b3JlKS52YWx1ZQogICAgICAgIHB2ID0gd3MuY2VsbChyLCBjb2xfcGVkaWRvKS52YWx1ZQogICAgICAgIGlmIHN2IGluIChOb25lLCAiIikgYW5kIHB2IG5vdCBpbiAoTm9uZSwgIiIpOgogICAgICAgICAgICByZXR1cm4gcHYKICAgIHJldHVybiBOb25lCgoKZGVmIGxlZXJfZXhjZWwocGF0aCk6CiAgICB3YiA9IG9wZW5weXhsLmxvYWRfd29ya2Jvb2socGF0aCwgZGF0YV9vbmx5PVRydWUpCiAgICB3cyA9IHdiW3diLnNoZWV0bmFtZXNbMF1dCgogICAgaGVhZGVycyA9IHt9CiAgICBmb3IgYyBpbiByYW5nZSgxLCB3cy5tYXhfY29sdW1uICsgMSk6CiAgICAgICAgdiA9IHdzLmNlbGwoMSwgYykudmFsdWUKICAgICAgICBpZiBpc2luc3RhbmNlKHYsIHN0cik6CiAgICAgICAgICAgIG4gPSBub3JtKHYpCiAgICAgICAgICAgIGlmIG4gPT0gInN0b3JlIG5iciI6CiAgICAgICAgICAgICAgICBoZWFkZXJzWyJzdG9yZV9uYnIiXSA9IGMKICAgICAgICAgICAgZWxpZiBuID09ICJzdG9yZSBuYW1lIjoKICAgICAgICAgICAgICAgIGhlYWRlcnNbInN0b3JlX25hbWUiXSA9IGMKICAgICAgICAgICAgZWxpZiBuID09ICJpdGVtIG5iciI6CiAgICAgICAgICAgICAgICBoZWFkZXJzWyJpdGVtX25iciJdID0gYwogICAgICAgICAgICBlbGlmIG4gPT0gImRlc3BhY2hhZG8iOgogICAgICAgICAgICAgICAgaGVhZGVyc1siY2FudGlkYWQiXSA9IGMKICAgICAgICAgICAgZWxpZiBuID09ICJhIGVudmlhciIgYW5kICJjYW50aWRhZCIgbm90IGluIGhlYWRlcnM6CiAgICAgICAgICAgICAgICBoZWFkZXJzWyJjYW50aWRhZCJdID0gYwogICAgICAgICAgICBlbGlmIG4gPT0gInBlZGlkbyBvYyI6CiAgICAgICAgICAgICAgICBoZWFkZXJzWyJwZWRpZG9fb2MiXSA9IGMKCiAgICBtaXNzaW5nID0gW2sgZm9yIGsgaW4gKCJzdG9yZV9uYnIiLCAiaXRlbV9uYnIiLCAiY2FudGlkYWQiKSBpZiBrIG5vdCBpbiBoZWFkZXJzXQogICAgaWYgbWlzc2luZzoKICAgICAgICByYWlzZSBWYWx1ZUVycm9yKGYnTm8gZW5jb250csOpIGxhcyBjb2x1bW5hcyB7bWlzc2luZ30gZW4gIntwYXRofSIuJykKCiAgICBvYyA9IE5vbmUKICAgIGlmICJwZWRpZG9fb2MiIGluIGhlYWRlcnM6CiAgICAgICAgb2MgPSBmaW5kX29jX21hcmtlcih3cywgaGVhZGVyc1sic3RvcmVfbmJyIl0sIGhlYWRlcnNbInBlZGlkb19vYyJdKQogICAgaWYgb2MgaXMgTm9uZToKICAgICAgICAjICJDb25zb2xpZGFkbyBwb3IgdGllbmRhIjogZWwgbnVtZXJvIGRlIE9DIHF1ZWRvIGVuIEIyIGNvbW8gdmFsb3IgZmlqbwogICAgICAgIGIyID0gd3NbIkIyIl0udmFsdWUKICAgICAgICBpZiBiMiBub3QgaW4gKE5vbmUsICIiKToKICAgICAgICAgICAgb2MgPSBiMgoKICAgIGxhc3Rfcm93ID0gMQogICAgZm9yIHIgaW4gcmFuZ2Uod3MubWF4X3JvdywgMSwgLTEpOgogICAgICAgIGlmIHdzLmNlbGwociwgaGVhZGVyc1sic3RvcmVfbmJyIl0pLnZhbHVlIG5vdCBpbiAoTm9uZSwgIiIpIG9yIFwKICAgICAgICAgICB3cy5jZWxsKHIsIGhlYWRlcnNbImNhbnRpZGFkIl0pLnZhbHVlIG5vdCBpbiAoTm9uZSwgIiIpOgogICAgICAgICAgICBsYXN0X3JvdyA9IHIKICAgICAgICAgICAgYnJlYWsKCiAgICByb3dzID0gW10KICAgIGZvciByIGluIHJhbmdlKDIsIGxhc3Rfcm93ICsgMSk6CiAgICAgICAgc3YgPSB3cy5jZWxsKHIsIGhlYWRlcnNbInN0b3JlX25iciJdKS52YWx1ZQogICAgICAgIGlmIHN2IGluIChOb25lLCAiIik6CiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgcXYgPSB3cy5jZWxsKHIsIGhlYWRlcnNbImNhbnRpZGFkIl0pLnZhbHVlCiAgICAgICAgdHJ5OgogICAgICAgICAgICBxdHkgPSBmbG9hdChxdikgaWYgcXYgbm90IGluIChOb25lLCAiIikgZWxzZSAwCiAgICAgICAgZXhjZXB0IChUeXBlRXJyb3IsIFZhbHVlRXJyb3IpOgogICAgICAgICAgICBxdHkgPSAwCiAgICAgICAgaWYgbm90IChxdHkgPiAwKToKICAgICAgICAgICAgY29udGludWUKICAgICAgICByb3dzLmFwcGVuZCh7CiAgICAgICAgICAgICJzdG9yZV9uYnIiOiBpbnQoc3YpLAogICAgICAgICAgICAic3RvcmVfbmFtZSI6IHdzLmNlbGwociwgaGVhZGVyc1sic3RvcmVfbmFtZSJdKS52YWx1ZSBpZiAic3RvcmVfbmFtZSIgaW4gaGVhZGVycyBlbHNlIE5vbmUsCiAgICAgICAgICAgICJpdGVtX25iciI6IF9mbXRfaXRlbV9uYnIod3MuY2VsbChyLCBoZWFkZXJzWyJpdGVtX25iciJdKS52YWx1ZSksCiAgICAgICAgICAgICJjYW50aWRhZCI6IHF0eSwKICAgICAgICB9KQoKICAgIG9jX3N0ciA9IF9mbXRfaXRlbV9uYnIob2MpIGlmIG9jIGlzIG5vdCBOb25lIGVsc2UgTm9uZQogICAgcmV0dXJuIGpzb24uZHVtcHMoeyJvayI6IFRydWUsICJvYyI6IG9jX3N0ciwgInJvd3MiOiByb3dzfSkK";
+const ENGINE2_PY = b64ToUtf8(ENGINE2_PY_B64);
+
+// ═══════════════════════════════════════════════════════════
+//  Motor Python (Pyodide + openpyxl) — solo para leer Excel
+// ═══════════════════════════════════════════════════════════
+let _pyodidePromise = null;
+async function ensurePyodide() {
+  if (_pyodidePromise) return _pyodidePromise;
+  _pyodidePromise = (async () => {
+    log('Cargando motor de Excel (Python/openpyxl)… la primera vez tarda unos segundos.', 'l-info');
+    const pyodide = await loadPyodide();
+    await pyodide.loadPackage('micropip');
+    const micropip = pyodide.pyimport('micropip');
+    await micropip.install('openpyxl');
+    pyodide.runPython(ENGINE2_PY);
+    log('  ✓ Motor de Excel listo', 'l-ok');
+    return pyodide;
+  })();
+  try {
+    return await _pyodidePromise;
+  } catch (err) {
+    _pyodidePromise = null;
+    throw err;
+  }
+}
+
+function callPy(pyodide, fnName, ...args) {
+  const fn = pyodide.globals.get(fnName);
+  try {
+    const raw = fn(...args);
+    return JSON.parse(raw);
+  } catch (err) {
+    const msg = String(err && err.message || err);
+    const m = msg.match(/(?:ValueError|Exception|KeyError|TypeError):\s*(.+)/);
+    throw new Error(m ? m[1].split('\n')[0] : msg.split('\n').pop());
+  } finally {
+    if (fn && fn.destroy) fn.destroy();
+  }
+}
+
+async function fileToUint8Array(file) {
+  const buf = await file.arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+function normDigits(s) {
+  if (s === undefined || s === null) return '';
+  return String(s).replace(/\D/g, '');
+}
+function fmtItemNbr(s) {
+  if (s === undefined || s === null) return '';
+  const n = Number(s);
+  if (!Number.isNaN(n) && Number.isInteger(n)) return String(n);
+  return String(s).trim();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Lectura de texto del PDF (PDF.js): agrupa los items de texto
+//  en líneas por posición Y, y recorre esas líneas en la
+//  secuencia fija que arma QR_Entrega.html para cada tienda:
+//    "Tienda N - Nombre"
+//    "TIENDA  ORDEN DE COMPRA  RECEPCIÓN MERCANCÍA"   (labels)
+//    "# N  OC X  M ítem(s)"                            (values)
+//    "UPC  Item NBR  Cajas Despachadas"                (header)
+//    <una línea de 3 números por ítem>...
+//  Además guarda, por tienda, la posición real (en espacio del
+//  PDF) de la etiqueta "RECEPCIÓN MERCANCÍA" y de las líneas de
+//  arriba/abajo, para poder recortar exactamente ese QR después
+//  (en vez de escanear la página a ciegas).
+// ═══════════════════════════════════════════════════════════
+async function extractPdfData(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let ocHeader = null;
+  const rows = [];
+  const qrRegions = []; // { page, store_nbr, xLeft, yTop, yBottom } en espacio PDF
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items
+      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }))
+      .filter(it => it.str.trim() !== '');
+    items.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+
+    const lines = [];
+    let curItems = null, curY = null;
+    const Y_TOL = 3;
+    for (const it of items) {
+      if (curY === null || Math.abs(it.y - curY) > Y_TOL) {
+        curItems = [];
+        lines.push({ y: it.y, items: curItems });
+        curY = it.y;
+      }
+      curItems.push(it);
+    }
+    lines.forEach(l => { l.text = l.items.map(i => i.str).join(' ').trim(); });
+
+    if (p === 1) {
+      const joined0 = lines.map(l => l.text).join(' ');
+      const m = joined0.match(/OC:\s*(\d+)/);
+      if (m) ocHeader = m[1];
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const tm = lines[i].text.match(/^Tienda\s+(\d+)\s*-\s*(.+)$/i);
+      if (!tm) continue;
+      const storeNbr = tm[1], storeName = tm[2].trim();
+      const labelsLine = lines[i + 1];
+      const valuesLine = lines[i + 2];
+      const headerLine = lines[i + 3];
+      if (!labelsLine || !/ORDEN DE COMPRA/i.test(labelsLine.text)) continue;
+      if (!valuesLine || !headerLine) continue;
+      const vm = valuesLine.text.match(/OC\s+(\d+)/i);
+      const oc = vm ? vm[1] : ocHeader;
+
+      let j = i + 4;
+      while (j < lines.length && !/^Tienda\s+\d+\s*-/i.test(lines[j].text)) {
+        const im = lines[j].text.match(/^(\d+)\s+(\d+)\s+(\d+)$/);
+        if (im) {
+          rows.push({
+            store_nbr: storeNbr, store_name: storeName, oc,
+            upc: im[1], item_nbr: im[2], cajas: parseInt(im[3], 10), page: p,
+          });
+        }
+        j++;
+      }
+
+      const tiendaItem = labelsLine.items.find(it => /^TIENDA$/i.test(it.str.trim()));
+      const ordenItem = labelsLine.items.find(it => /ORDEN/i.test(it.str));
+      const recepItem = labelsLine.items.find(it => /RECEPCI[ÓO]N/i.test(it.str));
+      if (tiendaItem && ordenItem) {
+        qrRegions.push({
+          type: 'tienda', page: p, store_nbr: storeNbr,
+          xLeft: page.view[0] + 10, // columna 1: no hay nada a la izquierda, así que llego hasta el margen de la página
+          xRight: ordenItem.x - 40, // más margen respecto a la columna de "Orden de Compra" para no invadirla
+          yTop: labelsLine.y + 20,
+          yBottom: valuesLine.y - 8,
+        });
+      }
+      if (recepItem) {
+        qrRegions.push({
+          type: 'merch', page: p, store_nbr: storeNbr,
+          xLeft: recepItem.x - 30,
+          xRight: null,
+          yTop: labelsLine.y + 20,
+          yBottom: valuesLine.y - 8,
+        });
+      }
+      i = j - 1;
+    }
+  }
+  if (!ocHeader && rows.length) ocHeader = rows[0].oc;
+  return { oc: ocHeader, rows, numPages: pdf.numPages, qrRegions };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Verificación opcional del contenido REAL de los QR (jsQR):
+//  recorta exactamente la región de cada QR (Tienda y Recepción
+//  Mercancía) usando la posición real del texto vecino,
+//  convertida a coordenadas del canvas con la propia API de
+//  PDF.js (viewport.convertToViewportPoint), y corre jsQR una
+//  sola vez por QR sobre ese recorte.
+// ═══════════════════════════════════════════════════════════
+async function verifyQrContent(file, pdfData, onProgress) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const SCALE = 4; // más resolución: los QR con muchos ítems quedan más densos y necesitan más nitidez para leerse
+
+  const regionsByPage = {};
+  pdfData.qrRegions.forEach(r => {
+    if (!regionsByPage[r.page]) regionsByPage[r.page] = [];
+    regionsByPage[r.page].push(r);
+  });
+  const rowsByStorePage = {};
+  pdfData.rows.forEach(r => {
+    const key = r.page + '|' + r.store_nbr;
+    if (!rowsByStorePage[key]) rowsByStorePage[key] = [];
+    rowsByStorePage[key].push(r);
+  });
+
+  const results = {
+    tienda: { checked: 0, matched: 0, mismatched: 0, notFound: 0 },
+    merch: { checked: 0, matched: 0, mismatched: 0, notFound: 0 },
+    diag: [], diagImages: [],
+  };
+
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const regions = regionsByPage[p];
+    if (!regions || !regions.length) { if (onProgress) onProgress(p, pdf.numPages); continue; }
+
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: SCALE });
+    const pageView = page.view; // [x0,y0,x1,y1] en espacio PDF
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    // Importante: un canvas nuevo es TRANSPARENTE, no blanco. jsQR lee
+    // el color ignorando el canal alfa, así que el fondo transparente
+    // se puede leer como negro y arruinar el contraste con el QR real.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    for (const region of regions) {
+      const key = p + '|' + region.store_nbr;
+      const storeRows = rowsByStorePage[key];
+      if (!storeRows) continue;
+      const bucket = results[region.type];
+
+      const xRightPdf = region.xRight !== null
+        ? region.xRight
+        : Math.min(pageView[2] - 10, region.xLeft + 260); // ancho generoso pero acotado, sin llegar al borde de la tarjeta
+      const [cx1, cy1] = viewport.convertToViewportPoint(region.xLeft, region.yTop);
+      const [cx2, cy2] = viewport.convertToViewportPoint(xRightPdf, region.yBottom);
+      let cropX = Math.max(0, Math.min(cx1, cx2));
+      let cropY = Math.max(0, Math.min(cy1, cy2));
+      let cropW = Math.abs(cx2 - cx1);
+      let cropH = Math.abs(cy2 - cy1);
+      cropW = Math.min(cropW, canvas.width - cropX);
+      cropH = Math.min(cropH, canvas.height - cropY);
+      // Enteros SIEMPRE: getImageData redondea/trunca internamente, y si le
+      // paso a jsQR un ancho/alto distinto al que realmente tiene el buffer
+      // devuelto, lee los píxeles con el stride equivocado y nunca decodifica
+      // nada (aunque el recorte esté visualmente perfecto, como se confirmó).
+      cropX = Math.floor(cropX);
+      cropY = Math.floor(cropY);
+      cropW = Math.floor(cropW);
+      cropH = Math.floor(cropH);
+      if (cropW <= 0 || cropH <= 0) {
+        bucket.notFound++;
+        if (results.diag.length < 3) results.diag.push('Tienda ' + region.store_nbr + ' (QR ' + region.type + '): recorte inválido (' + Math.round(cropW) + 'x' + Math.round(cropH) + ')');
+        continue;
+      }
+
+      let code = null;
+      let jsQrError = null;
+      let imgData = null;
+      try {
+        imgData = ctx.getImageData(cropX, cropY, cropW, cropH);
+      } catch (e) { jsQrError = 'getImageData: ' + (e && e.message || e); }
+      if (imgData) {
+        try {
+          code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
+        } catch (e) {
+          jsQrError = 'jsQR: ' + (e && e.message || e);
+          console.error('jsQR error tienda ' + region.store_nbr, e);
+        }
+      }
+
+      if (!code || !code.data) {
+        bucket.notFound++;
+        const extra = jsQrError ? (' — ERROR: ' + jsQrError) : (typeof jsQR === 'undefined' ? ' — jsQR no está definido (no cargó la librería)' : ' — jsQR corrió sin error pero no encontró nada');
+        if (results.diag.length < 3) results.diag.push('Tienda ' + region.store_nbr + ' (QR ' + region.type + '): recorte ' + Math.round(cropW) + 'x' + Math.round(cropH) + 'px en (' + Math.round(cropX) + ',' + Math.round(cropY) + ')' + extra);
+        if (results.diagImages.length < 2) {
+          // Imagen 1: la página completa, achicada, con el recorte marcado en rojo
+          const previewScale = Math.min(1, 700 / canvas.width);
+          const prevCanvas = document.createElement('canvas');
+          prevCanvas.width = canvas.width * previewScale;
+          prevCanvas.height = canvas.height * previewScale;
+          const prevCtx = prevCanvas.getContext('2d');
+          prevCtx.drawImage(canvas, 0, 0, prevCanvas.width, prevCanvas.height);
+          prevCtx.strokeStyle = 'red';
+          prevCtx.lineWidth = 3;
+          prevCtx.strokeRect(cropX * previewScale, cropY * previewScale, cropW * previewScale, cropH * previewScale);
+          results.diagImages.push({
+            label: 'Página ' + p + ' completa — el rectángulo rojo es exactamente lo que recorté para la Tienda ' + region.store_nbr + ' (QR ' + region.type + ')',
+            dataUrl: prevCanvas.toDataURL('image/png'),
+          });
+          // Imagen 2: solo el recorte, tal cual se le pasa a jsQR
+          if (imgData) {
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = imgData.width;
+            cropCanvas.height = imgData.height;
+            cropCanvas.getContext('2d').putImageData(imgData, 0, 0);
+            results.diagImages.push({
+              label: 'Solo el recorte de la Tienda ' + region.store_nbr + ' — QR ' + region.type + ' (lo que le paso a jsQR)',
+              dataUrl: cropCanvas.toDataURL('image/png'),
+            });
+          }
+        }
+        continue;
+      }
+
+      bucket.checked++;
+      if (region.type === 'tienda') {
+        const decoded = normDigits(code.data);
+        const expected = normDigits(region.store_nbr);
+        if (decoded && decoded === expected) bucket.matched++; else bucket.mismatched++;
+      } else {
+        const pairs = code.data.split(/\r?\n/).filter(Boolean);
+        const decodedItems = [];
+        for (let i = 0; i < pairs.length - 1; i += 2) {
+          decodedItems.push({ upc: pairs[i], cajas: parseInt(pairs[i + 1], 10) });
+        }
+        let allMatch = decodedItems.length === storeRows.length;
+        decodedItems.forEach(d => {
+          const tr = storeRows.find(r => r.upc === d.upc);
+          if (!tr || Number(tr.cajas) !== Number(d.cajas)) allMatch = false;
+        });
+        if (allMatch) bucket.matched++; else bucket.mismatched++;
+      }
+    }
+    if (onProgress) onProgress(p, pdf.numPages);
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI wiring
+// ═══════════════════════════════════════════════════════════
+const state = { pdfs: { 1: null, 2: null }, xlsx: { 1: null, 2: null } };
+
+function wireDrop(dropId, inputId, nameId, onPick) {
+  const drop = document.getElementById(dropId);
+  const input = document.getElementById(inputId);
+  const nameEl = document.getElementById(nameId);
+  input.addEventListener('change', () => {
+    const f = input.files[0];
+    if (!f) return;
+    onPick(f);
+    nameEl.textContent = f.name;
+    drop.classList.add('filled');
+    updateProcesarBtn();
+    setStep(2);
+  });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('over');
+    if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
+  });
+}
+wireDrop('drop-pdf-1', 'file-pdf-1', 'name-pdf-1', f => { state.pdfs[1] = f; });
+wireDrop('drop-pdf-2', 'file-pdf-2', 'name-pdf-2', f => { state.pdfs[2] = f; });
+wireDrop('drop-xlsx-1', 'file-xlsx-1', 'name-xlsx-1', f => { state.xlsx[1] = f; });
+wireDrop('drop-xlsx-2', 'file-xlsx-2', 'name-xlsx-2', f => { state.xlsx[2] = f; });
+
+function updateProcesarBtn() {
+  const anyPdf = state.pdfs[1] || state.pdfs[2];
+  const anyXlsx = state.xlsx[1] || state.xlsx[2];
+  document.getElementById('btn-procesar').disabled = !(anyPdf && anyXlsx);
+}
+
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('step-' + i);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done'); else if (i === n) el.classList.add('active');
+  }
+}
+
+const logEl = document.getElementById('log');
+function log(msg, cls) {
+  logEl.classList.add('show');
+  const line = document.createElement('div');
+  line.className = cls || '';
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.innerHTML = ''; logEl.classList.remove('show'); }
+function showError(msg) { const el = document.getElementById('err-banner'); el.textContent = '⚠ ' + msg; el.classList.add('show'); }
+function hideError() { document.getElementById('err-banner').classList.remove('show'); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s === undefined || s === null ? '' : String(s); return d.innerHTML; }
+
+function csvEscape(v) {
+  const s = v === undefined || v === null ? '' : String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function buildCsv(headers, rows) {
+  const lines = [headers.map(csvEscape).join(',')];
+  rows.forEach(r => lines.push(headers.map(h => csvEscape(r[h])).join(',')));
+  return '\ufeff' + lines.join('\r\n');
+}
+
+const SUPPORTS_SAVE_PICKER = 'showSaveFilePicker' in window;
+async function saveOrDownload(blob, suggestedName, mimeType, description, extensions) {
+  if (SUPPORTS_SAVE_PICKER) {
+    try {
+      const handle = await window.showSaveFilePicker({ suggestedName, types: [{ description, accept: { [mimeType]: extensions } }] });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = suggestedName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('btn-procesar').addEventListener('click', async () => {
+  hideError();
+  clearLog();
+  document.getElementById('results-container').innerHTML = '';
+  if (typeof pdfjsLib === 'undefined') {
+    showError('No se pudo cargar la librería de lectura de PDF (PDF.js). Revisá tu conexión y recargá la página.');
+    return;
+  }
+  const btn = document.getElementById('btn-procesar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Procesando…';
+  const wantQrVerify = document.getElementById('chk-qr-verify').checked;
+
+  try {
+    const pdfFiles = [state.pdfs[1], state.pdfs[2]].filter(Boolean);
+    const xlsxFiles = [state.xlsx[1], state.xlsx[2]].filter(Boolean);
+
+    log('Leyendo PDF(s)…', 'l-info');
+    const pdfDatas = [];
+    for (const f of pdfFiles) {
+      const d = await extractPdfData(f);
+      d._file = f;
+      log('  "' + f.name + '" → OC ' + (d.oc || '(no encontrada)') + ' | ' + d.rows.length + ' fila(s) en ' + d.numPages + ' página(s)', 'l-ok');
+      pdfDatas.push(d);
+    }
+
+    log('Leyendo Excel(s)…', 'l-info');
+    const pyodide = await ensurePyodide();
+    const xlsxDatas = [];
+    for (const f of xlsxFiles) {
+      const bytes = await fileToUint8Array(f);
+      const path = '/' + f.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      pyodide.FS.writeFile(path, bytes);
+      const res = callPy(pyodide, 'leer_excel', path);
+      log('  "' + f.name + '" → OC ' + (res.oc || '(no encontrada)') + ' | ' + res.rows.length + ' fila(s) con cantidad > 0', 'l-ok');
+      xlsxDatas.push(res);
+    }
+
+    // Emparejar por OC
+    const ocs = new Set([...pdfDatas.map(d => d.oc), ...xlsxDatas.map(d => d.oc)].filter(Boolean));
+    if (!ocs.size) { showError('No pude detectar el número de OC en ninguno de los archivos.'); return; }
+
+    log('Emparejando archivos por número de OC…', 'l-info');
+    const container = document.getElementById('results-container');
+
+    for (const oc of ocs) {
+      const pdfD = pdfDatas.find(d => d.oc === oc);
+      const xlsxD = xlsxDatas.find(d => d.oc === oc);
+      if (!pdfD) { log('OC ' + oc + ': hay Excel pero no PDF — se omite.', 'l-warn'); continue; }
+      if (!xlsxD) { log('OC ' + oc + ': hay PDF pero no Excel — se omite la comparación (solo se exporta el CSV del PDF).', 'l-warn'); }
+
+      let qrSummary = null;
+      if (wantQrVerify) {
+        log('OC ' + oc + ': verificando contenido real de los QR (puede tardar)…', 'l-info');
+        try {
+          qrSummary = await verifyQrContent(pdfD._file, pdfD, (p, total) => log('  página ' + p + '/' + total + ' escaneada', 'l-info'));
+          log('  ✓ QR Tienda: ' + qrSummary.tienda.matched + ' coinciden, ' + qrSummary.tienda.mismatched + ' no coinciden, ' + qrSummary.tienda.notFound + ' no detectados', qrSummary.tienda.mismatched ? 'l-warn' : 'l-ok');
+          log('  ✓ QR Recepción Mercancía: ' + qrSummary.merch.matched + ' coinciden, ' + qrSummary.merch.mismatched + ' no coinciden, ' + qrSummary.merch.notFound + ' no detectados', qrSummary.merch.mismatched ? 'l-warn' : 'l-ok');
+          (qrSummary.diag || []).forEach(d => log('    · ' + d, 'l-warn'));
+          if (qrSummary.diagImages && qrSummary.diagImages.length) renderDebugImages(oc, qrSummary.diagImages);
+        } catch (err) {
+          console.error(err);
+          log('  ⚠ No se pudo completar la verificación de QR: ' + (err.message || err), 'l-warn');
+        }
+      }
+
+      renderOcResult(oc, pdfD, xlsxD, qrSummary);
+    }
+
+    log('Listo.', 'l-ok');
+    setStep(3);
+  } catch (err) {
+    console.error(err);
+    showError(err.message || String(err));
+    log('ERROR: ' + (err.message || String(err)), 'l-err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Procesar y comparar';
+    updateProcesarBtn();
+  }
+});
+
+function renderDebugImages(oc, images) {
+  const container = document.getElementById('results-container');
+  const div = document.createElement('div');
+  div.className = 'card debug-card';
+  div.innerHTML =
+    '<div class="card-title">🔍 Diagnóstico visual — OC ' + escapeHtml(oc) + '</div>' +
+    '<div class="card-help">Esto es exactamente lo que la app recortó para intentar leer el QR. Fijate si el rectángulo rojo cae sobre el QR de "Recepción Mercancía" o en otro lado.</div>' +
+    images.map(img => '<div class="debug-img-wrap"><div class="debug-img-label">' + escapeHtml(img.label) + '</div><img class="debug-img" src="' + img.dataUrl + '"/></div>').join('');
+  container.appendChild(div);
+}
+
+function renderOcResult(oc, pdfD, xlsxD, qrSummary) {
+  const container = document.getElementById('results-container');
+  const div = document.createElement('div');
+  div.className = 'card oc-result';
+
+  // Mapear filas del PDF por store|item (sumando si hay duplicados)
+  const pdfMap = {};
+  pdfD.rows.forEach(r => {
+    const key = normDigits(r.store_nbr) + '|' + fmtItemNbr(r.item_nbr);
+    if (!pdfMap[key]) pdfMap[key] = { store_nbr: r.store_nbr, store_name: r.store_name, item_nbr: r.item_nbr, upc: r.upc, cajas: 0 };
+    pdfMap[key].cajas += Number(r.cajas) || 0;
+  });
+
+  let comparisonRows = [];
+  if (xlsxD) {
+    const xlsxMap = {};
+    xlsxD.rows.forEach(r => {
+      const key = normDigits(r.store_nbr) + '|' + fmtItemNbr(r.item_nbr);
+      if (!xlsxMap[key]) xlsxMap[key] = { store_nbr: r.store_nbr, store_name: r.store_name, item_nbr: r.item_nbr, cantidad: 0 };
+      xlsxMap[key].cantidad += Number(r.cantidad) || 0;
+    });
+    const allKeys = new Set([...Object.keys(pdfMap), ...Object.keys(xlsxMap)]);
+    allKeys.forEach(key => {
+      const p = pdfMap[key], x = xlsxMap[key];
+      let status;
+      if (p && x) status = (Number(p.cajas) === Number(x.cantidad)) ? 'ok' : 'mismatch';
+      else if (p && !x) status = 'onlypdf';
+      else status = 'onlyexcel';
+      comparisonRows.push({
+        store_nbr: (p || x).store_nbr,
+        store_name: (p && p.store_name) || (x && x.store_name) || '',
+        item_nbr: (p || x).item_nbr,
+        pdf_cajas: p ? p.cajas : '',
+        excel_cantidad: x ? x.cantidad : '',
+        status,
+      });
+    });
+    comparisonRows.sort((a, b) => Number(a.store_nbr) - Number(b.store_nbr) || String(a.item_nbr).localeCompare(String(b.item_nbr)));
+  }
+
+  const counts = { ok: 0, mismatch: 0, onlypdf: 0, onlyexcel: 0 };
+  comparisonRows.forEach(r => counts[r.status]++);
+
+  let statsHtml = '';
+  if (xlsxD) {
+    statsHtml =
+      '<div class="stat-row">' +
+        '<div class="stat ok"><div class="stat-lbl">Coinciden</div><div class="stat-val">' + counts.ok + '</div></div>' +
+        '<div class="stat ' + (counts.mismatch ? 'err' : '') + '"><div class="stat-lbl">No coinciden</div><div class="stat-val">' + counts.mismatch + '</div></div>' +
+        '<div class="stat ' + (counts.onlypdf ? 'warn' : '') + '"><div class="stat-lbl">Solo en PDF</div><div class="stat-val">' + counts.onlypdf + '</div></div>' +
+        '<div class="stat ' + (counts.onlyexcel ? 'warn' : '') + '"><div class="stat-lbl">Solo en Excel</div><div class="stat-val">' + counts.onlyexcel + '</div></div>' +
+      '</div>';
+  } else {
+    statsHtml = '<div class="stat-row"><div class="stat"><div class="stat-lbl">Filas extraídas del PDF</div><div class="stat-val">' + pdfD.rows.length + '</div></div></div>';
+  }
+
+  let qrHtml = '';
+  if (qrSummary) {
+    const qrBlock = (title, s) =>
+      '<div class="qr-block-lbl">' + title + '</div>' +
+      '<div class="stat-row">' +
+        '<div class="stat ok"><div class="stat-lbl">Coinciden</div><div class="stat-val">' + s.matched + '</div></div>' +
+        '<div class="stat ' + (s.mismatched ? 'err' : '') + '"><div class="stat-lbl">No coinciden</div><div class="stat-val">' + s.mismatched + '</div></div>' +
+        '<div class="stat ' + (s.notFound ? 'warn' : '') + '"><div class="stat-lbl">No detectados</div><div class="stat-val">' + s.notFound + '</div></div>' +
+      '</div>';
+    qrHtml = qrBlock('🏪 QR de Tienda (crítico para recepción)', qrSummary.tienda) + qrBlock('📦 QR de Recepción Mercancía', qrSummary.merch);
+  }
+
+  let tableHtml = '';
+  if (comparisonRows.length) {
+    const badgeMap = { ok: ['ok', '✓ Igual'], mismatch: ['mismatch', '✕ Distinto'], onlypdf: ['onlypdf', 'Solo PDF'], onlyexcel: ['onlyexcel', 'Solo Excel'] };
+    const rowsHtml = comparisonRows.map(r => {
+      const [cls, label] = badgeMap[r.status];
+      const rowCls = r.status === 'mismatch' ? 'row-mismatch' : (r.status === 'onlypdf' ? 'row-onlypdf' : (r.status === 'onlyexcel' ? 'row-onlyexcel' : ''));
+      return '<tr class="' + rowCls + '"><td>' + escapeHtml(r.store_nbr) + '</td><td>' + escapeHtml(r.store_name) + '</td><td>' + escapeHtml(r.item_nbr) + '</td>' +
+        '<td>' + escapeHtml(r.pdf_cajas) + '</td><td>' + escapeHtml(r.excel_cantidad) + '</td><td><span class="badge ' + cls + '">' + label + '</span></td></tr>';
+    }).join('');
+    tableHtml = '<div class="cmp-tbl-wrap"><table class="cmp-tbl"><thead><tr><th>Tienda</th><th>Nombre</th><th>Item Nbr</th><th>Cajas PDF</th><th>Cantidad Excel</th><th>Estado</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+  }
+
+  div.innerHTML =
+    '<div class="oc-result-hdr"><span class="oc-tag">OC ' + escapeHtml(oc) + '</span>' +
+    '<span class="oc-name">' + pdfD.rows.length + ' fila(s) en el PDF' + (xlsxD ? ' · ' + xlsxD.rows.length + ' fila(s) en el Excel' : '') + '</span></div>' +
+    statsHtml + qrHtml + tableHtml +
+    '<div class="cita-btn-row">' +
+      '<button class="btn btn-download" data-csv="pdf">⬇ CSV de datos del PDF</button>' +
+      (xlsxD ? '<button class="btn btn-download" data-csv="cmp">⬇ CSV de comparación</button>' : '') +
+    '</div>';
+
+  container.appendChild(div);
+
+  div.querySelector('button[data-csv="pdf"]').addEventListener('click', () => {
+    const csv = buildCsv(['store_nbr', 'store_name', 'oc', 'upc', 'item_nbr', 'cajas'], pdfD.rows);
+    saveOrDownload(new Blob([csv], { type: 'text/csv' }), 'Datos PDF - OC ' + oc + '.csv', 'text/csv', 'CSV', ['.csv']);
+  });
+  const cmpBtn = div.querySelector('button[data-csv="cmp"]');
+  if (cmpBtn) {
+    cmpBtn.addEventListener('click', () => {
+      const csv = buildCsv(['store_nbr', 'store_name', 'item_nbr', 'pdf_cajas', 'excel_cantidad', 'status'], comparisonRows);
+      saveOrDownload(new Blob([csv], { type: 'text/csv' }), 'Comparacion - OC ' + oc + '.csv', 'text/csv', 'CSV', ['.csv']);
+    });
+  }
+}
+
+document.getElementById('btn-limpiar').addEventListener('click', () => {
+  state.pdfs = { 1: null, 2: null };
+  state.xlsx = { 1: null, 2: null };
+  ['pdf-1', 'pdf-2', 'xlsx-1', 'xlsx-2'].forEach(k => {
+    document.getElementById('name-' + k).textContent = '';
+    document.getElementById('drop-' + k).classList.remove('filled');
+    document.getElementById('file-' + k).value = '';
+  });
+  clearLog(); hideError();
+  document.getElementById('results-container').innerHTML = '';
+  updateProcesarBtn();
+  setStep(1);
+});
+</script>
+</body>
+</html>
