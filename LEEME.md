@@ -1,13 +1,13 @@
-# Envíos al CD — PANISA (PWA) · V.2026.3
+# Envíos al CD — PANISA (PWA) · V.2026.4
 
-Una sola app con las cuatro herramientas de entregas al CD:
+Una sola app con las herramientas de entregas al CD, en este orden:
 
-1. **Ingreso de pedidos** — OC en PDF → plantilla CD PANISA (.xlsm)
-2. **Automatizador de entregas** — Formularios + OC Listado → Generador QR
-3. **Comprobador de QR** — PDF de QR vs. Consolidado / OC Listado
-4. **QR de garita** — citas del día desde Control OC FBD POD
-5. **Correo del día** — formulario de entrega a Walmart con QR y Consolidado adjuntos
-6. **Sugerido de envío** — columna I (Sugerido Enviar) de la pestaña OC Table
+1. **Generador QR Entrega** — Formularios + OC Listado → Generador QR
+2. **Comprobador QR** — PDF de QR vs. Consolidado / OC Listado
+3. **QR Garita** — citas del día desde Control OC FBD POD
+4. **Ingreso Pedidos** — OC en PDF → plantilla CD PANISA (.xlsm)
+5. **Sugerido envío** — Sugerido (I) y tu decisión en Enviar (H) de la pestaña OC Table
+6. **Correo a CEDI** — formulario de entrega con QR y Consolidado adjuntos
 
 Las herramientas son las mismas versiones validadas (sin cambios en su lógica);
 la app solo las reúne y les agrega la **biblioteca de plantillas**.
@@ -49,8 +49,14 @@ de "OC Table" solo para las filas con Pedido OC (F):
 - Sugerido = lo que falta para 10 días, en múltiplos de 5, nunca más que F
 - Days on Hand del Excel (AD) nunca mayor a 14 (única excepción: tienda sin
   inventario con venta muy baja recibe el mínimo de 5)
-"Guardar Excel con Sugerido" escribe los valores en la columna I (reemplaza la
-fórmula anterior de esa columna) sin tocar el resto del libro.
+Columna **Enviar** (V.2026.4): arranca con el sugerido y se edita en la tabla
+(Enter pasa a la siguiente tienda; flechas ↑ ↓ de 5 en 5). Nunca acepta más
+que el Pedido OC. Los cambios sin guardar se recuperan si se cierra la app.
+Si el archivo ya trae valores fijos en Enviar, se cargan como tu decisión.
+"Guardar Excel con Enviar" escribe H = Enviar e I = Sugerido como valores en
+las filas de datos (reemplaza las fórmulas de esas dos columnas), deja los
+totales y el resto del libro igual, y marca el libro para que Excel recalcule
+todo al abrirlo (TOTAL A ENVIAR, Fill Rate, DI, etc.).
 
 ## Correo del día
 Replica la pestaña **eMAIL** del Control OC para la fecha de entrega elegida

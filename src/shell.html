@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Envíos al CD — PANISA</title>
 <meta name="theme-color" content="#0d2140">
-<meta name="description" content="Herramientas para las entregas al CD de Walmart: ingreso de pedidos, Generador QR, comprobación y QR de garita.">
+<meta name="description" content="Herramientas para las entregas al CD de Walmart: Generador QR Entrega, Comprobador QR, QR Garita, Ingreso Pedidos, Sugerido envío y Correo a CEDI.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -195,6 +195,20 @@ button{font:inherit;cursor:pointer}
 .envtab .mut{color:var(--muted);font-size:12px}
 .envtab .mot{color:var(--muted);font-size:12.5px;white-space:normal;min-width:220px}
 #envio .mail, #envio{max-width:none}
+.envtab th.envh{background:#fff3c4}
+.envtab td.envc{padding:3px 6px;background:#fffbea}
+.env-in{width:74px;font:inherit;font-size:14px;font-weight:700;text-align:right;padding:5px 7px;border:1.5px solid #e2c56b;border-radius:7px;background:#fff;color:var(--text);font-variant-numeric:tabular-nums}
+.env-in:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,83,226,.18)}
+.env-in.over{border-color:var(--bad);background:#fdecea}
+.envtab tr.mod td{background:#fffcf3}
+.envtab tr.mod td.envc{background:#ffefb8}
+.envtab tr.mod .env-in{border-color:#c98a00}
+.envtab td.empty{padding:22px;text-align:center;color:var(--muted);white-space:normal}
+.env-tools{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:4px 0 8px}
+.env-tools-btns{display:flex;gap:6px;flex-wrap:wrap}
+.env-tools kbd{font:inherit;font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fff}
+.fact.env-total{background:#fff3c4;border-color:#f0d27a}
+.infobox{background:#eef4ff;border:1px solid #c9daff;color:#103d8f;border-radius:9px;padding:9px 14px;font-size:13.5px;margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .envwrap{max-width:1280px;margin:0 auto;padding:22px 24px 60px}
 
 /* ── Dialog / toast ──────────────────────────── */
@@ -276,16 +290,16 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
         </div>
       </div>
     </section>
-    <section class="view" id="v-correo" aria-label="Correo del día">
-      <div class="bar"><div class="bar-title"><span class="nav-num">5</span>Correo del día</div>
+    <section class="view" id="v-correo" aria-label="Correo a CEDI">
+      <div class="bar"><div class="bar-title"><span class="nav-num">6</span>Correo a CEDI</div>
         <div class="bar-chips"><span class="chip" style="cursor:default;background:none;border-color:transparent;color:var(--muted);font-weight:400">Texto y destinatarios desde la pestaña eMAIL de Control OC</span></div>
         <div class="bar-right"><button class="btn" id="mail-reload">Volver a leer Control OC</button></div>
       </div>
       <div class="scroll"><div class="mail" id="mail"></div></div>
     </section>
-    <section class="view" id="v-sugerido" aria-label="Sugerido de envío">
-      <div class="bar"><div class="bar-title"><span class="nav-num">6</span>Sugerido de envío</div>
-        <div class="bar-chips"><span class="chip" style="cursor:default;background:none;border-color:transparent;color:var(--muted);font-weight:400">Columna I de la pestaña OC Table, solo para lo que pide la OC</span></div>
+    <section class="view" id="v-sugerido" aria-label="Sugerido envío">
+      <div class="bar"><div class="bar-title"><span class="nav-num">5</span>Sugerido envío</div>
+        <div class="bar-chips"><span class="chip" style="cursor:default;background:none;border-color:transparent;color:var(--muted);font-weight:400">Pestaña OC Table: Sugerido (I) y tu decisión en Enviar (H), solo para lo que pide la OC</span></div>
       </div>
       <div class="scroll"><div class="envwrap" id="envio"></div></div>
     </section>
@@ -293,7 +307,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.3</div>
+<div class="ver" aria-label="Versión de la app">V.2026.4</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -314,12 +328,12 @@ const ICONS = {
   garita:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l4-3v15"/><path d="M7 12h14"/><path d="M10 12v-1M14 12v-1M18 12v-1"/><path d="M3 21h4"/></svg>',
 };
 const TOOLS = [
-  { id:'ingreso',     n:1, name:'Ingreso de pedidos',     short:'Pedidos',    desc:'OC en PDF a la plantilla CD PANISA, con FILTRAR y Hoja para Fragua.' },
-  { id:'entregas',    n:2, name:'Automatizador de entregas', short:'Entregas', desc:'Formularios y OC Listado de cada cita al Generador QR del día.' },
-  { id:'comprobador', n:3, name:'Comprobador de QR',      short:'Comprobar', desc:'Compara los PDF de QR contra el Consolidado u OC Listado.' },
-  { id:'garita',      n:4, name:'QR de garita',           short:'Garita',     desc:'Citas de la fecha de entrega desde Control OC, listas para imprimir.' },
-  { id:'correo',      n:5, name:'Correo del día',         short:'Correo',     desc:'Formulario de entrega a Walmart con QR y Consolidado adjuntos.', native:true },
-  { id:'sugerido',    n:6, name:'Sugerido de envío',      short:'Sugerido',   desc:'Calcula cuánto enviar por tienda e ítem, sin pasar lo que pide la OC.', native:true },
+  { id:'entregas',    n:1, name:'Generador QR Entrega', short:'QR Entrega', desc:'Formularios y OC Listado de cada cita al Generador QR del día.' },
+  { id:'comprobador', n:2, name:'Comprobador QR',       short:'Comprobar',  desc:'Compara los PDF de QR contra el Consolidado u OC Listado.' },
+  { id:'garita',      n:3, name:'QR Garita',            short:'Garita',     desc:'Citas de la fecha de entrega desde Control OC, listas para imprimir.' },
+  { id:'ingreso',     n:4, name:'Ingreso Pedidos',      short:'Pedidos',    desc:'OC en PDF a la plantilla CD PANISA, con OC y cita en el Formulario de Entrega.' },
+  { id:'sugerido',    n:5, name:'Sugerido envío',       short:'Sugerido',   desc:'Calcula cuánto enviar por tienda e ítem y te deja decidir la columna Enviar.', native:true },
+  { id:'correo',      n:6, name:'Correo a CEDI',        short:'Correo',     desc:'Formulario de entrega al CEDI con QR y Consolidado adjuntos.', native:true },
 ];
 const toolById = id => TOOLS.find(t => t.id === id);
 
@@ -350,7 +364,7 @@ const KINDS = {
 };
 const HAS_DIR = 'showDirectoryPicker' in window;
 if (HAS_DIR) KINDS.calculos = { label:'Carpeta de cálculos de envío', help:'Los Excel tipo "07_Octubre_2026_Panisa_2.xlsm" (pestaña OC Table)', dir:true, tool:'sugerido', staleDays:null };
-if (HAS_DIR) KINDS.carpeta = { label:'Carpeta de archivos generados', help:'Donde guardás los PDF de QR y el Generador QR del Automatizador', dir:true, tool:'correo', staleDays:null };
+if (HAS_DIR) KINDS.carpeta = { label:'Carpeta de archivos generados', help:'Donde guardás los PDF de QR y el Excel del Generador QR Entrega', dir:true, tool:'correo', staleDays:null };
 const KIND_ORDER = ['cdpanisa','inventario','generador','controloc'].concat(HAS_DIR ? ['carpeta','calculos'] : []);
 
 // ═════════════ Utilidades ═════════════
@@ -1022,16 +1036,16 @@ async function renderCorreo() {
   });
   if (f.ocs.length) expect.push(['Consolidado (Generador QR)', f.ocs.every(oc => sel.some(a => a.type === 'cons' && a.ocs.includes(oc)))]);
   const dir = templates.find(t => t.kind === 'carpeta');
-  const srcLbl = { carpeta:'carpeta ' + (dir ? dir.name : ''), app:'guardado desde Automatizador', manual:'agregado a mano' };
+  const srcLbl = { carpeta:'carpeta ' + (dir ? dir.name : ''), app:'guardado desde Generador QR Entrega', manual:'agregado a mano' };
   const ctrl = templates.find(t => t.kind === 'controloc');
   const ctrlStale = ctrl && ctrl.lastModified < startOfDay();
 
   $('mail').innerHTML =
     (ctrlStale ? '<div class="warnbox">El Control OC se modificó por última vez el ' + esc(fmtDate(ctrl.lastModified)) + '. Si lo actualizaste hoy, guardalo en Excel y tocá "Volver a leer Control OC".</div>' : '') +
-    '<div class="mcard"><h2>Fecha de entrega</h2><p class="sub">La misma fecha que usás en QR de garita (columna CANCEL D de la tabla PANISA).</p>' +
+    '<div class="mcard"><h2>Fecha de entrega</h2><p class="sub">La misma fecha que usás en QR Garita (columna CANCEL D de la tabla PANISA).</p>' +
       '<div class="date-line"><input type="date" id="mail-date" value="' + esc(mail.fecha) + '"><div class="dchips">' +
       up.map(d => '<button class="dchip' + (d === mail.fecha ? ' sel' : '') + '" data-d="' + d + '">' + esc(chipDate(d)) + '</button>').join('') + '</div></div>' +
-      '<div class="src-note">' + (mail.fechaSrc === 'garita' ? 'Tomada de QR de garita.' : mail.fechaSrc === 'auto' ? 'Próxima fecha con OC. Si elegís una fecha en QR de garita, se usa esa.' : 'Elegida a mano.') + '</div>' +
+      '<div class="src-note">' + (mail.fechaSrc === 'garita' ? 'Tomada de QR Garita.' : mail.fechaSrc === 'auto' ? 'Próxima fecha con OC. Si elegís una fecha en QR Garita, se usa esa.' : 'Elegida a mano.') + '</div>' +
       '<div class="facts"><span class="fact' + (/^\d+$/.test(f.I.I2) ? '' : ' bad') + '">OC <b>' + esc(f.I.I2) + '</b> · cita <b>' + esc(f.I.I4) + '</b></span>' +
       '<span class="fact' + (/^\d+$/.test(f.I.I3) ? '' : ' bad') + '">OC <b>' + esc(f.I.I3) + '</b> · cita <b>' + esc(f.I.I8) + '</b></span>' +
       '<span class="fact' + (/NO HAY/.test(f.I.I7) ? ' bad' : '') + '">Hora <b>' + esc(f.I.I7) + '</b></span></div>' +
@@ -1056,8 +1070,8 @@ async function renderCorreo() {
       '<div class="dropbox" id="att-drop" tabindex="0">Arrastrá aquí los PDF de QR y el Excel del Generador, o tocá para elegirlos</div>' +
       (HAS_DIR ? '<p class="hint">' + (dir
           ? (mail.dirState === 'perm' ? '<button class="btn" id="att-grant">Dar acceso a la carpeta "' + esc(dir.name) + '"</button>' : 'Busco automáticamente en la carpeta <b>' + esc(dir.name) + '</b> (y sus subcarpetas). <button class="btn ghost" id="att-dir" style="color:var(--blue)">Cambiar carpeta</button>')
-          : 'Si guardás siempre los archivos del Automatizador en una misma carpeta, <button class="btn" id="att-dir">vinculala</button> y los adjunto solos.') + '</p>'
-        : '<p class="hint">El Excel del Generador que guardes desde el Automatizador queda disponible aquí automáticamente; los PDF de QR agregalos arriba.</p>') +
+          : 'Si guardás siempre los archivos del Generador QR Entrega en una misma carpeta, <button class="btn" id="att-dir">vinculala</button> y los adjunto solos.') + '</p>'
+        : '<p class="hint">El Excel que guardes desde Generador QR Entrega queda disponible aquí automáticamente; los PDF de QR agregalos arriba.</p>') +
     '</div>' +
 
     '<div class="mcard"><h2>Enviar desde Outlook</h2>' +
@@ -1256,6 +1270,8 @@ async function readCalcWorkbook(file) {
     if (iRaw && /<f\b/.test(iRaw)) iFormulaRows.push(rn);
     const rec = { row: rn };
     COLS.forEach(c => { rec[c] = val(cells.get(c + rn)); });
+    const hRaw = cells.get('H' + rn);
+    rec._hStatic = !!hRaw && !/<f\b/.test(hRaw) && /<v>/.test(hRaw);
     data.push(rec);
   }
   return { file, bytes, entries, workbookXml, relsXml, nameToPath, ocPath, ocXml, data, dayCols, iFormulaRows, stale, form, sheetName: ocName };
@@ -1335,30 +1351,94 @@ function computeFile(wbk, fecha) {
     const F = num(r.F), A = num(r.A);
     if (F == null || F <= 0 || A == null || !r.E) continue; // solo lo que pide la OC
     const c = calcRow(r, env.params, dinfo);
-    out.push({ r, c, F, H: num(r.H) });
+    out.push({ r, c, F, H: num(r.H), hStatic: !!r._hStatic });
   }
   return { rows: out, dinfo };
 }
 
-// ── Escritura de la columna I ──
-async function writeSugerido(wbk, res) {
+// ── Columna Enviar (H): decisión editable ──
+const clampEnv = (v, F) => Math.max(0, Math.min(F, Math.round(Number(v) || 0)));
+function baseEnv(x, z) { return (x.useFile && z.hStatic && z.H != null) ? clampEnv(z.H, z.F) : z.c.s; }
+function envOf(x, z) { return x.edits.has(z.r.row) ? x.edits.get(z.r.row) : baseEnv(x, z); }
+function draftKey(x) { return 'envio-draft:' + x.f.name + '|' + x.wbk.file.size + '|' + (x.wbk.file.lastModified || 0); }
+let draftTimer = null;
+function saveDraft(x) {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => { DB.set(draftKey(x), x.edits.size ? { rows: Object.fromEntries(x.edits), useFile: x.useFile, ts: Date.now() } : null).catch(() => {}); }, 400);
+}
+async function setupEnviar(x) {
+  x.edits = new Map();
+  x.useFile = x.res.rows.some(z => z.hStatic && z.H != null && z.H > 0);
+  x.draftCount = 0;
+  try {
+    const d = await DB.get(draftKey(x));
+    if (d && d.rows) {
+      if (typeof d.useFile === 'boolean') x.useFile = d.useFile;
+      const byRow = new Map(x.res.rows.map(z => [z.r.row, z]));
+      for (const [k, v] of Object.entries(d.rows)) { const z = byRow.get(+k); if (z) { x.edits.set(+k, clampEnv(v, z.F)); x.draftCount++; } }
+    }
+  } catch (e) {}
+}
+
+// Celdas con fórmula de una columna que hay que convertir en valor. Un grupo de
+// fórmula compartida se reemplaza completo (si no, Excel marca el libro como dañado).
+function formulaCellsToReplace(rowsMap, col, dataRows) {
+  const masters = {}, cells = [];
+  for (const [rn, m] of rowsMap.entries()) {
+    const raw = m.get(col + rn);
+    if (!raw || !/<f\b/.test(raw)) continue;
+    const fm = raw.match(/<f\b([^>]*?)(?:\/>|>([\s\S]*?)<\/f>)/);
+    const attrs = fm ? fm[1] : '', text = fm && fm[2] ? fm[2] : '';
+    const shared = /\bt="shared"/.test(attrs);
+    const si = (attrs.match(/\bsi="(\d+)"/) || [])[1];
+    if (shared && /\bref="/.test(attrs)) masters[si] = { rn, text };
+    cells.push({ rn, shared, si, text });
+  }
+  const out = new Set();
+  for (const c of cells) {
+    if (c.shared) { const m = masters[c.si]; if (m && m.rn >= 3 && !/SUM\(/i.test(m.text)) out.add(c.rn); }
+    else if (c.rn >= 3 && dataRows.has(c.rn) && !/SUM\(/i.test(c.text)) out.add(c.rn);
+  }
+  return out;
+}
+
+// Escribe H (Enviar = tu decisión) e I (Sugerido) como valores, solo en las filas
+// de datos; los totales y el resto del libro no se tocan.
+async function writeEnviar(x) {
+  const wbk = x.wbk, res = x.res;
   const w = await ingresoHelper();
   const io = w.eval('browserIo');
-  const byRow = new Map(res.rows.map(x => [x.r.row, x.c.s]));
+  const rowsMap = w.parseAllRows(wbk.ocXml);
+  const dataRows = new Set(wbk.data.filter(r => num(r.A) != null).map(r => r.row));
+  const ocRows = new Map(res.rows.map(z => [z.r.row, z]));
   const edits = [];
-  const rowsToWrite = new Set([...wbk.iFormulaRows, ...byRow.keys()]);
-  for (const rn of rowsToWrite) edits.push({ ref: 'I' + rn, kind: 'number', value: String(byRow.has(rn) ? byRow.get(rn) : 0), keepStyle: true });
+  for (const col of ['H', 'I']) {
+    const targets = formulaCellsToReplace(rowsMap, col, dataRows);
+    for (const rn of ocRows.keys()) targets.add(rn);
+    for (const rn of targets) {
+      const z = ocRows.get(rn);
+      const v = z ? (col === 'H' ? envOf(x, z) : z.c.s) : 0;
+      edits.push({ ref: col + rn, kind: 'number', value: String(v), keepStyle: true });
+    }
+  }
   const newXml = w.applyCellEdits(wbk.ocXml, edits);
   const changed = new Map();
   changed.set(wbk.ocPath, w.utf8ToBytes(newXml));
-  // Se quitaron fórmulas de la columna I: la caché calcChain.xml queda obsoleta
+  // Se quitaron fórmulas: la caché calcChain.xml queda obsoleta
   let entries = wbk.entries;
+  let relsXml = wbk.relsXml;
   if (entries.find(e => e.name === 'xl/calcChain.xml')) {
     entries = entries.filter(e => e.name !== 'xl/calcChain.xml');
     const ct = await w.readEntryText(wbk.entries, '[Content_Types].xml', io.inflateRaw);
     if (ct && /calcChain/.test(ct)) changed.set('[Content_Types].xml', w.utf8ToBytes(ct.replace(/<Override[^>]*calcChain[^>]*\/>/, '')));
-    if (/calcChain/.test(wbk.relsXml)) changed.set('xl/_rels/workbook.xml.rels', w.utf8ToBytes(wbk.relsXml.replace(/<Relationship[^>]*calcChain[^>]*\/>/, '')));
+    if (/calcChain/.test(relsXml)) changed.set('xl/_rels/workbook.xml.rels', w.utf8ToBytes(relsXml.replace(/<Relationship[^>]*calcChain[^>]*\/>/, '')));
   }
+  // Excel recalcula al abrir: totales, Fill Rate, Days on Hand (AD) y demás columnas que leen H
+  let wbXml = wbk.workbookXml;
+  if (/<calcPr\b/.test(wbXml)) {
+    wbXml = /fullCalcOnLoad\s*=/.test(wbXml) ? wbXml.replace(/fullCalcOnLoad\s*=\s*"[^"]*"/, 'fullCalcOnLoad="1"') : wbXml.replace(/<calcPr\b/, '<calcPr fullCalcOnLoad="1"');
+  } else wbXml = wbXml.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>');
+  if (wbXml !== wbk.workbookXml) changed.set('xl/workbook.xml', w.utf8ToBytes(wbXml));
   return w.rebuildZip(entries, changed, io.deflateRaw);
 }
 
@@ -1452,12 +1532,16 @@ async function runFor(list, label, ctx = {}, preRead) {
       const fecha = ctx.fecha || f.fecha || '';
       const res = computeFile(wbk, fecha);
       const warn = [];
-      if (wbk.stale) warn.push('Este archivo salió de Ingreso de pedidos y todavía no se abrió y guardó en Excel: los valores de INV, ventas y FCST pueden no estar calculados. Abrilo en Excel, guardalo y volvé a calcular.');
+      const sigs = (await DB.get('envio-saved').catch(() => null)) || [];
+      if (wbk.stale && sigs.includes(f.name + '|' + wbk.file.size)) wbk.stale = false;
+      if (wbk.stale) warn.push('Este archivo salió de Ingreso Pedidos y todavía no se abrió y guardó en Excel: los valores de INV, ventas y FCST pueden no estar calculados. Abrilo en Excel, guardalo y volvé a calcular.');
       if (!res.rows.length) warn.push('No encontré combinaciones con Pedido OC en la pestaña OC Table.');
       if (ctx.oc && wbk.form.oc && String(wbk.form.oc) !== ctx.oc) warn.push('Ojo: el Formulario de Entrega de este archivo tiene la OC ' + wbk.form.oc + ', no la ' + ctx.oc + '.');
       if (!res.dinfo.transit.length && fecha) warn.push('No encontré en la fila 2 los días previos a la entrega: el cálculo no suma envíos en tránsito.');
       if (!fecha) warn.push('No pude saber la fecha de entrega por el nombre del archivo: el cálculo no suma envíos en tránsito.');
-      env.results.push({ f, wbk, res, fecha, warn });
+      const x = { f, wbk, res, fecha, warn };
+      await setupEnviar(x);
+      env.results.push(x);
     } catch (e) { env.results.push({ f, error: e.message || String(e) }); }
   }
   env.label = label; env.filterItem = '';
@@ -1465,11 +1549,33 @@ async function runFor(list, label, ctx = {}, preRead) {
   renderEnvioResults();
 }
 
-function statsOf(res) {
-  const rows = res.rows; const s = { n: rows.length, F: 0, S: 0, tope: 0, cero: 0, doh: 0, conH: 0, ex: 0, w5: 0, H: 0 };
-  rows.forEach(x => { s.F += x.F; s.S += x.c.s; if (x.c.s === x.F) s.tope++; if (x.c.s === 0) s.cero++; if (x.c.tag === 'doh') s.doh++;
-    if (x.H != null) { s.conH++; s.H += x.H; if (x.H === x.c.s) s.ex++; if (Math.abs(x.H - x.c.s) <= 5) s.w5++; } });
+function statsOf(x) {
+  const s = { n: x.res.rows.length, F: 0, S: 0, E: 0, tope: 0, cero: 0, mod: 0, altos: 0 };
+  x.res.rows.forEach(z => {
+    const e = envOf(x, z);
+    s.F += z.F; s.S += z.c.s; s.E += e;
+    if (z.c.s === z.F) s.tope++; if (z.c.s === 0) s.cero++;
+    if (e !== z.c.s) s.mod++;
+    if (z.c.O > 0 && e > 0 && (e + (num(z.r.G) || 0)) / z.c.O > env.params.maxDoh + 1e-9) s.altos++;
+  });
   return s;
+}
+const nf = n => Number(n).toLocaleString('es-GT');
+function envSummaryHtml(x) {
+  const st = statsOf(x);
+  return '<span class="fact">Pedido OC <b>' + nf(st.F) + '</b></span>' +
+    '<span class="fact">Sugerido <b>' + nf(st.S) + '</b></span>' +
+    '<span class="fact env-total">Enviar <b>' + nf(st.E) + '</b>' + (st.F ? ' · ' + Math.round(100 * st.E / st.F) + '% de la OC' : '') + '</span>' +
+    '<span class="fact">' + (st.mod ? '<b>' + st.mod + '</b> ' + (st.mod === 1 ? 'fila cambiada' : 'filas cambiadas') + ' respecto al sugerido' : 'Enviar = sugerido en todas las filas') + '</span>' +
+    (st.altos ? '<span class="fact bad"><b>' + st.altos + '</b> con más de ' + env.params.maxDoh + ' días de inventario</span>' : '');
+}
+function rowCells(x, z) {
+  const r = z.r, c = z.c, e = envOf(x, z);
+  const G = num(r.G);
+  const doh = c.O > 0 ? (e + (G || 0)) / c.O : null;
+  const before = x.res.dinfo.before ? x.res.dinfo.before.reduce((a, col) => a + (num(r[col]) || 0), 0) : null;
+  const semana = before != null ? before + e : null;
+  return { e, doh, semana };
 }
 function renderEnvioResults() {
   const box = $('env-results'); if (!box) return;
@@ -1482,39 +1588,43 @@ function renderEnvioResults() {
     '<p class="hint">Venta semanal esperada = promedio entre el mayor de (Prom 4 semanas, Venta semana anterior) y el promedio de los dos FCST. Se suma lo enviado los días previos a la entrega que todavía no aparece en INV. Nunca más que el Pedido OC y Days on Hand (AD) nunca mayor al máximo.</p></div>';
   for (const [i, x] of env.results.entries()) {
     if (x.error) { html += '<div class="mcard"><h2>' + esc(x.f.name) + '</h2><div class="warnbox">' + esc(x.error) + '</div></div>'; continue; }
-    const st = statsOf(x.res);
     const items = Array.from(new Set(x.res.rows.map(r => r.r.E))).sort();
     const tr = x.res.dinfo.transit;
     const dayLbl = c => ({ AA:'vie', AB:'sáb', S:'lun', T:'mar', U:'mié', V:'jue', W:'vie', X:'sáb' }[c] + ' ' + x.wbk.dayCols[c]);
     let rows = x.res.rows.filter(r => !env.filterItem || r.r.E === env.filterItem);
-    if (env.onlyDiff) rows = rows.filter(r => r.H != null && r.H !== r.c.s);
-    const sorters = { tienda: (a, b) => a.r.row - b.r.row, sug: (a, b) => b.c.s - a.c.s, dif: (a, b) => Math.abs((b.H ?? b.c.s) - b.c.s) - Math.abs((a.H ?? a.c.s) - a.c.s) };
+    if (env.onlyDiff) rows = rows.filter(z => envOf(x, z) !== z.c.s);
+    const sorters = { tienda: (a, b) => a.r.row - b.r.row, sug: (a, b) => b.c.s - a.c.s, dif: (a, b) => Math.abs(envOf(x, b) - b.c.s) - Math.abs(envOf(x, a) - a.c.s) };
     rows = rows.slice().sort(sorters[env.sort] || sorters.tienda);
-    const hasH = st.conH > 0;
-    html += '<div class="mcard"><div class="sec-h" style="margin-bottom:8px"><h2>' + esc(x.f.name) + '</h2>' +
-      '<button class="btn primary" data-save="' + i + '">Guardar Excel con Sugerido</button></div>' +
+    const scope = env.filterItem ? ' (solo ' + esc(env.filterItem) + ')' : '';
+    html += '<div class="mcard" data-card="' + i + '"><div class="sec-h" style="margin-bottom:8px"><h2>' + esc(x.f.name) + '</h2>' +
+      '<button class="btn primary" data-save="' + i + '">Guardar Excel con Enviar</button></div>' +
       '<div class="facts">' +
         (x.wbk.form.oc ? '<span class="fact">OC <b>' + esc(x.wbk.form.oc) + '</b>' + (x.wbk.form.cita ? ' · cita <b>' + esc(x.wbk.form.cita) + '</b>' : '') + '</span>' : '') +
         (x.fecha ? '<span class="fact">Entrega <b>' + esc(chipDate(x.fecha)) + '</b></span>' : '') +
         '<span class="fact">Tránsito: <b>' + (tr.length ? tr.map(dayLbl).join(' + ') : 'ninguno') + '</b></span>' +
-        '<span class="fact"><b>' + st.n + '</b> combinaciones de la OC</span>' +
-        '<span class="fact">Pedido OC <b>' + st.F.toLocaleString('es-GT') + '</b></span>' +
-        '<span class="fact" style="background:#eef4ff;border-color:#c9daff">Sugerido <b>' + st.S.toLocaleString('es-GT') + '</b></span>' +
-        '<span class="fact">' + st.tope + ' al tope de la OC · ' + st.cero + ' en 0</span>' +
-        (hasH ? '<span class="fact">Tu decisión (Enviar) <b>' + st.H.toLocaleString('es-GT') + '</b> · coincide exacto ' + Math.round(100 * st.ex / st.conH) + '% · ±5 ' + Math.round(100 * st.w5 / st.conH) + '%</span>' : '') +
+        '<span class="fact"><b>' + x.res.rows.length + '</b> combinaciones de la OC</span>' +
       '</div>' +
+      '<div class="facts" id="envsum-' + i + '">' + envSummaryHtml(x) + '</div>' +
       (x.warn.length ? '<div class="warnbox" style="margin:12px 0 0">' + x.warn.map(esc).join('<br>') + '</div>' : '') +
+      (x.useFile ? '<div class="infobox">La columna Enviar ya traía valores en el archivo: los cargué como tu decisión. <button class="btn" data-bulk="sug" data-i="' + i + '">Reemplazar por el sugerido' + scope + '</button></div>' : '') +
+      (x.draftCount ? '<div class="infobox">Recuperé ' + x.draftCount + ' ' + (x.draftCount === 1 ? 'cambio que no habías guardado' : 'cambios que no habías guardado') + ' en este archivo.</div>' : '') +
       '<div class="date-line" style="margin:14px 0 8px;gap:8px"><div class="dchips"><button class="dchip' + (!env.filterItem ? ' sel' : '') + '" data-item="">Todos</button>' +
         items.map(it => '<button class="dchip' + (env.filterItem === it ? ' sel' : '') + '" data-item="' + esc(it) + '">' + esc(it) + '</button>').join('') + '</div>' +
-        '<select id="env-sort-' + i + '" style="font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;margin-left:auto"><option value="tienda"' + (env.sort === 'tienda' ? ' selected' : '') + '>Orden de la hoja</option><option value="sug"' + (env.sort === 'sug' ? ' selected' : '') + '>Mayor sugerido</option>' + (hasH ? '<option value="dif"' + (env.sort === 'dif' ? ' selected' : '') + '>Mayor diferencia con Enviar</option>' : '') + '</select>' +
-        (hasH ? '<label style="font-size:13px"><input type="checkbox" data-onlydiff' + (env.onlyDiff ? ' checked' : '') + '> Solo distintos a Enviar</label>' : '') + '</div>' +
-      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Ítem</th><th class="n">Pedido OC</th><th class="n sug">Sugerido</th>' + (hasH ? '<th class="n">Enviar</th>' : '') + '<th class="n" title="Days on Hand con la fórmula del Excel: (Sugerido + INV) / O">DOH</th><th class="n">INV</th><th class="n">Tránsito</th><th class="n">Vta sem.</th><th class="n">Prom 4s</th><th class="n">Sem. ant.</th><th class="n">FCST</th><th class="n">Venta/sem esp.</th><th class="n" title="Enviado esta semana antes de la entrega + sugerido, contra la venta semanal esperada">Semana</th><th>Motivo</th></tr></thead><tbody>' +
-      rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null);
-        return '<tr' + (z.H != null && z.H !== c.s ? ' class="dif"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
-          '<td class="n">' + z.F + '</td><td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' + (hasH ? '<td class="n">' + (z.H ?? '') + '</td>' : '') +
-          '<td class="n">' + (c.ad != null ? fmt1(c.ad) : '') + '</td><td class="n">' + (num(r.G) ?? '—') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td>' +
-          '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td><td class="n">' + Math.round(c.W) + '</td><td class="n' + (c.semana != null && c.semana > c.W * 1.25 ? ' alto' : '') + '">' + (c.semana ?? '') + '</td>' +
-          '<td class="mot">' + esc(c.motivo) + '</td></tr>'; }).join('') +
+        '<select id="env-sort-' + i + '" style="font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;margin-left:auto"><option value="tienda"' + (env.sort === 'tienda' ? ' selected' : '') + '>Orden de la hoja</option><option value="sug"' + (env.sort === 'sug' ? ' selected' : '') + '>Mayor sugerido</option><option value="dif"' + (env.sort === 'dif' ? ' selected' : '') + '>Mayor diferencia Enviar vs sugerido</option></select>' +
+        '<label style="font-size:13px"><input type="checkbox" data-onlydiff' + (env.onlyDiff ? ' checked' : '') + '> Solo las que cambié</label></div>' +
+      '<div class="env-tools"><span>Escribí en <b>Enviar</b> lo que vas a mandar. <kbd>Enter</kbd> pasa a la siguiente tienda; las flechas ↑ ↓ suben o bajan de ' + '5 en 5.</span>' +
+        '<span class="env-tools-btns"><button class="btn" data-bulk="sug" data-i="' + i + '">Poner el sugerido en Enviar' + scope + '</button>' +
+        '<button class="btn" data-bulk="oc" data-i="' + i + '">Poner el Pedido OC en Enviar' + scope + '</button></span></div>' +
+      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Ítem</th><th class="n">Pedido OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n" title="Days on Hand con lo que vas a enviar: (Enviar + INV) / O, igual que la columna AD">DOH</th><th class="n">INV</th><th class="n">Tránsito</th><th class="n">Vta sem.</th><th class="n">Prom 4s</th><th class="n">Sem. ant.</th><th class="n">FCST</th><th class="n">Venta/sem esp.</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Semana</th><th>Motivo del sugerido</th></tr></thead><tbody>' +
+      (rows.length ? rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null); const k = rowCells(x, z);
+        const step = z.F % 5 === 0 ? 5 : 1;
+        return '<tr data-row="' + r.row + '"' + (k.e !== c.s ? ' class="mod"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
+          '<td class="n">' + z.F + '</td><td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' +
+          '<td class="n envc"><input class="env-in" type="number" inputmode="numeric" min="0" max="' + z.F + '" step="' + step + '" value="' + k.e + '" data-i="' + i + '" data-row="' + r.row + '" aria-label="Enviar a tienda ' + esc(r.A) + ' ' + esc(r.E) + '"></td>' +
+          '<td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td><td class="n">' + (num(r.G) ?? '—') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td>' +
+          '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td><td class="n">' + Math.round(c.W) + '</td><td class="n sem' + (k.semana != null && k.semana > c.W * 1.25 ? ' alto' : '') + '">' + (k.semana ?? '') + '</td>' +
+          '<td class="mot">' + esc(c.motivo) + '</td></tr>'; }).join('')
+        : '<tr><td colspan="15" class="empty">' + (env.onlyDiff ? 'Todavía no cambiaste ninguna fila' + scope + '.' : 'Sin filas.') + '</td></tr>') +
       '</tbody></table></div></div>';
   }
   box.innerHTML = html;
@@ -1526,6 +1636,51 @@ function renderEnvioResults() {
   box.querySelectorAll('select[id^="env-sort-"]').forEach(s => s.onchange = () => { env.sort = s.value; renderEnvioResults(); });
   box.querySelectorAll('[data-onlydiff]').forEach(c => c.onchange = () => { env.onlyDiff = c.checked; renderEnvioResults(); });
   box.querySelectorAll('[data-save]').forEach(b => b.onclick = () => saveEnvio(env.results[+b.dataset.save], b));
+  box.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => bulkEnviar(env.results[+b.dataset.i], b.dataset.bulk));
+  // Edición de Enviar: se actualiza la fila y los totales sin redibujar la tabla
+  box.oninput = ev => { const inp = ev.target.closest('.env-in'); if (inp) onEnvInput(inp, false); };
+  box.onchange = ev => { const inp = ev.target.closest('.env-in'); if (inp) onEnvInput(inp, true); };
+  box.onkeydown = ev => {
+    const inp = ev.target.closest('.env-in'); if (!inp || ev.key !== 'Enter') return;
+    ev.preventDefault();
+    onEnvInput(inp, true);
+    const all = Array.from(inp.closest('tbody').querySelectorAll('.env-in'));
+    const nx = all[all.indexOf(inp) + (ev.shiftKey ? -1 : 1)];
+    if (nx) { nx.focus(); nx.select(); }
+  };
+  box.onfocusin = ev => { const inp = ev.target.closest('.env-in'); if (inp) setTimeout(() => inp.select(), 0); };
+}
+function onEnvInput(inp, commit) {
+  const x = env.results[+inp.dataset.i]; const rn = +inp.dataset.row;
+  const z = x.res.rows.find(q => q.r.row === rn); if (!z) return;
+  const raw = inp.value.trim();
+  const typed = raw === '' ? 0 : Number(raw);
+  const v = clampEnv(typed, z.F);
+  inp.classList.toggle('over', isFinite(typed) && typed > z.F);
+  if (commit) {
+    if (isFinite(typed) && typed > z.F) toast('Tienda ' + z.r.A + ' ' + z.r.E + ': no se puede enviar más que el Pedido OC (' + z.F + ').');
+    inp.value = v; inp.classList.remove('over');
+  }
+  if (v === baseEnv(x, z)) x.edits.delete(rn); else x.edits.set(rn, v);
+  saveDraft(x);
+  const tr = inp.closest('tr');
+  const k = rowCells(x, z);
+  tr.classList.toggle('mod', k.e !== z.c.s);
+  const doh = tr.querySelector('.doh'); doh.textContent = k.doh != null ? fmt1(k.doh) : '';
+  doh.classList.toggle('alto', k.doh != null && k.e > 0 && k.doh > env.params.maxDoh + 1e-9);
+  const sem = tr.querySelector('.sem'); sem.textContent = k.semana ?? ''; sem.classList.toggle('alto', k.semana != null && k.semana > z.c.W * 1.25);
+  $('envsum-' + inp.dataset.i).innerHTML = envSummaryHtml(x);
+}
+function bulkEnviar(x, mode) {
+  const rows = x.res.rows.filter(z => !env.filterItem || z.r.E === env.filterItem);
+  if (mode === 'sug' && !env.filterItem) { x.useFile = false; x.edits.clear(); }
+  else rows.forEach(z => {
+    const v = mode === 'oc' ? z.F : z.c.s;
+    if (v === baseEnv(x, z)) x.edits.delete(z.r.row); else x.edits.set(z.r.row, v);
+  });
+  saveDraft(x);
+  renderEnvioResults();
+  toast(mode === 'oc' ? 'Enviar = Pedido OC en ' + rows.length + ' filas.' : 'Enviar = sugerido en ' + rows.length + ' filas.');
 }
 function recompute() {
   env.results.forEach(x => { if (!x.error) x.res = computeFile(x.wbk, x.fecha); });
@@ -1534,14 +1689,15 @@ function recompute() {
 async function saveEnvio(x, btn) {
   btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparando…';
   try {
-    const bytes = await writeSugerido(x.wbk, x.res);
+    const bytes = await writeEnviar(x);
     const blob = new Blob([bytes], { type:'application/vnd.ms-excel.sheet.macroEnabled.12' });
     const dir = templates.find(t => t.kind === 'calculos');
+    let savedName = x.f.name;
     if (window.showSaveFilePicker) {
       try {
         const h = await window.showSaveFilePicker({ suggestedName: x.f.name, startIn: dir ? dir.handle : 'downloads', types:[{ description:'Libro de Excel con macros', accept:{ 'application/vnd.ms-excel.sheet.macroEnabled.12':['.xlsm'] } }] });
         const ws = await h.createWritable(); await ws.write(blob); await ws.close();
-        toast('Guardado "' + h.name + '" con la columna Sugerido Enviar.');
+        savedName = h.name;
       } catch (e) {
         if (e.name === 'AbortError') return;
         if (e.name === 'NoModificationAllowedError' || e.name === 'InvalidStateError') { toast('No se pudo escribir: cerrá el archivo en Excel y probá de nuevo.', 6000); return; }
@@ -1551,6 +1707,12 @@ async function saveEnvio(x, btn) {
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = x.f.name; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     }
+    const sigs = (await DB.get('envio-saved').catch(() => null)) || [];
+    sigs.push(savedName + '|' + blob.size);
+    DB.set('envio-saved', sigs.slice(-50)).catch(() => {});
+    clearTimeout(draftTimer); DB.set(draftKey(x), null).catch(() => {});
+    const st = statsOf(x);
+    toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades y Sugerido (I) = ' + nf(st.S) + '.', 6000);
   } catch (e) { toast('No se pudo guardar: ' + (e.message || e), 6000); }
   finally { btn.disabled = false; btn.textContent = old; }
 }

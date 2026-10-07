@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Envíos al CD — PANISA",
   "short_name": "Envíos CD",
-  "description": "Ingreso de pedidos, Automatizador de entregas, Comprobador de QR, QR de garita y correo del día para las entregas al CD de Walmart.",
+  "description": "Generador QR Entrega, Comprobador QR, QR Garita, Ingreso Pedidos, Sugerido envío y Correo a CEDI para las entregas al CD de Walmart.",
   "lang": "es",
   "start_url": "./index.html",
   "scope": "./",
@@ -33,17 +33,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Ingreso de pedidos",
-      "url": "./index.html#ingreso",
-      "icons": [
-        {
-          "src": "icons/icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Automatizador de entregas",
+      "name": "Generador QR Entrega",
       "url": "./index.html#entregas",
       "icons": [
         {
@@ -53,7 +43,7 @@
       ]
     },
     {
-      "name": "Comprobador de QR",
+      "name": "Comprobador QR",
       "url": "./index.html#comprobador",
       "icons": [
         {
@@ -63,7 +53,7 @@
       ]
     },
     {
-      "name": "QR de garita",
+      "name": "QR Garita",
       "url": "./index.html#garita",
       "icons": [
         {
@@ -73,7 +63,27 @@
       ]
     },
     {
-      "name": "Correo del día",
+      "name": "Ingreso Pedidos",
+      "url": "./index.html#ingreso",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Sugerido envío",
+      "url": "./index.html#sugerido",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Correo a CEDI",
       "url": "./index.html#correo",
       "icons": [
         {
