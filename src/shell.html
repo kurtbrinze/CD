@@ -307,7 +307,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.4</div>
+<div class="ver" aria-label="Versión de la app">V.2026.5</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1615,13 +1615,13 @@ function renderEnvioResults() {
       '<div class="env-tools"><span>Escribí en <b>Enviar</b> lo que vas a mandar. <kbd>Enter</kbd> pasa a la siguiente tienda; las flechas ↑ ↓ suben o bajan de ' + '5 en 5.</span>' +
         '<span class="env-tools-btns"><button class="btn" data-bulk="sug" data-i="' + i + '">Poner el sugerido en Enviar' + scope + '</button>' +
         '<button class="btn" data-bulk="oc" data-i="' + i + '">Poner el Pedido OC en Enviar' + scope + '</button></span></div>' +
-      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Ítem</th><th class="n">Pedido OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n" title="Days on Hand con lo que vas a enviar: (Enviar + INV) / O, igual que la columna AD">DOH</th><th class="n">INV</th><th class="n">Tránsito</th><th class="n">Vta sem.</th><th class="n">Prom 4s</th><th class="n">Sem. ant.</th><th class="n">FCST</th><th class="n">Venta/sem esp.</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Semana</th><th>Motivo del sugerido</th></tr></thead><tbody>' +
+      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Item</th><th class="n" title="Pedido OC">OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n">INV</th><th class="n" title="Days on Hand con lo que vas a enviar: (Enviar + INV) / O, igual que la columna AD">DOH</th><th class="n">Tránsito</th><th class="n">Vta Sem</th><th class="n">Prom 4S</th><th class="n">Sem Ant</th><th class="n">FCST</th><th class="n">Venta/Sem Esp</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Semana</th><th>Motivo Sugerido</th></tr></thead><tbody>' +
       (rows.length ? rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null); const k = rowCells(x, z);
         const step = z.F % 5 === 0 ? 5 : 1;
         return '<tr data-row="' + r.row + '"' + (k.e !== c.s ? ' class="mod"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
           '<td class="n">' + z.F + '</td><td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' +
           '<td class="n envc"><input class="env-in" type="number" inputmode="numeric" min="0" max="' + z.F + '" step="' + step + '" value="' + k.e + '" data-i="' + i + '" data-row="' + r.row + '" aria-label="Enviar a tienda ' + esc(r.A) + ' ' + esc(r.E) + '"></td>' +
-          '<td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td><td class="n">' + (num(r.G) ?? '—') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td>' +
+          '<td class="n">' + (num(r.G) ?? '—') + '</td><td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td>' +
           '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td><td class="n">' + Math.round(c.W) + '</td><td class="n sem' + (k.semana != null && k.semana > c.W * 1.25 ? ' alto' : '') + '">' + (k.semana ?? '') + '</td>' +
           '<td class="mot">' + esc(c.motivo) + '</td></tr>'; }).join('')
         : '<tr><td colspan="15" class="empty">' + (env.onlyDiff ? 'Todavía no cambiaste ninguna fila' + scope + '.' : 'Sin filas.') + '</td></tr>') +
