@@ -208,6 +208,19 @@ button{font:inherit;cursor:pointer}
 .env-tools-btns{display:flex;gap:6px;flex-wrap:wrap}
 .env-tools kbd{font:inherit;font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fff}
 .fact.env-total{background:#fff3c4;border-color:#f0d27a}
+.sumgrid{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;margin-top:8px}
+.sumgrid .facts{margin-top:0;align-content:flex-start}
+.itemsum-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:250px}
+.itemsum{border-collapse:collapse;width:100%;font-size:13.5px}
+.itemsum th{background:#f3f6fb;font-weight:600;text-align:left;padding:6px 12px;border-bottom:1px solid var(--line)}
+.itemsum th:nth-child(3){background:#fff3c4}
+.itemsum td{padding:5px 12px;border-bottom:1px solid #edf0f5}
+.itemsum td:first-child{font-weight:600}
+.itemsum td.n,.itemsum th.n{text-align:right;font-variant-numeric:tabular-nums}
+.itemsum td:nth-child(3){font-weight:700}
+.itemsum tr.dif td:nth-child(3){background:#ffefb8}
+.itemsum tfoot td{font-weight:700;background:#f7f9fc;border-bottom:0;border-top:1.5px solid var(--line)}
+@media (max-width:900px){.sumgrid{grid-template-columns:1fr}}
 .infobox{background:#eef4ff;border:1px solid #c9daff;color:#103d8f;border-radius:9px;padding:9px 14px;font-size:13.5px;margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .envwrap{max-width:1280px;margin:0 auto;padding:22px 24px 60px}
 
@@ -307,7 +320,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.5</div>
+<div class="ver" aria-label="Versión de la app">V.2026.6</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1569,6 +1582,20 @@ function envSummaryHtml(x) {
     '<span class="fact">' + (st.mod ? '<b>' + st.mod + '</b> ' + (st.mod === 1 ? 'fila cambiada' : 'filas cambiadas') + ' respecto al sugerido' : 'Enviar = sugerido en todas las filas') + '</span>' +
     (st.altos ? '<span class="fact bad"><b>' + st.altos + '</b> con más de ' + env.params.maxDoh + ' días de inventario</span>' : '');
 }
+// Resumen por ítem de una OC: total sugerido y total a enviar, en el orden de la hoja
+function itemSummaryHtml(x) {
+  const order = [], by = {};
+  x.res.rows.slice().sort((a, b) => a.r.row - b.r.row).forEach(z => {
+    const it = z.r.E;
+    if (!by[it]) { by[it] = { s: 0, e: 0 }; order.push(it); }
+    by[it].s += z.c.s; by[it].e += envOf(x, z);
+  });
+  let ts = 0, te = 0;
+  const body = order.map(it => { const v = by[it]; ts += v.s; te += v.e;
+    return '<tr' + (v.e !== v.s ? ' class="dif"' : '') + '><td>' + esc(it) + '</td><td class="n">' + nf(v.s) + '</td><td class="n">' + nf(v.e) + '</td></tr>'; }).join('');
+  return '<table class="itemsum"><thead><tr><th>Item</th><th class="n">Sugerido</th><th class="n">Enviar</th></tr></thead><tbody>' + body +
+    '</tbody><tfoot><tr><td>Total</td><td class="n">' + nf(ts) + '</td><td class="n">' + nf(te) + '</td></tr></tfoot></table>';
+}
 function rowCells(x, z) {
   const r = z.r, c = z.c, e = envOf(x, z);
   const G = num(r.G);
@@ -1604,7 +1631,8 @@ function renderEnvioResults() {
         '<span class="fact">Tránsito: <b>' + (tr.length ? tr.map(dayLbl).join(' + ') : 'ninguno') + '</b></span>' +
         '<span class="fact"><b>' + x.res.rows.length + '</b> combinaciones de la OC</span>' +
       '</div>' +
-      '<div class="facts" id="envsum-' + i + '">' + envSummaryHtml(x) + '</div>' +
+      '<div class="sumgrid"><div class="facts" id="envsum-' + i + '">' + envSummaryHtml(x) + '</div>' +
+      '<div class="itemsum-wrap" id="envitems-' + i + '">' + itemSummaryHtml(x) + '</div></div>' +
       (x.warn.length ? '<div class="warnbox" style="margin:12px 0 0">' + x.warn.map(esc).join('<br>') + '</div>' : '') +
       (x.useFile ? '<div class="infobox">La columna Enviar ya traía valores en el archivo: los cargué como tu decisión. <button class="btn" data-bulk="sug" data-i="' + i + '">Reemplazar por el sugerido' + scope + '</button></div>' : '') +
       (x.draftCount ? '<div class="infobox">Recuperé ' + x.draftCount + ' ' + (x.draftCount === 1 ? 'cambio que no habías guardado' : 'cambios que no habías guardado') + ' en este archivo.</div>' : '') +
@@ -1670,6 +1698,7 @@ function onEnvInput(inp, commit) {
   doh.classList.toggle('alto', k.doh != null && k.e > 0 && k.doh > env.params.maxDoh + 1e-9);
   const sem = tr.querySelector('.sem'); sem.textContent = k.semana ?? ''; sem.classList.toggle('alto', k.semana != null && k.semana > z.c.W * 1.25);
   $('envsum-' + inp.dataset.i).innerHTML = envSummaryHtml(x);
+  $('envitems-' + inp.dataset.i).innerHTML = itemSummaryHtml(x);
 }
 function bulkEnviar(x, mode) {
   const rows = x.res.rows.filter(z => !env.filterItem || z.r.E === env.filterItem);
