@@ -216,7 +216,10 @@ button{font:inherit;cursor:pointer}
 .itemsum thead th{background:#f3f6fb;font-weight:700;border-bottom:1px solid var(--line)}
 .itemsum th.lbl{text-align:left;font-weight:600;color:var(--muted);border-left:0;width:1%;background:#f7f9fc}
 .itemsum thead th.lbl{background:#f3f6fb}
-.itemsum tr.rs td{color:var(--text);border-bottom:1px solid #edf0f5}
+.itemsum tr.rs td,.itemsum tr.rf td{color:var(--text);border-bottom:1px solid #edf0f5}
+.itemsum tr.rf td{color:var(--muted)}
+.envtab th.dev{color:var(--bad)}
+.envtab td.dev{color:var(--bad);font-weight:600}
 .itemsum tr.re td{font-weight:700;background:#fffbea}
 .itemsum tr.re th.lbl{background:#fff3c4;color:var(--text)}
 .itemsum tr.re td.dif{background:#ffe08a}
@@ -322,7 +325,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.7</div>
+<div class="ver" aria-label="Versión de la app">V.2026.8</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1276,7 +1279,7 @@ async function readCalcWorkbook(file) {
   const r2 = rows.get(2) || new Map();
   const dayCols = {};
   ['AA','AB','S','T','U','V','W','X'].forEach(c => { const v = num(val(r2.get(c + '2'))); if (v != null) dayCols[c] = v; });
-  const COLS = ['A','C','D','E','F','G','H','I','J','K','L','M','N','O','Q','R','S','T','U','V','W','X','AA','AB','AD'];
+  const COLS = ['A','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','AA','AB','AD'];
   const data = [];
   const iFormulaRows = [];
   for (const [rn, cells] of rows.entries()) {
@@ -1584,18 +1587,19 @@ function envSummaryHtml(x) {
     '<span class="fact">' + (st.mod ? '<b>' + st.mod + '</b> ' + (st.mod === 1 ? 'fila cambiada' : 'filas cambiadas') + ' respecto al sugerido' : 'Enviar = sugerido en todas las filas') + '</span>' +
     (st.altos ? '<span class="fact bad"><b>' + st.altos + '</b> con más de ' + env.params.maxDoh + ' días de inventario</span>' : '');
 }
-// Resumen por ítem de una OC: una columna por ítem, con dos filas (Sugerido y Enviar)
+// Resumen por ítem de una OC: una columna por ítem, con filas Pedido OC, Sugerido y Enviar
 function itemSummaryHtml(x) {
   const order = [], by = {};
   x.res.rows.slice().sort((a, b) => a.r.row - b.r.row).forEach(z => {
     const it = z.r.E;
-    if (!by[it]) { by[it] = { s: 0, e: 0 }; order.push(it); }
-    by[it].s += z.c.s; by[it].e += envOf(x, z);
+    if (!by[it]) { by[it] = { f: 0, s: 0, e: 0 }; order.push(it); }
+    by[it].f += z.F; by[it].s += z.c.s; by[it].e += envOf(x, z);
   });
-  let ts = 0, te = 0;
-  order.forEach(it => { ts += by[it].s; te += by[it].e; });
+  let tf = 0, ts = 0, te = 0;
+  order.forEach(it => { tf += by[it].f; ts += by[it].s; te += by[it].e; });
   const cls = it => by[it].e !== by[it].s ? ' class="dif"' : '';
   return '<table class="itemsum"><thead><tr><th class="lbl">Item</th>' + order.map(it => '<th' + cls(it) + '>' + esc(it) + '</th>').join('') + '<th class="tot">Total</th></tr></thead><tbody>' +
+    '<tr class="rf"><th class="lbl">Pedido OC</th>' + order.map(it => '<td>' + nf(by[it].f) + '</td>').join('') + '<td class="tot">' + nf(tf) + '</td></tr>' +
     '<tr class="rs"><th class="lbl">Sugerido</th>' + order.map(it => '<td>' + nf(by[it].s) + '</td>').join('') + '<td class="tot">' + nf(ts) + '</td></tr>' +
     '<tr class="re"><th class="lbl">Enviar</th>' + order.map(it => '<td' + cls(it) + '>' + nf(by[it].e) + '</td>').join('') + '<td class="tot">' + nf(te) + '</td></tr>' +
     '</tbody></table>';
@@ -1647,16 +1651,16 @@ function renderEnvioResults() {
       '<div class="env-tools"><span>Escribí en <b>Enviar</b> lo que vas a mandar. <kbd>Enter</kbd> pasa a la siguiente tienda; las flechas ↑ ↓ suben o bajan de ' + '5 en 5.</span>' +
         '<span class="env-tools-btns"><button class="btn" data-bulk="sug" data-i="' + i + '">Poner el sugerido en Enviar' + scope + '</button>' +
         '<button class="btn" data-bulk="oc" data-i="' + i + '">Poner el Pedido OC en Enviar' + scope + '</button></span></div>' +
-      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Item</th><th class="n" title="Pedido OC">OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n">INV</th><th class="n" title="Days on Hand con lo que vas a enviar: (Enviar + INV) / O, igual que la columna AD">DOH</th><th class="n">Tránsito</th><th class="n">Vta Sem</th><th class="n">Prom 4S</th><th class="n">Sem Ant</th><th class="n">FCST</th><th class="n">Venta/Sem Esp</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Semana</th><th>Motivo Sugerido</th></tr></thead><tbody>' +
+      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Item</th><th class="n" title="Pedido OC">OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n">INV</th><th class="n" title="Days on Hand con lo que vas a enviar: (Enviar + INV) / O, igual que la columna AD">DOH</th><th class="n">Tránsito</th><th class="n">Vta Sem</th><th class="n">Prom 4S</th><th class="n" title="Venta semana anterior">Vt SAnt</th><th class="n dev" title="Devoluciones (columna P)">DEV</th><th class="n">FCST</th><th class="n" title="Venta semanal esperada usada para el sugerido">FCST Prom</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Env SAct</th><th>Motivo Sugerido</th></tr></thead><tbody>' +
       (rows.length ? rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null); const k = rowCells(x, z);
         const step = z.F % 5 === 0 ? 5 : 1;
         return '<tr data-row="' + r.row + '"' + (k.e !== c.s ? ' class="mod"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
           '<td class="n">' + z.F + '</td><td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' +
           '<td class="n envc"><input class="env-in" type="number" inputmode="numeric" min="0" max="' + z.F + '" step="' + step + '" value="' + k.e + '" data-i="' + i + '" data-row="' + r.row + '" aria-label="Enviar a tienda ' + esc(r.A) + ' ' + esc(r.E) + '"></td>' +
-          '<td class="n">' + (num(r.G) ?? '—') + '</td><td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td>' +
+          '<td class="n">' + (num(r.G) ?? '—') + '</td><td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td><td class="n dev">' + (num(r.P) ? num(r.P) : '') + '</td>' +
           '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td><td class="n">' + Math.round(c.W) + '</td><td class="n sem' + (k.semana != null && k.semana > c.W * 1.25 ? ' alto' : '') + '">' + (k.semana ?? '') + '</td>' +
           '<td class="mot">' + esc(c.motivo) + '</td></tr>'; }).join('')
-        : '<tr><td colspan="15" class="empty">' + (env.onlyDiff ? 'Todavía no cambiaste ninguna fila' + scope + '.' : 'Sin filas.') + '</td></tr>') +
+        : '<tr><td colspan="16" class="empty">' + (env.onlyDiff ? 'Todavía no cambiaste ninguna fila' + scope + '.' : 'Sin filas.') + '</td></tr>') +
       '</tbody></table></div></div>';
   }
   box.innerHTML = html;
