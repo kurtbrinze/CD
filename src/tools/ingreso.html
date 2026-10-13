@@ -734,7 +734,7 @@ function bytesToLatin1(bytes) {
 // .xlsm filename/content) — this is a safety net, not part of the core
 // distribution-parsing logic above.
 function extractHeaderInfo(lines) {
-  const info = { poNumber: null, shipStore: null, supplierNumber: null, supplierName: null };
+  const info = { poNumber: null, shipStore: null, supplierNumber: null, supplierName: null, cancelDate: null };
   for (const rawLine of lines) {
     const line = rawLine.trim();
     let m;
@@ -745,6 +745,11 @@ function extractHeaderInfo(lines) {
     }
     if (info.supplierNumber === null && (m = line.match(/^Supplier Number\s+(\d+)/))) {
       info.supplierNumber = m[1];
+      continue;
+    }
+    // "Cancel Date 10/16/2026" (mes/día/año en el PDF)
+    if (info.cancelDate === null && (m = line.match(/^Cancel Date\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/))) {
+      info.cancelDate = { y: +m[3], m: +m[1], d: +m[2] };
       continue;
     }
     if (info.supplierName === null && (m = line.match(/^Supplier Name\s+(.+)$/))) {
@@ -1763,6 +1768,16 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
       }
     }
   }
+  // 9a. Fecha de entrega (Cancel Date del PDF) en B633 — D633 la muestra como día de la semana
+  let fraguaDate = null;
+  const cd = pdfHeader.cancelDate;
+  if (cd && cd.m >= 1 && cd.m <= 12 && cd.d >= 1 && cd.d <= 31) {
+    const serial = Date.UTC(cd.y, cd.m - 1, cd.d) / 86400000 + 25569;
+    fraguaEdits.push({ ref: 'B633', kind: 'number', value: String(serial), keepStyle: true });
+    fraguaDate = String(cd.d).padStart(2, '0') + '/' + String(cd.m).padStart(2, '0') + '/' + cd.y;
+  } else {
+    warnings.push('No se encontró la "Cancel Date" en el PDF: la fecha de "Hoja para Fragua" (B633) quedó sin cambios.');
+  }
   fraguaXml = applyCellEdits(fraguaXml, fraguaEdits);
 
   // 9b. Optional: copy the last tab of the daily inventory workbook into "INV"
@@ -1902,6 +1917,7 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
       vendorMismatch,
       invUpdate,
       formularioUpdate,
+      fraguaDate,
     },
   };
 }
@@ -2240,9 +2256,12 @@ if (typeof module !== 'undefined' && module.exports) {
       ? '<div class="inv-status-box">🧾 Formulario de Entrega: OC <b>' + escapeHtml(fu.po) + '</b> en D8' +
         (fu.cita ? ' y cita <b>' + escapeHtml(fu.cita) + '</b> en D6.' : '; la cita (D6) quedó sin cambios — ver avisos.') + '</div>'
       : '';
-    if (result.summary.invUpdate || formHtml) {
+    const fd = result.summary.fraguaDate;
+    const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const fdHtml = fd ? '<div class="inv-status-box">📅 Hoja para Fragua: fecha de entrega <b>' + escapeHtml(fd) + '</b> (' + DIAS_ES[new Date(+fd.slice(6), +fd.slice(3, 5) - 1, +fd.slice(0, 2)).getDay()] + ') en B633, tomada de la Cancel Date del PDF.</div>' : '';
+    if (result.summary.invUpdate || formHtml || fdHtml) {
       const iu = result.summary.invUpdate;
-      invStatusEl.innerHTML = formHtml + (iu ?
+      invStatusEl.innerHTML = formHtml + fdHtml + (iu ?
         '<div class="inv-status-box">📦 Pestaña "INV" actualizada con los datos de la pestaña "' +
         escapeHtml(iu.sourceSheetName) + '" del archivo de inventario (' + iu.rowCount.toLocaleString('es-CL') + ' filas).</div>' : '');
       invStatusEl.style.display = 'block';

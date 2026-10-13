@@ -29,7 +29,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0053e2;margin-bottom:4px}
 .card-help{font-size:12.5px;color:#6b7280;margin-bottom:16px;line-height:1.5}
 
-.drops{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.drops{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:900px){.drops{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.drops{grid-template-columns:1fr}}
 .drop{border:1.5px dashed #c7d0e0;border-radius:10px;padding:16px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
 .drop:hover{border-color:#0053e2;background:#f7f9ff}
@@ -116,14 +117,14 @@ table.cmp-tbl tr.row-onlyexcel td{background:#fffbea}
   </div>
 
   <div class="steps">
-    <div class="step active" id="step-1"><div class="step-num">1</div><div><div class="step-label">Subís PDFs y Excel</div><div class="step-sub">Hasta 2 de cada uno, no importa el orden</div></div></div>
+    <div class="step active" id="step-1"><div class="step-num">1</div><div><div class="step-label">Subís PDFs y Excel</div><div class="step-sub">Hasta 4 de cada uno, no importa el orden</div></div></div>
     <div class="step" id="step-2"><div class="step-num">2</div><div><div class="step-label">Se emparejan por OC</div><div class="step-sub">Detecto el número de OC en cada archivo</div></div></div>
     <div class="step" id="step-3"><div class="step-num">3</div><div><div class="step-label">Comparás y descargás</div><div class="step-sub">CSV de datos + reporte de comparación</div></div></div>
   </div>
 
   <div class="card">
     <div class="card-title">📄 PDFs de QR</div>
-    <div class="card-help">Los archivos "Generador QR - Orden de Compra ... .pdf". Podés subir 1 o 2.</div>
+    <div class="card-help">Los archivos "Generador QR - Orden de Compra ... .pdf". Podés subir de 1 a 4 (uno por OC).</div>
     <div class="drops">
       <label class="drop" id="drop-pdf-1">
         <input type="file" id="file-pdf-1" accept=".pdf"/>
@@ -137,12 +138,24 @@ table.cmp-tbl tr.row-onlyexcel td{background:#fffbea}
         <div class="drop-label">PDF de QR — 2</div>
         <div class="drop-file" id="name-pdf-2"></div>
       </label>
+      <label class="drop" id="drop-pdf-3">
+        <input type="file" id="file-pdf-3" accept=".pdf"/>
+        <div class="drop-icon">📄</div>
+        <div class="drop-label">PDF de QR — 3</div>
+        <div class="drop-file" id="name-pdf-3"></div>
+      </label>
+      <label class="drop" id="drop-pdf-4">
+        <input type="file" id="file-pdf-4" accept=".pdf"/>
+        <div class="drop-icon">📄</div>
+        <div class="drop-label">PDF de QR — 4</div>
+        <div class="drop-file" id="name-pdf-4"></div>
+      </label>
     </div>
   </div>
 
   <div class="card">
     <div class="card-title">📊 Excel (Consolidado u OC Listado)</div>
-    <div class="card-help">Aceptan tanto una pestaña "Consolidado por tienda" del Generador como un "OC Listado" crudo — detecto las columnas solo. Podés subir 1 o 2.</div>
+    <div class="card-help">Aceptan tanto una pestaña "Consolidado por tienda" del Generador como un "OC Listado" crudo — detecto las columnas solo. Podés subir de 1 a 4; se emparejan con los PDF por número de OC, sin importar el orden.</div>
     <div class="drops">
       <label class="drop" id="drop-xlsx-1">
         <input type="file" id="file-xlsx-1" accept=".xlsx"/>
@@ -155,6 +168,18 @@ table.cmp-tbl tr.row-onlyexcel td{background:#fffbea}
         <div class="drop-icon">📊</div>
         <div class="drop-label">Excel — 2</div>
         <div class="drop-file" id="name-xlsx-2"></div>
+      </label>
+      <label class="drop" id="drop-xlsx-3">
+        <input type="file" id="file-xlsx-3" accept=".xlsx"/>
+        <div class="drop-icon">📊</div>
+        <div class="drop-label">Excel — 3</div>
+        <div class="drop-file" id="name-xlsx-3"></div>
+      </label>
+      <label class="drop" id="drop-xlsx-4">
+        <input type="file" id="file-xlsx-4" accept=".xlsx"/>
+        <div class="drop-icon">📊</div>
+        <div class="drop-label">Excel — 4</div>
+        <div class="drop-file" id="name-xlsx-4"></div>
       </label>
     </div>
 
@@ -507,7 +532,9 @@ async function verifyQrContent(file, pdfData, onProgress) {
 // ═══════════════════════════════════════════════════════════
 //  UI wiring
 // ═══════════════════════════════════════════════════════════
-const state = { pdfs: { 1: null, 2: null }, xlsx: { 1: null, 2: null } };
+const N_SLOTS = 4;
+const emptySlots = () => ({ 1: null, 2: null, 3: null, 4: null });
+const state = { pdfs: emptySlots(), xlsx: emptySlots() };
 
 function wireDrop(dropId, inputId, nameId, onPick) {
   const drop = document.getElementById(dropId);
@@ -530,14 +557,14 @@ function wireDrop(dropId, inputId, nameId, onPick) {
     if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
   });
 }
-wireDrop('drop-pdf-1', 'file-pdf-1', 'name-pdf-1', f => { state.pdfs[1] = f; });
-wireDrop('drop-pdf-2', 'file-pdf-2', 'name-pdf-2', f => { state.pdfs[2] = f; });
-wireDrop('drop-xlsx-1', 'file-xlsx-1', 'name-xlsx-1', f => { state.xlsx[1] = f; });
-wireDrop('drop-xlsx-2', 'file-xlsx-2', 'name-xlsx-2', f => { state.xlsx[2] = f; });
+for (let n = 1; n <= N_SLOTS; n++) {
+  wireDrop('drop-pdf-' + n, 'file-pdf-' + n, 'name-pdf-' + n, f => { state.pdfs[n] = f; });
+  wireDrop('drop-xlsx-' + n, 'file-xlsx-' + n, 'name-xlsx-' + n, f => { state.xlsx[n] = f; });
+}
 
 function updateProcesarBtn() {
-  const anyPdf = state.pdfs[1] || state.pdfs[2];
-  const anyXlsx = state.xlsx[1] || state.xlsx[2];
+  const anyPdf = Object.values(state.pdfs).some(Boolean);
+  const anyXlsx = Object.values(state.xlsx).some(Boolean);
   document.getElementById('btn-procesar').disabled = !(anyPdf && anyXlsx);
 }
 
@@ -607,8 +634,8 @@ document.getElementById('btn-procesar').addEventListener('click', async () => {
   const wantQrVerify = document.getElementById('chk-qr-verify').checked;
 
   try {
-    const pdfFiles = [state.pdfs[1], state.pdfs[2]].filter(Boolean);
-    const xlsxFiles = [state.xlsx[1], state.xlsx[2]].filter(Boolean);
+    const pdfFiles = Object.values(state.pdfs).filter(Boolean);
+    const xlsxFiles = Object.values(state.xlsx).filter(Boolean);
 
     log('Leyendo PDF(s)…', 'l-info');
     const pdfDatas = [];
@@ -639,6 +666,9 @@ document.getElementById('btn-procesar').addEventListener('click', async () => {
     const container = document.getElementById('results-container');
 
     for (const oc of ocs) {
+      const dupP = pdfDatas.filter(d => d.oc === oc), dupX = xlsxDatas.filter(d => d.oc === oc);
+      if (dupP.length > 1) log('OC ' + oc + ': subiste ' + dupP.length + ' PDF con la misma OC — se usa "' + dupP[0]._file.name + '".', 'l-warn');
+      if (dupX.length > 1) log('OC ' + oc + ': subiste ' + dupX.length + ' Excel con la misma OC — se usa el primero.', 'l-warn');
       const pdfD = pdfDatas.find(d => d.oc === oc);
       const xlsxD = xlsxDatas.find(d => d.oc === oc);
       if (!pdfD) { log('OC ' + oc + ': hay Excel pero no PDF — se omite.', 'l-warn'); continue; }
@@ -791,9 +821,9 @@ function renderOcResult(oc, pdfD, xlsxD, qrSummary) {
 }
 
 document.getElementById('btn-limpiar').addEventListener('click', () => {
-  state.pdfs = { 1: null, 2: null };
-  state.xlsx = { 1: null, 2: null };
-  ['pdf-1', 'pdf-2', 'xlsx-1', 'xlsx-2'].forEach(k => {
+  state.pdfs = emptySlots();
+  state.xlsx = emptySlots();
+  [1, 2, 3, 4].flatMap(n => ['pdf-' + n, 'xlsx-' + n]).forEach(k => {
     document.getElementById('name-' + k).textContent = '';
     document.getElementById('drop-' + k).classList.remove('filled');
     document.getElementById('file-' + k).value = '';

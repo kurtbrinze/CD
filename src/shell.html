@@ -325,7 +325,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.8</div>
+<div class="ver" aria-label="Versión de la app">V.2026.10</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -366,10 +366,8 @@ const TARGETS = [
     { tool:'entregas', input:'file-formulario-'+n, label:'Formulario · cita '+n, ext:['xlsx'] },
     { tool:'entregas', input:'file-oc-'+n, label:'OC Listado · cita '+n, ext:['xlsx'] },
   ]),
-  { tool:'comprobador', input:'file-pdf-1', label:'PDF de QR 1', ext:['pdf'] },
-  { tool:'comprobador', input:'file-pdf-2', label:'PDF de QR 2', ext:['pdf'] },
-  { tool:'comprobador', input:'file-xlsx-1', label:'Excel 1 (Consolidado / OC Listado)', ext:['xlsx'] },
-  { tool:'comprobador', input:'file-xlsx-2', label:'Excel 2 (Consolidado / OC Listado)', ext:['xlsx'] },
+  ...[1,2,3,4].map(n => ({ tool:'comprobador', input:'file-pdf-' + n, label:'PDF de QR ' + n, ext:['pdf'] })),
+  ...[1,2,3,4].map(n => ({ tool:'comprobador', input:'file-xlsx-' + n, label:'Excel ' + n + ' (Consolidado / OC Listado)', ext:['xlsx'] })),
   { tool:'garita', input:'file-xlsx', label:'Control OC FBD POD', ext:['xlsx','xlsm'] },
 ];
 
