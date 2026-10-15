@@ -325,7 +325,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.11</div>
+<div class="ver" aria-label="Versión de la app">V.2026.12</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1289,6 +1289,16 @@ async function readCalcWorkbook(file) {
   const r2 = rows.get(2) || new Map();
   const dayCols = {};
   ['AA','AB','S','T','U','V','W','X'].forEach(c => { const v = num(val(r2.get(c + '2'))); if (v != null) dayCols[c] = v; });
+  // Las fechas S2..X2 y AA2 son fórmulas que salen de AB2: se recalculan igual que en Excel,
+  // así sirven aunque el archivo no se haya abierto en Excel después de Ingreso Pedidos.
+  const ab2 = num(val(r2.get('AB2')));
+  if (ab2 != null) {
+    dayCols.AB = ab2;
+    dayCols.S = ab2 + 2 > 30 ? 2 : ab2 + 2;
+    let prev = dayCols.S;
+    ['T','U','V','W','X'].forEach(c => { prev = prev + 1 > 30 ? 1 : prev + 1; dayCols[c] = prev; });
+    dayCols.AA = ab2 - 1 > 30 ? 2 : ab2 - 1;
+  }
   const COLS = ['A','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','AA','AB','AD'];
   const data = [];
   const iFormulaRows = [];
@@ -1315,7 +1325,7 @@ function excelO(K, M) {
 }
 function deliveryInfo(wbk, fecha, transitDays) {
   // Columnas de la semana (sáb a vie) en el orden de "Total Enviado S Actual"
-  const weekOrder = ['AB','S','T','U','V','W'];
+  const weekOrder = ['AB','S','T','U','V','W','X'];
   const day = fecha ? +fecha.slice(8, 10) : null;
   const delivCol = day != null ? weekOrder.find(c => wbk.dayCols[c] === day) : null;
   const transit = [];
@@ -1449,6 +1459,18 @@ async function writeEnviar(x) {
       edits.push({ ref: col + rn, kind: 'number', value: String(v), keepStyle: true });
     }
   }
+  // El envío de esta entrega queda registrado en la columna de su día (S..X)
+  const dc = res.dinfo.delivCol;
+  let dayWritten = 0;
+  if (dc && dc !== 'AB') {
+    for (const [rn, z] of ocRows) {
+      const raw = (rowsMap.get(rn) || new Map()).get(dc + rn) || '';
+      if (/<f\b/.test(raw)) continue;
+      edits.push({ ref: dc + rn, kind: 'number', value: String(envOf(x, z)), keepStyle: true });
+      dayWritten++;
+    }
+  }
+  x.dayWritten = dayWritten ? dc : null;
   const newXml = w.applyCellEdits(wbk.ocXml, edits);
   const changed = new Map();
   changed.set(wbk.ocPath, w.utf8ToBytes(newXml));
@@ -1759,7 +1781,8 @@ async function saveEnvio(x, btn) {
     DB.set('envio-saved', sigs.slice(-50)).catch(() => {});
     clearTimeout(draftTimer); DB.set(draftKey(x), null).catch(() => {});
     const st = statsOf(x);
-    toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades y Sugerido (I) = ' + nf(st.S) + '.', 6000);
+    const DIA = { S:'lunes', T:'martes', U:'miércoles', V:'jueves', W:'viernes', X:'sábado' };
+    toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades' + (x.dayWritten ? ', también en la columna ' + x.dayWritten + ' (enviado ' + DIA[x.dayWritten] + ')' : '') + ' y Sugerido (I) = ' + nf(st.S) + '.', 7000);
   } catch (e) { toast('No se pudo guardar: ' + (e.message || e), 6000); }
   finally { btn.disabled = false; btn.textContent = old; }
 }

@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.11
+# Envíos al CD — PANISA (PWA) · V.2026.12
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -65,6 +65,11 @@ tienda + ítem:
 - Misma semana: S–X (lun–sáb), AA–AB (vie/sáb anteriores) y AB2.
 - Semana nueva: vie/sáb del último cálculo → AA/AB, S–X vacías, AB2 = ese sábado.
 Si el último cálculo no tenía su propio envío en la columna de su día, se usa su H.
+
+## Envío de la semana (V.2026.12)
+- Sugerido envío reconoce entregas de sábado (columna X); antes "Env SAct" quedaba vacío.
+- Las fechas de la fila 2 (S2..X2, AA2) se calculan desde AB2 como en Excel.
+- Al guardar, Enviar se escribe en H y además en la columna del día de la entrega (S..X).
 
 ## Correo del día
 Replica la pestaña **eMAIL** del Control OC para la fecha de entrega elegida
