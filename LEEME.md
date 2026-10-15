@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.10
+# Envíos al CD — PANISA (PWA) · V.2026.11
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -57,6 +57,14 @@ Si el archivo ya trae valores fijos en Enviar, se cargan como tu decisión.
 las filas de datos (reemplaza las fórmulas de esas dos columnas), deja los
 totales y el resto del libro igual, y marca el libro para que Excel recalcule
 todo al abrirlo (TOTAL A ENVIAR, Fill Rate, DI, etc.).
+
+## Tránsito en Ingreso Pedidos (V.2026.11)
+Zona "Último cálculo": el .xlsm de la entrega anterior del mismo proveedor (si la
+carpeta de cálculos está vinculada, se carga solo). Se copia a la OC Table por
+tienda + ítem:
+- Misma semana: S–X (lun–sáb), AA–AB (vie/sáb anteriores) y AB2.
+- Semana nueva: vie/sáb del último cálculo → AA/AB, S–X vacías, AB2 = ese sábado.
+Si el último cálculo no tenía su propio envío en la columna de su día, se usa su H.
 
 ## Correo del día
 Replica la pestaña **eMAIL** del Control OC para la fecha de entrega elegida

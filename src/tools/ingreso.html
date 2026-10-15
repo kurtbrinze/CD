@@ -71,8 +71,9 @@
     gap: 14px;
   }
   .drop-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
-  .drop-row.four-col { grid-template-columns: repeat(4, 1fr); }
-  @media (max-width: 980px) { .drop-row.four-col { grid-template-columns: 1fr 1fr; } }
+  .drop-row.four-col { grid-template-columns: repeat(5, 1fr); }
+  @media (max-width: 1100px) { .drop-row.four-col { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 760px) { .drop-row.four-col { grid-template-columns: 1fr 1fr; } }
   .cita-check { font-size: 0.85rem; border-radius: 8px; padding: 9px 12px; margin-top: 12px; line-height: 1.45; }
   .cita-check.ok { background: #eef8ea; border: 1px solid #c7e6bb; color: #24610d; }
   .cita-check.warn { background: #fff8e6; border: 1px solid #f3d9a0; color: #7a4a00; }
@@ -343,10 +344,19 @@
         <div class="dz-filename" id="fname-ctrl"></div>
         <input type="file" id="file-ctrl" accept=".xlsx,.xlsm">
       </div>
+      <div class="dropzone" id="dz-calc" tabindex="0">
+        <button class="dz-clear" id="clear-calc" title="Quitar archivo">✕</button>
+        <span class="dz-icon">🚚</span>
+        <div class="dz-label">Último cálculo<span class="dz-optional-tag">tránsito</span></div>
+        <div class="dz-sub">El .xlsm de la entrega anterior</div>
+        <div class="dz-filename" id="fname-calc"></div>
+        <input type="file" id="file-calc" accept=".xlsm">
+      </div>
     </div>
 
     <div id="preflight" style="display:none;"></div>
     <div id="cita-check" class="cita-check" style="display:none;"></div>
+    <div id="calc-check" class="cita-check" style="display:none;"></div>
 
     <div class="actions">
       <button class="primary" id="btn-process" disabled>Procesar pedido</button>
@@ -1585,6 +1595,58 @@ async function lookupCitaInControlOc(controlBytes, io, poNumber, tableName) {
   return { found: false, cita: '' };
 }
 
+// ---- Tránsito: lee el último Excel de cálculo (pestaña OC Table) ----
+const TRANSIT_WEEK_COLS = ['S', 'T', 'U', 'V', 'W', 'X']; // lunes a sábado
+const TRANSIT_PREV_COLS = ['AA', 'AB'];                   // viernes y sábado de la semana anterior
+async function readLastCalc(bytes, io) {
+  const entries = parseZip(bytes);
+  const readText = (name) => readEntryText(entries, name, io.inflateRaw);
+  const workbookXml = await readText('xl/workbook.xml');
+  const relsXml = await readText('xl/_rels/workbook.xml.rels');
+  if (!workbookXml || !relsXml) throw new Error('El último cálculo no parece un archivo de Excel válido.');
+  const nameToPath = getSheetNameToPath(workbookXml, relsXml);
+  const find = (n) => Object.keys(nameToPath).find((k) => k.trim().toLowerCase() === n);
+  const ocName = find('oc table');
+  if (!ocName) throw new Error('El último cálculo no tiene la pestaña "OC Table".');
+  const sstXml = await readText('xl/sharedStrings.xml');
+  const sst = sstXml ? parseSharedStrings(sstXml) : [];
+  const val = (raw) => { if (!raw) return null; const v = readCellValue(raw); return v && typeof v === 'object' ? sst[v.sharedIndex] : v; };
+  const numv = (raw) => { const v = val(raw); const n = typeof v === 'number' ? v : parseFloat(v); return isFinite(n) ? n : null; };
+  const cellOf = (rows, ref) => { const r = rows.get(+ref.replace(/^[A-Z]+/, '')); return r ? r.get(ref) : null; };
+  let vendor = null, oc = null, date = null;
+  const fName = find('formulario de entrega');
+  if (fName) { const fr = parseAllRows(await readText(nameToPath[fName])); vendor = numv(cellOf(fr, 'G10')); oc = numv(cellOf(fr, 'D8')); }
+  const hName = find('hoja para fragua');
+  if (hName) { const hr = parseAllRows(await readText(nameToPath[hName])); const serial = numv(cellOf(hr, 'B633')); if (serial) date = new Date(Math.round((serial - 25569) * 86400000)); }
+  const rows = parseAllRows(await readText(nameToPath[ocName]));
+  const r2 = rows.get(2) || new Map();
+  const dayOf = {};
+  [...TRANSIT_WEEK_COLS, ...TRANSIT_PREV_COLS].forEach((c) => { dayOf[c] = numv(r2.get(c + '2')); });
+  const data = new Map();
+  for (const [rn, cells] of rows.entries()) {
+    if (rn < 3) continue;
+    const A = numv(cells.get('A' + rn)), D = numv(cells.get('D' + rn));
+    if (A == null || D == null) continue;
+    const rec = { H: numv(cells.get('H' + rn)) };
+    [...TRANSIT_WEEK_COLS, ...TRANSIT_PREV_COLS].forEach((c) => { rec[c] = numv(cells.get(c + rn)); });
+    data.set(A + '|' + D, rec);
+  }
+  return { vendor, oc, date, dayOf, data, ab2: numv(r2.get('AB2')) };
+}
+function mondayOf(d) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.getTime(); }
+// Decide qué se copia: misma semana → S..X (+ AA, AB y AB2 de esa semana);
+// semana nueva → viernes/sábado pasan a AA/AB y S..X quedan vacías.
+function planTransit(last, deliveryUTC) {
+  if (!last.date) return { ok: false, reason: 'No encontré la fecha de entrega del último cálculo (Hoja para Fragua B633).' };
+  if (deliveryUTC <= last.date.getTime()) return { ok: false, reason: 'El último cálculo elegido es del ' + fmtDMY(last.date) + ', igual o posterior a esta entrega: no se copió tránsito. Elegí el cálculo de la entrega anterior.' };
+  // Si el último cálculo no puso su propio "Enviar" (H) en la columna de su día, se usa H
+  const lastDay = last.date.getUTCDate();
+  const ownCol = TRANSIT_WEEK_COLS.find((c) => last.dayOf[c] === lastDay);
+  const sameWeek = mondayOf(new Date(deliveryUTC)) === mondayOf(last.date);
+  return { ok: true, sameWeek, ownCol };
+}
+function fmtDMY(d) { return String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear(); }
+
 async function processOrder(pdfBytes, xlsmBytes, io, opts) {
   const warnings = [];
   const inventoryBytes = opts && opts.inventoryBytes;
@@ -1843,6 +1905,64 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
     }
   }
 
+  // 9d. Tránsito de la semana (OC Table S..X) desde el último cálculo del mismo proveedor
+  let transitUpdate = null;
+  let ocTableForChanged = null;
+  const lastCalcBytes = opts && opts.lastCalcBytes;
+  if (lastCalcBytes) {
+    try {
+      const last = await readLastCalc(lastCalcBytes, io);
+      const ocTableName = Object.keys(nameToPath).find((n) => n.trim().toLowerCase() === 'oc table');
+      const supplier = pdfHeader.supplierNumber ? String(pdfHeader.supplierNumber) : (xlsmVendorNumber ? String(xlsmVendorNumber) : '');
+      const cdt = pdfHeader.cancelDate;
+      if (!ocTableName) warnings.push('La plantilla no tiene la pestaña "OC Table": no se ingresó el tránsito.');
+      else if (last.vendor != null && supplier && String(last.vendor) !== supplier) warnings.push('El último cálculo elegido es del vendor ' + last.vendor + ' y este pedido es del ' + supplier + ': no se copió el tránsito.');
+      else if (!cdt) warnings.push('Sin Cancel Date en el PDF no puedo saber la semana de la entrega: no se copió el tránsito.');
+      else {
+        const plan = planTransit(last, Date.UTC(cdt.y, cdt.m - 1, cdt.d));
+        if (!plan.ok) warnings.push(plan.reason);
+        else {
+          const ocPath = nameToPath[ocTableName];
+          const tXml = sheetXmlCache.has(ocPath) ? sheetXmlCache.get(ocPath) : await readText(ocPath);
+          const tRows = parseAllRows(tXml);
+          const edits = [];
+          const totals = {};
+          let filled = 0, usedH = 0;
+          const put = (col, rn, v) => {
+            if (v != null && v !== 0) { edits.push({ ref: col + rn, kind: 'number', value: String(v), keepStyle: true }); totals[col] = (totals[col] || 0) + v; }
+            else edits.push({ ref: col + rn, kind: 'empty', keepStyle: true });
+          };
+          for (const [rn, cells] of tRows.entries()) {
+            if (rn < 3) continue;
+            const A = readCellValue(cells.get('A' + rn)), D = readCellValue(cells.get('D' + rn));
+            if (typeof A !== 'number' || typeof D !== 'number') continue;
+            if ([...TRANSIT_WEEK_COLS, ...TRANSIT_PREV_COLS].some((c) => /<f\b/.test(cells.get(c + rn) || ''))) continue; // nunca pisar fórmulas
+            const src = last.data.get(A + '|' + D) || {};
+            const week = {};
+            TRANSIT_WEEK_COLS.forEach((c) => { week[c] = src[c]; });
+            if (plan.ownCol && !(week[plan.ownCol] > 0) && src.H > 0) { week[plan.ownCol] = src.H; usedH++; }
+            if (plan.sameWeek) {
+              TRANSIT_WEEK_COLS.forEach((c) => put(c, rn, week[c]));
+              TRANSIT_PREV_COLS.forEach((c) => put(c, rn, src[c]));
+            } else {
+              TRANSIT_WEEK_COLS.forEach((c) => put(c, rn, null));
+              put('AA', rn, week.W); put('AB', rn, week.X);
+            }
+            if ([...TRANSIT_WEEK_COLS, ...TRANSIT_PREV_COLS].some((c) => src[c] > 0)) filled++;
+          }
+          // AB2 = sábado anterior (las fechas de S2..X2 y AA2 son fórmulas que salen de AB2)
+          const newAB2 = plan.sameWeek ? last.ab2 : last.dayOf.X;
+          if (newAB2 != null) edits.push({ ref: 'AB2', kind: 'number', value: String(newAB2), keepStyle: true });
+          ocTableForChanged = { path: ocPath, xml: applyCellEdits(tXml, edits) };
+          transitUpdate = { sameWeek: plan.sameWeek, lastDate: fmtDMY(last.date), lastOc: last.oc, totals, filled, usedH, ab2: newAB2 };
+          if (usedH) warnings.push('En ' + usedH + ' combinaciones el último cálculo no tenía su envío en la columna de su día; usé su columna Enviar (H).');
+        }
+      }
+    } catch (e) {
+      warnings.push('No se pudo leer el último cálculo (' + (e && e.message ? e.message : e) + '): no se copió el tránsito.');
+    }
+  }
+
   // 10. Rebuild zip with all changed sheet entries
   const changed = new Map();
   for (const [path, xml] of sheetXmlCache.entries()) {
@@ -1855,6 +1975,9 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
   }
   if (formXmlForChanged) {
     changed.set(formXmlForChanged.path, utf8ToBytes(formXmlForChanged.xml));
+  }
+  if (ocTableForChanged) {
+    changed.set(ocTableForChanged.path, utf8ToBytes(ocTableForChanged.xml));
   }
 
   // 10b. We just overwrote a bunch of formula cells with static values (and
@@ -1918,6 +2041,7 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
       invUpdate,
       formularioUpdate,
       fraguaDate,
+      transitUpdate,
     },
   };
 }
@@ -1984,6 +2108,11 @@ if (typeof module !== 'undefined' && module.exports) {
   const fnameCtrl = document.getElementById('fname-ctrl');
   const clearCtrl = document.getElementById('clear-ctrl');
   const citaCheckEl = document.getElementById('cita-check');
+  const dzCalc = document.getElementById('dz-calc');
+  const fileCalc = document.getElementById('file-calc');
+  const fnameCalc = document.getElementById('fname-calc');
+  const clearCalc = document.getElementById('clear-calc');
+  const calcCheckEl = document.getElementById('calc-check');
   const btnProcess = document.getElementById('btn-process');
   const btnReset = document.getElementById('btn-reset');
   const statusEl = document.getElementById('status');
@@ -2022,6 +2151,7 @@ if (typeof module !== 'undefined' && module.exports) {
     updateProcessBtn();
     runPreflightIfReady();
     runCitaCheck();
+    runCalcCheck();
   }
   function setXlsmFile(f) {
     state.xlsmFile = f;
@@ -2060,6 +2190,48 @@ if (typeof module !== 'undefined' && module.exports) {
     fnameInv.textContent = '';
     dzInv.classList.remove('filled');
     updateProcessBtn();
+  }
+
+  function setCalcFile(f) {
+    state.calcFile = f;
+    fnameCalc.textContent = f.name;
+    dzCalc.classList.add('filled');
+    runCalcCheck();
+  }
+  function clearCalcFile() {
+    state.calcFile = null;
+    fileCalc.value = '';
+    fnameCalc.textContent = '';
+    dzCalc.classList.remove('filled');
+    runCalcCheck();
+  }
+  // Muestra qué tránsito se va a copiar antes de procesar
+  async function runCalcCheck() {
+    const tok = (state.calcToken = (state.calcToken || 0) + 1);
+    const show = (cls, html) => { calcCheckEl.className = 'cita-check ' + cls; calcCheckEl.innerHTML = html; calcCheckEl.style.display = 'block'; };
+    if (!state.calcFile) {
+      if (state.pdfFile) show('warn', 'Tránsito: cargá el <b>último cálculo</b> del mismo proveedor para llenar las columnas S a X de la OC Table.');
+      else calcCheckEl.style.display = 'none';
+      return;
+    }
+    show('ok', 'Leyendo el último cálculo…');
+    try {
+      const last = await readLastCalc(await readFileAsBytes(state.calcFile), browserIo);
+      let h = null;
+      if (state.pdfFile) { try { h = await getPdfHeaderInfo(await readFileAsBytes(state.pdfFile), browserIo); } catch (e) {} }
+      if (tok !== state.calcToken) return;
+      const lastTxt = 'Último cálculo: OC <b>' + escapeHtml(last.oc || '—') + '</b>, entrega <b>' + (last.date ? fmtDMY(last.date) : '—') + '</b>, vendor ' + escapeHtml(last.vendor || '—') + '.';
+      if (!h || !h.cancelDate) { show('ok', lastTxt); return; }
+      if (h.supplierNumber && last.vendor != null && String(last.vendor) !== String(h.supplierNumber)) { show('warn', lastTxt + ' <b>No es del mismo proveedor que el PDF (' + escapeHtml(h.supplierNumber) + ')</b>: no se va a copiar.'); return; }
+      const plan = planTransit(last, Date.UTC(h.cancelDate.y, h.cancelDate.m - 1, h.cancelDate.d));
+      if (!plan.ok) { show('warn', lastTxt + ' ' + escapeHtml(plan.reason)); return; }
+      show('ok', '✓ ' + lastTxt + (plan.sameWeek
+        ? ' Misma semana: copio el tránsito de lunes a sábado (S–X) y viernes/sábado anteriores (AA–AB).'
+        : ' Semana nueva: su viernes y sábado pasan a AA–AB y S–X quedan vacías.'));
+    } catch (e) {
+      if (tok !== state.calcToken) return;
+      show('warn', 'No se pudo leer el último cálculo: ' + escapeHtml(e && e.message ? e.message : String(e)));
+    }
   }
 
   function setCtrlFile(f) {
@@ -2172,6 +2344,8 @@ if (typeof module !== 'undefined' && module.exports) {
   setupDropzone(dzXlsm, fileXlsm, setXlsmFile);
   setupDropzone(dzInv, fileInv, setInvFile);
   setupDropzone(dzCtrl, fileCtrl, setCtrlFile);
+  setupDropzone(dzCalc, fileCalc, setCalcFile);
+  clearCalc.addEventListener('click', (e) => { e.stopPropagation(); clearCalcFile(); });
   clearCtrl.addEventListener('click', (e) => { e.stopPropagation(); clearCtrlFile(); });
   clearPdf.addEventListener('click', (e) => { e.stopPropagation(); clearPdfFile(); });
   clearXlsm.addEventListener('click', (e) => { e.stopPropagation(); clearXlsmFile(); });
@@ -2212,11 +2386,12 @@ if (typeof module !== 'undefined' && module.exports) {
     setPill(2);
     setStatus('⏳ Leyendo archivos…');
     try {
-      const [pdfBytes, xlsmBytes, inventoryBytes, controlOcBytes] = await Promise.all([
+      const [pdfBytes, xlsmBytes, inventoryBytes, controlOcBytes, lastCalcBytes] = await Promise.all([
         readFileAsBytes(state.pdfFile),
         readFileAsBytes(state.xlsmFile),
         state.invFile ? readFileAsBytes(state.invFile) : Promise.resolve(null),
         state.ctrlFile ? readFileAsBytes(state.ctrlFile) : Promise.resolve(null),
+        state.calcFile ? readFileAsBytes(state.calcFile) : Promise.resolve(null),
       ]);
 
       setStatus(state.invFile
@@ -2229,6 +2404,7 @@ if (typeof module !== 'undefined' && module.exports) {
       const opts = {};
       if (inventoryBytes) opts.inventoryBytes = inventoryBytes;
       if (controlOcBytes) opts.controlOcBytes = controlOcBytes;
+      if (lastCalcBytes) opts.lastCalcBytes = lastCalcBytes;
       const result = await processOrder(pdfBytes, xlsmBytes, browserIo, opts);
 
       setStatus('');
@@ -2259,9 +2435,13 @@ if (typeof module !== 'undefined' && module.exports) {
     const fd = result.summary.fraguaDate;
     const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
     const fdHtml = fd ? '<div class="inv-status-box">📅 Hoja para Fragua: fecha de entrega <b>' + escapeHtml(fd) + '</b> (' + DIAS_ES[new Date(+fd.slice(6), +fd.slice(3, 5) - 1, +fd.slice(0, 2)).getDay()] + ') en B633, tomada de la Cancel Date del PDF.</div>' : '';
-    if (result.summary.invUpdate || formHtml || fdHtml) {
+    const tu = result.summary.transitUpdate;
+    const DAYN = { S: 'lun', T: 'mar', U: 'mié', V: 'jue', W: 'vie', X: 'sáb', AA: 'vie ant', AB: 'sáb ant' };
+    const tuHtml = tu ? '<div class="inv-status-box">🚚 Tránsito copiado del cálculo del ' + escapeHtml(tu.lastDate) + (tu.lastOc ? ' (OC ' + escapeHtml(tu.lastOc) + ')' : '') + ' — ' + (tu.sameWeek ? 'misma semana' : 'semana nueva') + ': ' +
+      (Object.keys(tu.totals).length ? ['AA', 'AB', 'S', 'T', 'U', 'V', 'W', 'X'].filter(c => tu.totals[c]).map(c => DAYN[c] + ' ' + tu.totals[c].toLocaleString('es-CL')).join(' · ') : 'sin unidades') + '.</div>' : '';
+    if (result.summary.invUpdate || formHtml || fdHtml || tuHtml) {
       const iu = result.summary.invUpdate;
-      invStatusEl.innerHTML = formHtml + fdHtml + (iu ?
+      invStatusEl.innerHTML = formHtml + fdHtml + tuHtml + (iu ?
         '<div class="inv-status-box">📦 Pestaña "INV" actualizada con los datos de la pestaña "' +
         escapeHtml(iu.sourceSheetName) + '" del archivo de inventario (' + iu.rowCount.toLocaleString('es-CL') + ' filas).</div>' : '');
       invStatusEl.style.display = 'block';

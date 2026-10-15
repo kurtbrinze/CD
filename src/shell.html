@@ -325,7 +325,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.10</div>
+<div class="ver" aria-label="Versión de la app">V.2026.11</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -361,6 +361,7 @@ const TARGETS = [
   { tool:'ingreso', input:'file-xlsm', label:'Plantilla CD PANISA', ext:['xlsm'] },
   { tool:'ingreso', input:'file-inv',  label:'Inventario diario', ext:['xlsm','xlsx'] },
   { tool:'ingreso', input:'file-ctrl', label:'Control OC (cita del pedido)', ext:['xlsx','xlsm'] },
+  { tool:'ingreso', input:'file-calc', label:'Último cálculo (tránsito)', ext:['xlsm'] },
   { tool:'entregas', input:'file-generador', label:'Generador de QR', ext:['xlsx'] },
   ...[1,2,3,4].flatMap(n => [
     { tool:'entregas', input:'file-formulario-'+n, label:'Formulario · cita '+n, ext:['xlsx'] },
@@ -772,6 +773,17 @@ async function ingresoPdfLoaded(file) {
   if (ctrl && !filledIn('ingreso', 'fname-ctrl')) {
     try { await injectFile('ingreso', 'file-ctrl', await fileFromTemplate(ctrl, false)); msgs.push('Cargué el Control OC para la cita.'); }
     catch (e) { msgs.push('El Control OC necesita acceso: tocá "Cargar Control OC FBD POD".'); }
+  }
+  // Último cálculo del mismo proveedor (para el tránsito), desde la carpeta de cálculos
+  if (!filledIn('ingreso', 'fname-calc') && info.cancelDate && VENDOR_SUFFIX[sup]) {
+    try {
+      const cd = info.cancelDate;
+      const ymd = cd.y + '-' + String(cd.m).padStart(2, '0') + '-' + String(cd.d).padStart(2, '0');
+      const files = await envioFolderFiles(false);
+      const prev = files.filter(f => f.suf === VENDOR_SUFFIX[sup] && f.fecha && f.fecha < ymd).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+      if (prev) { await injectFile('ingreso', 'file-calc', await fileOf(prev)); msgs.push('Para el tránsito cargué el último cálculo "' + prev.name + '".'); }
+      else if (templates.find(t => t.kind === 'calculos')) msgs.push('No encontré en la carpeta de cálculos uno anterior a esta entrega para el tránsito.');
+    } catch (e) {}
   }
   const inv = templates.find(t => t.kind === 'inventario');
   if (inv && !filledIn('ingreso', 'fname-inv')) {
