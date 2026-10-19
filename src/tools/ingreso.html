@@ -2539,6 +2539,7 @@ if (typeof module !== 'undefined' && module.exports) {
     clearPdfFile();
     clearXlsmFile();
     clearInvFile();
+    clearCalcFile(); // el último cálculo depende del proveedor del próximo PDF
     state.resultBytes = null;
     state.resultName = null;
     resultCard.style.display = 'none';

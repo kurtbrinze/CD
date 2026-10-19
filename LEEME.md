@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.12
+# Envíos al CD — PANISA (PWA) · V.2026.13
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -70,6 +70,15 @@ Si el último cálculo no tenía su propio envío en la columna de su día, se u
 - Sugerido envío reconoce entregas de sábado (columna X); antes "Env SAct" quedaba vacío.
 - Las fechas de la fila 2 (S2..X2, AA2) se calculan desde AB2 como en Excel.
 - Al guardar, Enviar se escribe en H y además en la columna del día de la entrega (S..X).
+
+## V.2026.13
+- Ingreso Pedidos: "Procesar otro pedido" limpia el último cálculo; al soltar el PDF se elige
+  el del proveedor correcto (también si cambiás de PDF sin reiniciar).
+- QR Garita: botón "Generar PDF con todas las citas" (una hoja por cita en un solo PDF).
+- Sugerido envío: DOH = (INV + tránsito + Enviar) / venta diaria (también para el tope de 14 días).
+- Resumen de envío (como "Hoja Fragua MOD") uniendo las OC cargadas: imagen para descargar,
+  copiar o enviar por WhatsApp. Unidades por parrilla: S19 12, 5HM4 15, SR16 12, 10HD7 7,
+  10HR3 10, 5HD2 18, S13 18, S26 10, 6PC4 14, S25 10, 5CHD 20, 1CHD 50; 12 parrillas por viaje.
 
 ## Correo del día
 Replica la pestaña **eMAIL** del Control OC para la fecha de entrega elegida

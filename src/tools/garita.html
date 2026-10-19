@@ -79,6 +79,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .btn-secondary{background:#fff;color:#1d2229;border:1.5px solid #d1d5db}
 .btn-secondary:hover{background:#f9fafb}
 
+.all-row{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1.5px dashed #0053e2;background:#f4f8ff;border-radius:10px;padding:14px 16px;margin:4px 0 12px}
 .skip-note{font-size:12.5px;color:#6b7280;background:#f4f6f9;border:1px dashed #cbd2de;border-radius:8px;padding:9px 12px;margin-top:4px;line-height:1.5}
 .empty-state{font-size:13.5px;color:#4b5563;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;line-height:1.6}
 
@@ -450,7 +451,8 @@ function citasDeFecha(fecha) {
 function safeName(s) { return String(s).replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim(); }
 function dmy(ymd) { const p = ymd.split('-'); return p[2] + '-' + p[1] + '-' + p[0]; }
 
-function buildGaritaHtml(d) {
+function buildGaritaHtml(d, autoPrint) {
+  if (autoPrint === undefined) autoPrint = true;
   const payload = JSON.stringify(d).replace(/<\//g, '<\\/');
   const inject = '\n<script>\n(function(){\n' +
     '  var d = ' + payload + ';\n' +
@@ -467,10 +469,65 @@ function buildGaritaHtml(d) {
     "  var btn = document.querySelector('.actions .btn-primary');\n" +
     "  if (btn) btn.click(); else if (typeof actualizarQR === 'function') actualizarQR();\n" +
     "  document.title = d.title;\n" +
-    "  setTimeout(function(){ window.print(); }, 700);\n" +
+    (autoPrint ? "  setTimeout(function(){ window.print(); }, 700);\n" : '') +
     '})();\n<\/script>\n</body>\n</html>';
   const i = GARITA_TEMPLATE.lastIndexOf('</body>');
   return (i === -1 ? GARITA_TEMPLATE : GARITA_TEMPLATE.slice(0, i)) + inject;
+}
+
+function citaData(g, hora, placa) {
+  return {
+    lugar: LUGAR_VALUE, fecha: state.fecha, vendor: g.vendor, hora: hora, empresa: EMPRESA, cita: g.cita, placa: placa,
+    title: safeName('QR Garita - ' + (g.proveedor || ('Vendor ' + g.vendor)) + ' - Cita ' + g.cita + ' - ' + dmy(state.fecha)),
+  };
+}
+
+// Arma la hoja de una cita en un iframe oculto y devuelve su HTML ya llenado,
+// con los QR convertidos en imagen (para juntar varias hojas en un solo PDF).
+function snapshotCita(data) {
+  return new Promise((resolve, reject) => {
+    const f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:fixed;left:-12000px;top:0;width:900px;height:1300px;border:0;';
+    f.onload = () => setTimeout(() => {
+      try {
+        const d = f.contentDocument;
+        d.querySelectorAll('input').forEach(i => i.setAttribute('value', i.value));
+        d.querySelectorAll('select').forEach(sel => Array.from(sel.options).forEach(o => { if (o.selected) o.setAttribute('selected', ''); else o.removeAttribute('selected'); }));
+        d.querySelectorAll('canvas').forEach(c => {
+          const img = d.createElement('img');
+          img.src = c.toDataURL('image/png'); img.width = c.width; img.height = c.height; img.style.cssText = c.style.cssText;
+          c.replaceWith(img);
+        });
+        const page = d.querySelector('.page');
+        const styles = Array.from(d.querySelectorAll('style')).map(st => st.outerHTML).join('\n');
+        const out = { page: page ? page.outerHTML : d.body.innerHTML, styles };
+        f.remove();
+        resolve(out);
+      } catch (e) { f.remove(); reject(e); }
+    }, 500);
+    f.srcdoc = buildGaritaHtml(data, false);
+    document.body.appendChild(f);
+  });
+}
+
+async function generarPdfTodas(list, btn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Armando…';
+  const w = window.open('', '_blank');
+  if (!w) { toast('El navegador bloqueó la ventana emergente. Permitila para este archivo y volvé a intentar.'); btn.disabled = false; btn.textContent = old; return; }
+  w.document.write('<p style="font:16px Arial;padding:24px">Armando las hojas de QR…</p>');
+  try {
+    const snaps = [];
+    for (const it of list) snaps.push(await snapshotCita(citaData(it.g, it.hora, it.placa)));
+    const title = safeName('QR Garita - ' + dmy(state.fecha) + ' - ' + list.map(it => 'Cita ' + it.g.cita).join(' y '));
+    const html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' + snaps[0].styles +
+      '<style>.hoja{break-after:page;page-break-after:always}.hoja:last-child{break-after:auto;page-break-after:auto}@media screen{.hoja{margin-bottom:28px}}</style></head><body>' +
+      snaps.map(sn => '<div class="hoja">' + sn.page + '</div>').join('') +
+      '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>';
+    w.document.open(); w.document.write(html); w.document.close();
+  } catch (e) {
+    w.close(); toast('No se pudo armar el PDF combinado: ' + (e.message || e));
+  } finally { btn.disabled = false; btn.textContent = old; }
 }
 
 function generarPdf(g, hora, placa) {
@@ -620,6 +677,10 @@ function buscarFecha(fecha) {
     '</div>';
   }).join('');
 
+  if (groups.length > 1) {
+    html += '<div class="all-row"><div><b>Un solo PDF con las ' + groups.length + ' citas</b><div class="cr-sub">Una hoja por cita, en el mismo archivo: lo guardás o imprimís de una vez.</div></div>' +
+      '<button type="button" class="btn btn-primary" id="btn-gen-all">🖨 Generar PDF con todas las citas</button></div>';
+  }
   if (sinCita.length) {
     html += '<div class="skip-note">Se omiten <b>' + sinCita.length + '</b> OC de esa fecha sin número de cita asignado: ' + sinCita.map(r => escapeHtml(r.oc || '(sin OC)') + (r.proveedor ? ' (' + escapeHtml(r.proveedor) + ')' : '')).join(', ') + '.</div>';
   }
@@ -638,6 +699,17 @@ function buscarFecha(fecha) {
       if (faltan.length && !confirm('A esta cita le falta ' + faltan.join(' y ') + '.\n¿Generar el PDF de todas formas?')) return;
       generarPdf(g, hora, placa);
     });
+  });
+  const allBtn = $('btn-gen-all');
+  if (allBtn) allBtn.addEventListener('click', () => {
+    const list = Array.from(box.querySelectorAll('.cita-row')).map(row => ({
+      g: groups[parseInt(row.dataset.i, 10)],
+      hora: row.querySelector('.f-hora').value.trim(),
+      placa: row.querySelector('.f-placa').value.trim().toUpperCase(),
+    }));
+    const faltan = list.filter(it => !it.hora || !it.placa).map(it => 'cita ' + it.g.cita);
+    if (faltan.length && !confirm('Falta placa u hora en: ' + faltan.join(', ') + '.\n¿Generar el PDF de todas formas?')) return;
+    generarPdfTodas(list, allBtn);
   });
   setStep(3);
 }

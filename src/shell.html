@@ -226,6 +226,12 @@ button{font:inherit;cursor:pointer}
 .itemsum thead th.dif{color:#7a4a00}
 .itemsum .tot{font-weight:800;background:#eef2f8;border-left:1.5px solid var(--line)}
 .itemsum tr.re td.tot{background:#fff3c4}
+.sumbar{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fffbea;border-color:#f0d27a}
+dialog:has(.resdlg){max-width:min(1060px,96vw)}
+.resbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px}
+.resbar input{font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px}
+.resnote{color:var(--muted);font-size:13px}
+.resimg{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
 .infobox{background:#eef4ff;border:1px solid #c9daff;color:#103d8f;border-radius:9px;padding:9px 14px;font-size:13.5px;margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .envwrap{max-width:1280px;margin:0 auto;padding:22px 24px 60px}
 
@@ -325,7 +331,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.12</div>
+<div class="ver" aria-label="Versión de la app">V.2026.13</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -721,7 +727,7 @@ async function onToolShown(id, { user }) {
 }
 
 // Conexiones propias de cada herramienta
-const ingresoState = { autoXlsm: null };
+const ingresoState = { autoXlsm: null, autoCalc: null };
 function wireTool(v) {
   if (v.id === 'entregas') {
     const w = v.frame.contentWindow, orig = w.saveWithPicker;
@@ -743,6 +749,9 @@ function wireTool(v) {
   d.getElementById('file-xlsm').addEventListener('change', manual);
   d.getElementById('dz-xlsm').addEventListener('drop', manual, true);
   d.getElementById('clear-xlsm').addEventListener('click', manual);
+  const manualCalc = () => { if (!injecting) ingresoState.autoCalc = null; };
+  d.getElementById('file-calc').addEventListener('change', manualCalc);
+  d.getElementById('dz-calc').addEventListener('drop', manualCalc, true);
 }
 async function ingresoPdfLoaded(file) {
   const v = views.ingreso, w = v.frame.contentWindow;
@@ -774,14 +783,20 @@ async function ingresoPdfLoaded(file) {
     try { await injectFile('ingreso', 'file-ctrl', await fileFromTemplate(ctrl, false)); msgs.push('Cargué el Control OC para la cita.'); }
     catch (e) { msgs.push('El Control OC necesita acceso: tocá "Cargar Control OC FBD POD".'); }
   }
-  // Último cálculo del mismo proveedor (para el tránsito), desde la carpeta de cálculos
+  // Último cálculo del mismo proveedor (para el tránsito), desde la carpeta de cálculos.
+  // Si el que está cargado lo eligió la app para otro proveedor, se reemplaza.
+  const calcFilled = filledIn('ingreso', 'fname-calc');
+  if (calcFilled && ingresoState.autoCalc && ingresoState.autoCalc !== sup) {
+    v.frame.contentDocument.getElementById('clear-calc').click();
+    ingresoState.autoCalc = null;
+  }
   if (!filledIn('ingreso', 'fname-calc') && info.cancelDate && VENDOR_SUFFIX[sup]) {
     try {
       const cd = info.cancelDate;
       const ymd = cd.y + '-' + String(cd.m).padStart(2, '0') + '-' + String(cd.d).padStart(2, '0');
       const files = await envioFolderFiles(false);
       const prev = files.filter(f => f.suf === VENDOR_SUFFIX[sup] && f.fecha && f.fecha < ymd).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
-      if (prev) { await injectFile('ingreso', 'file-calc', await fileOf(prev)); msgs.push('Para el tránsito cargué el último cálculo "' + prev.name + '".'); }
+      if (prev) { await injectFile('ingreso', 'file-calc', await fileOf(prev)); ingresoState.autoCalc = sup; msgs.push('Para el tránsito cargué el último cálculo "' + prev.name + '".'); }
       else if (templates.find(t => t.kind === 'calculos')) msgs.push('No encontré en la carpeta de cálculos uno anterior a esta entrega para el tránsito.');
     } catch (e) {}
   }
@@ -1281,7 +1296,7 @@ async function readCalcWorkbook(file) {
   if (fName) {
     const fr = w.parseAllRows(await readText(nameToPath[fName]));
     const g = ref => { const m = /^([A-Z]+)(\d+)$/.exec(ref); const row = fr.get(+m[2]); return row ? val(row.get(ref)) : null; };
-    form = { oc: num(g('D8')), cita: num(g('D6')), vendor: num(g('G10')) };
+    form = { oc: num(g('D8')), cita: num(g('D6')), vendor: num(g('G10')), hora: num(g('G6')) };
   }
   const ocPath = nameToPath[ocName];
   const ocXml = await readText(ocPath);
@@ -1368,12 +1383,12 @@ function calcRow(r, P, dinfo) {
   const Gx = G || 0;
   if (O > 0) {
     let cut = false;
-    while (s > 0 && (s + Gx) / O > P.maxDoh + 1e-9) { s -= Math.min(step, s); cut = true; }
+    while (s > 0 && (s + Gx + transit) / O > P.maxDoh + 1e-9) { s -= Math.min(step, s); cut = true; }
     if (cut && s === 0 && stock <= 0) { s = Math.min(step, F); motivo += '; sin inventario: se envía el mínimo (' + s + ') aunque por la venta tan baja supera ' + P.maxDoh + ' días'; tag = 'min'; }
     else if (cut) { motivo += '; recortado a ' + P.maxDoh + ' días'; tag = 'doh'; }
   }
   s = Math.max(0, Math.min(s, F));
-  const ad = O > 0 ? (s + Gx) / O : null;
+  const ad = O > 0 ? (s + Gx + transit) / O : null;
   const before = dinfo.before ? dinfo.before.reduce((a, c) => a + (num(r[c]) || 0), 0) : null;
   const semana = before != null ? before + s : null;
   if (G == null) motivo += ' · sin dato de INV';
@@ -1606,7 +1621,7 @@ function statsOf(x) {
     s.F += z.F; s.S += z.c.s; s.E += e;
     if (z.c.s === z.F) s.tope++; if (z.c.s === 0) s.cero++;
     if (e !== z.c.s) s.mod++;
-    if (z.c.O > 0 && e > 0 && (e + (num(z.r.G) || 0)) / z.c.O > env.params.maxDoh + 1e-9) s.altos++;
+    if (z.c.O > 0 && e > 0 && (e + (num(z.r.G) || 0) + (z.c.transit || 0)) / z.c.O > env.params.maxDoh + 1e-9) s.altos++;
   });
   return s;
 }
@@ -1639,7 +1654,7 @@ function itemSummaryHtml(x) {
 function rowCells(x, z) {
   const r = z.r, c = z.c, e = envOf(x, z);
   const G = num(r.G);
-  const doh = c.O > 0 ? (e + (G || 0)) / c.O : null;
+  const doh = c.O > 0 ? (e + (G || 0) + (c.transit || 0)) / c.O : null;
   const before = x.res.dinfo.before ? x.res.dinfo.before.reduce((a, col) => a + (num(r[col]) || 0), 0) : null;
   const semana = before != null ? before + e : null;
   return { e, doh, semana };
@@ -1652,7 +1667,12 @@ function renderEnvioResults() {
     '<label style="font-size:14px">Máximo Days on Hand <input type="number" id="ep-max" min="7" max="21" value="' + P.maxDoh + '" style="width:64px;font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px"></label>' +
     '<label style="font-size:14px">Días de envíos en tránsito <input type="number" id="ep-tr" min="0" max="3" value="' + P.transitDays + '" style="width:56px;font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px"></label>' +
     '<button class="btn" id="ep-reset">Valores por defecto</button></div>' +
-    '<p class="hint">Venta semanal esperada = promedio entre el mayor de (Prom 4 semanas, Venta semana anterior) y el promedio de los dos FCST. Se suma lo enviado los días previos a la entrega que todavía no aparece en INV. Nunca más que el Pedido OC y Days on Hand (AD) nunca mayor al máximo.</p></div>';
+    '<p class="hint">Venta semanal esperada = promedio entre el mayor de (Prom 4 semanas, Venta semana anterior) y el promedio de los dos FCST. Se suma lo enviado los días previos a la entrega que todavía no aparece en INV. Nunca más que el Pedido OC. Days on Hand = (INV + tránsito + Enviar) / venta diaria, nunca mayor al máximo.</p></div>';
+  if (env.results.some(x => !x.error && x.res.rows.length)) {
+    const n = env.results.filter(x => !x.error && x.res.rows.length).length;
+    html += '<div class="mcard sumbar"><div><h2>Resumen de envío</h2><p class="sub" style="margin:0">' + (n > 1 ? 'Une las ' + n + ' órdenes de compra' : 'De esta orden de compra') + ' con lo que pusiste en Enviar: totales por item, parrillas y viajes, cita y vencimientos.</p></div>' +
+      '<button class="btn primary" id="btn-resumen">Ver resumen y enviar por WhatsApp</button></div>';
+  }
   for (const [i, x] of env.results.entries()) {
     if (x.error) { html += '<div class="mcard"><h2>' + esc(x.f.name) + '</h2><div class="warnbox">' + esc(x.error) + '</div></div>'; continue; }
     const items = Array.from(new Set(x.res.rows.map(r => r.r.E))).sort();
@@ -1683,7 +1703,7 @@ function renderEnvioResults() {
       '<div class="env-tools"><span>Escribí en <b>Enviar</b> lo que vas a mandar. <kbd>Enter</kbd> pasa a la siguiente tienda; las flechas ↑ ↓ suben o bajan de ' + '5 en 5.</span>' +
         '<span class="env-tools-btns"><button class="btn" data-bulk="sug" data-i="' + i + '">Poner el sugerido en Enviar' + scope + '</button>' +
         '<button class="btn" data-bulk="oc" data-i="' + i + '">Poner el Pedido OC en Enviar' + scope + '</button></span></div>' +
-      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Item</th><th class="n" title="Pedido OC">OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n">INV</th><th class="n" title="Days on Hand con lo que vas a enviar: (Enviar + INV) / O, igual que la columna AD">DOH</th><th class="n">Tránsito</th><th class="n">Vta Sem</th><th class="n">Prom 4S</th><th class="n" title="Venta semana anterior">Vt SAnt</th><th class="n dev" title="Devoluciones (columna P)">DEV</th><th class="n">FCST</th><th class="n" title="Venta semanal esperada usada para el sugerido">FCST Prom</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Env SAct</th><th>Motivo Sugerido</th></tr></thead><tbody>' +
+      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Item</th><th class="n" title="Pedido OC">OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n">INV</th><th class="n" title="Days on Hand: (INV + Tránsito + Enviar) / venta diaria">DOH</th><th class="n">Tránsito</th><th class="n">Vta Sem</th><th class="n">Prom 4S</th><th class="n" title="Venta semana anterior">Vt SAnt</th><th class="n dev" title="Devoluciones (columna P)">DEV</th><th class="n">FCST</th><th class="n" title="Venta semanal esperada usada para el sugerido">FCST Prom</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Env SAct</th><th>Motivo Sugerido</th></tr></thead><tbody>' +
       (rows.length ? rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null); const k = rowCells(x, z);
         const step = z.F % 5 === 0 ? 5 : 1;
         return '<tr data-row="' + r.row + '"' + (k.e !== c.s ? ' class="mod"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
@@ -1705,6 +1725,7 @@ function renderEnvioResults() {
   box.querySelectorAll('[data-onlydiff]').forEach(c => c.onchange = () => { env.onlyDiff = c.checked; renderEnvioResults(); });
   box.querySelectorAll('[data-save]').forEach(b => b.onclick = () => saveEnvio(env.results[+b.dataset.save], b));
   box.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => bulkEnviar(env.results[+b.dataset.i], b.dataset.bulk));
+  const rb = $('btn-resumen'); if (rb) rb.onclick = openResumen;
   // Edición de Enviar: se actualiza la fila y los totales sin redibujar la tabla
   box.oninput = ev => { const inp = ev.target.closest('.env-in'); if (inp) onEnvInput(inp, false); };
   box.onchange = ev => { const inp = ev.target.closest('.env-in'); if (inp) onEnvInput(inp, true); };
@@ -1785,6 +1806,155 @@ async function saveEnvio(x, btn) {
     toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades' + (x.dayWritten ? ', también en la columna ' + x.dayWritten + ' (enviado ' + DIA[x.dayWritten] + ')' : '') + ' y Sugerido (I) = ' + nf(st.S) + '.', 7000);
   } catch (e) { toast('No se pudo guardar: ' + (e.message || e), 6000); }
   finally { btn.disabled = false; btn.textContent = old; }
+}
+
+
+// ═════════════ Resumen de envío (como "Hoja Fragua MOD") ═════════════
+const RES_ITEMS = ['S19','5HM4','SR16','10HD7','10HR3','5HD2','S13','S26','6PC4','S25','5CHD','1CHD'];
+const UXP = { S19:12, '5HM4':15, SR16:12, '10HD7':7, '10HR3':10, '5HD2':18, S13:18, S26:10, '6PC4':14, S25:10, '5CHD':20, '1CHD':50 };
+const PARR_X_VIAJE = 12;
+const DIAS_VENC = [21, 25, 30];
+const DIA_LARGO = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+function resumenData() {
+  const rs = env.results.filter(x => !x.error && x.res.rows.length);
+  const by = {};
+  rs.forEach(x => x.res.rows.forEach(z => { const it = z.r.E; by[it] = by[it] || { pedido: 0, enviar: 0 }; by[it].pedido += z.F; by[it].enviar += envOf(x, z); }));
+  const order = RES_ITEMS.concat(Object.keys(by).filter(k => !RES_ITEMS.includes(k)).sort());
+  const items = order.map(it => {
+    const v = by[it] || { pedido: 0, enviar: 0 };
+    const u = UXP[it] || 0;
+    const parr = u ? Math.floor(v.enviar / u) : 0;
+    const bolsas = v.enviar - parr * u;
+    const viajes = Math.floor(parr / PARR_X_VIAJE), parrRest = parr - viajes * PARR_X_VIAJE;
+    return { it, pedido: v.pedido, enviar: v.enviar, restar: v.pedido - v.enviar, parr, bolsas, viajes, parrRest, totalParr: u && v.enviar ? Math.ceil(v.enviar / u) : 0, u };
+  });
+  const fecha = rs[0] ? rs[0].fecha : '';
+  const ocs = rs.map(x => ({ oc: x.wbk.form.oc, cita: x.wbk.form.cita, hora: x.wbk.form.hora, file: x.f.name }));
+  return { items, fecha, ocs,
+    tPedido: items.reduce((a, b) => a + b.pedido, 0), tEnviar: items.reduce((a, b) => a + b.enviar, 0),
+    tRestar: items.reduce((a, b) => a + b.restar, 0), tParr: items.reduce((a, b) => a + b.totalParr, 0) };
+}
+const fmtHora = f => { if (f == null) return ''; const m = Math.round(f * 1440); let h = Math.floor(m / 60) % 24, mi = m % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + String(mi).padStart(2, '0') + ' ' + ap; };
+const dmyOf = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+function parteTxt(r) {
+  if (!r.enviar) return { a: '', b: '' };
+  const a = r.parr ? (r.parr + ' + ' + (r.bolsas || '')).trim() : String(r.bolsas || '');
+  return { a, b: r.viajes + ' + ' + r.parrRest + ' + ' + r.bolsas };
+}
+
+function drawResumen(d, rampa) {
+  const W = 980, H = 640, S = 2;
+  const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+  const g = cv.getContext('2d'); g.scale(S, S);
+  const F = (w, px) => w + ' ' + px + 'px Arial, Helvetica, sans-serif';
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  const fd = d.fecha ? ymdDate(d.fecha) : null;
+  g.fillStyle = '#111'; g.font = F('bold', 18); g.textBaseline = 'middle';
+  g.fillText('PANISA ' + (fd ? DIA_LARGO[fd.getDay()] + ' ' + dmyOf(fd) : ''), 16, 22);
+  g.font = F('', 12); g.fillStyle = '#555';
+  g.fillText(d.ocs.map(o => 'OC ' + (o.oc || '—') + ' · cita ' + (o.cita || '—')).join('   |   '), 330, 22);
+  const top = 42, rh = 30, nRows = d.items.length;
+  const box = (x, y, w, h, opt = {}) => { g.strokeStyle = '#222'; g.lineWidth = opt.lw || 1; g.setLineDash(opt.dash || []); g.strokeRect(x + .5, y + .5, w, h); g.setLineDash([]); };
+  const txt = (t, x, y, w, al = 'center', font = F('', 15), col = '#111') => { g.font = font; g.fillStyle = col; g.textAlign = al; g.fillText(String(t), al === 'center' ? x + w / 2 : al === 'right' ? x + w - 8 : x + 8, y); g.textAlign = 'left'; };
+  // Encabezados
+  const cR = 16, wR = 62, cT = 78, wT = 120, cI = 220, wI = 70, cE = 290, wE = 120, cP = 432, wP = 70, cV = 502, wV = 200, cN = 702, wN = 260;
+  [[cR, wR, 'RESTAR', F('', 9)], [cT, wT, 'TOTALES', F('', 15)], [cE, wE, 'TOTAL', F('', 15)]].forEach(([x, w, t, f]) => { box(x, top, w, rh); txt(t, x, top + rh / 2, w, 'center', f); });
+  box(cI, top, wI, rh);
+  txt('Viajes + Parrillas + Uni', cV, top + rh / 2, wV, 'left', F('', 11));
+  txt('TOTAL PARRILLAS', cN, top + rh / 2, wN - 60, 'right', F('', 13));
+  txt(d.tParr, cN + wN - 60, top + rh / 2, 60, 'right', F('bold', 15));
+  g.strokeStyle = '#222'; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(cP, top + rh + .5); g.lineTo(cN + wN, top + rh + .5); g.stroke(); g.setLineDash([]);
+  // Filas
+  d.items.forEach((r, i) => {
+    const y = top + rh + i * rh, cy = y + rh / 2;
+    box(cR, y, wR, rh); txt(r.restar, cR, cy, wR, 'center', F('', 13));
+    box(cT, y, wT, rh); txt(r.pedido, cT, cy, wT, 'center', F('', 17));
+    box(cI, y, wI, rh); txt(r.it, cI, cy, wI, 'center', F('', 13));
+    box(cE, y, wE, rh); txt(r.enviar, cE, cy, wE, 'center', F('', 17));
+    const p = parteTxt(r);
+    txt(p.a, cP, cy, wP, 'left', F('', 13));
+    txt(p.b, cV, cy, wV, 'left', F('', 20));
+    txt(r.totalParr || (r.enviar ? '' : ''), cN, cy, wN, 'right', F('', 14));
+    g.setLineDash([4, 3]); g.strokeStyle = '#555';
+    g.beginPath(); g.moveTo(cP, y + rh + .5); g.lineTo(cN + wN, y + rh + .5); g.stroke();
+    [cV, cN + wN - 60].forEach(xx => { g.beginPath(); g.moveTo(xx + .5, y); g.lineTo(xx + .5, y + rh); g.stroke(); });
+    g.setLineDash([]);
+  });
+  // Totales
+  const ty = top + rh + nRows * rh + 14;
+  box(cR, ty, wR, rh); txt('RESTAR', cR, ty + rh / 2, wR, 'center', F('', 9));
+  box(cT, ty, wT, rh); txt('TOTAL PEDIDO', cT, ty + rh / 2, wT, 'center', F('', 14));
+  box(cR, ty + rh, wR, rh); txt(d.tRestar, cR, ty + rh * 1.5, wR, 'center', F('', 14));
+  box(cT, ty + rh, wT, rh); txt(d.tPedido, cT, ty + rh * 1.5, wT, 'center', F('', 17));
+  box(cE - 30, ty, wE + 30, rh); txt('TOTAL A ENTREGAR', cE - 30, ty + rh / 2, wE + 30, 'center', F('', 12));
+  box(cE - 30, ty + rh, wE + 30, rh); txt(d.tEnviar, cE - 30, ty + rh * 1.5, wE + 30, 'center', F('bold', 17));
+  // Datos de cita
+  const iy = ty + rh * 2 + 30, lh = 24;
+  const hora = d.ocs.map(o => fmtHora(o.hora)).filter(Boolean)[0] || '';
+  [['HORA', hora], ['RAMPA', rampa || ''], ['CITA No.', d.ocs.map(o => o.cita || '—').join(' / ')], ['ORDEN No.', d.ocs.map(o => o.oc || '—').join(' / ')]].forEach(([k, v], i) => {
+    const y = iy + i * lh;
+    txt(k, cR, y, 180, 'right', F('', 15));
+    txt(v, 206, y, 220, 'left', F('', 15));
+    g.strokeStyle = '#222'; g.beginPath(); g.moveTo(206, y + 11.5); g.lineTo(cE + wE, y + 11.5); g.stroke();
+  });
+  // Fechas
+  const fx = cP, fy = ty, fw = cN + wN - fx, fh = H - fy - 14;
+  box(fx, fy, fw, fh); txt('FECHAS', fx, fy + 11, fw, 'center', F('', 10));
+  g.beginPath(); g.moveTo(fx, fy + 22.5); g.lineTo(fx + fw, fy + 22.5); g.stroke();
+  txt('DIAS', fx, fy + 38, 60, 'left', F('', 14)); txt('SALIDA', fx + 90, fy + 38, 160, 'left', F('', 14)); txt('VENCIMIENTO', fx + fw - 220, fy + 38, 220, 'right', F('', 14));
+  if (fd) {
+    const sal = new Date(fd); sal.setDate(sal.getDate() + 23);
+    DIAS_VENC.forEach((dd, i) => {
+      const y = fy + 70 + i * 28, ven = new Date(fd); ven.setDate(ven.getDate() + dd);
+      const col = dd === 25 ? '#bbb' : '#111';
+      txt(dd, fx, y, 60, 'left', F('', 15), col); txt(dmyOf(sal), fx + 90, y, 160, 'left', F('', 15), col); txt(dmyOf(ven), fx + fw - 220, y, 220, 'right', F('', 15), col);
+    });
+  }
+  return cv;
+}
+function resumenTexto(d, rampa) {
+  const fd = d.fecha ? ymdDate(d.fecha) : null;
+  const L = ['*PANISA ' + (fd ? DIA_LARGO[fd.getDay()] + ' ' + dmyOf(fd) : '') + '*', ''];
+  L.push('```Item    Pedido Enviar Parr  V+P+U');
+  d.items.forEach(r => { const p = parteTxt(r); L.push(r.it.padEnd(7) + String(r.pedido).padStart(7) + String(r.enviar).padStart(7) + String(r.totalParr || '').padStart(5) + '  ' + (p.b || '')); });
+  L.push('Total  ' + String(d.tPedido).padStart(8) + String(d.tEnviar).padStart(7) + String(d.tParr).padStart(5) + '```');
+  L.push('');
+  const hora = d.ocs.map(o => fmtHora(o.hora)).filter(Boolean)[0];
+  if (hora) L.push('Hora: ' + hora);
+  if (rampa) L.push('Rampa: ' + rampa);
+  L.push('Cita: ' + d.ocs.map(o => o.cita || '—').join(' / '));
+  L.push('Orden: ' + d.ocs.map(o => o.oc || '—').join(' / '));
+  if (fd) L.push('Vencimientos: ' + DIAS_VENC.map(dd => { const v = new Date(fd); v.setDate(v.getDate() + dd); return dd + ' días ' + dmyOf(v); }).join(' · '));
+  return L.join('\n');
+}
+async function openResumen() {
+  const rampa = (await DB.get('rampa').catch(() => null)) || '2053';
+  const d = resumenData();
+  const dlg = openDlg('<div class="dlg resdlg"><h3>Resumen de envío</h3>' +
+    '<div class="resbar"><label>Rampa <input id="res-rampa" value="' + esc(rampa) + '" style="width:90px"></label>' +
+    '<span class="resnote">Totales de ' + d.ocs.length + (d.ocs.length === 1 ? ' orden' : ' órdenes') + ' de compra · ' + nf(d.tEnviar) + ' unidades a entregar · ' + d.tParr + ' parrillas</span></div>' +
+    '<div class="resimg" id="res-img"></div>' +
+    '<div class="dlg-row" style="margin-top:12px"><button class="btn" data-a="close">Cerrar</button><button class="btn" id="res-dl">Descargar imagen</button><button class="btn" id="res-copy">Copiar imagen</button><button class="btn primary" id="res-wa">Enviar por WhatsApp</button></div></div>');
+  let canvas;
+  const paint = () => { canvas = drawResumen(d, $('res-rampa').value.trim()); canvas.style.width = '100%'; $('res-img').innerHTML = ''; $('res-img').appendChild(canvas); };
+  paint();
+  $('res-rampa').oninput = () => { DB.set('rampa', $('res-rampa').value.trim()).catch(() => {}); paint(); };
+  dlg.onclick = e => { if (e.target.closest('[data-a="close"]')) dlg.close(); };
+  const fname = () => 'Resumen PANISA ' + (d.fecha ? dmyOf(ymdDate(d.fecha)).replace(/\//g, '-') : '') + '.png';
+  const blob = () => new Promise(r => canvas.toBlob(r, 'image/png'));
+  $('res-dl').onclick = async () => { const a = document.createElement('a'); a.href = URL.createObjectURL(await blob()); a.download = fname(); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); };
+  const copyImg = async () => { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob() })]); };
+  $('res-copy').onclick = async () => { try { await copyImg(); toast('Imagen copiada. Pegala en el chat con Ctrl+V.'); } catch (e) { toast('No se pudo copiar la imagen; usá "Descargar imagen".'); } };
+  $('res-wa').onclick = async () => {
+    const file = new File([await blob()], fname(), { type: 'image/png' });
+    const text = resumenTexto(d, $('res-rampa').value.trim());
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Resumen PANISA', text: text.split('\n')[0].replace(/\*/g, '') }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await copyImg(); toast('Imagen copiada: en WhatsApp pegala con Ctrl+V. Te abro WhatsApp con el resumen en texto.', 7000); } catch (e) {}
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  };
 }
 
 // ═════════════ Inicio ═════════════
