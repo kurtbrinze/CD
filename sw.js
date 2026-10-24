@@ -1,5 +1,5 @@
 // Service worker — Envíos al CD
-const VERSION = '20261020-0921';
+const VERSION = '20261024-0828';
 const APP_CACHE = 'envios-cd-app-' + VERSION;
 const LIB_CACHE = 'envios-cd-libs-v1'; // Pyodide, openpyxl, PDF.js, jsQR (no cambian con cada versión)
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
