@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.13
+# Envíos al CD — PANISA (PWA) · V.2026.27
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -80,6 +80,42 @@ Si el último cálculo no tenía su propio envío en la columna de su día, se u
   copiar o enviar por WhatsApp. Unidades por parrilla: S19 12, 5HM4 15, SR16 12, 10HD7 7,
   10HR3 10, 5HD2 18, S13 18, S26 10, 6PC4 14, S25 10, 5CHD 20, 1CHD 50; 12 parrillas por viaje.
 
+## V.2026.14 — Generador QR Entrega
+Dos secciones (Formularios y OC Listado, hasta 4 cada una, en cualquier orden; se pueden soltar
+varios a la vez). Se leen vendor, OC y cita del Formulario y la OC del OC Listado, se emparejan por
+número de OC y se asignan a las pestañas 1–4 del Generador ordenadas por vendor y cita. Si un archivo
+está en la sección equivocada, se detecta y se usa igual.
+
+## V.2026.15 — Comprobador QR
+Se pueden soltar o elegir varios PDF (o varios Excel) a la vez en una casilla: el primero queda en
+esa casilla y los demás ocupan las casillas vacías de la misma sección (máximo 4).
+
+## V.2026.16 — Sugerido envío
+Columna Vta Sem en verde claro, DEV en rojo claro y cierre de cada tabla con línea doble y la fila
+"Fin de la tabla · N filas · archivo".
+
+## V.2026.17 — Sugerido envío
+Filtro por producto, orden, "Solo las que cambié" y los botones de llenado son independientes en
+cada orden de compra.
+
+## V.2026.18 — Panel lateral
+Debajo de los módulos: "Próximas entregas" (hoy y las 2 siguientes fechas con OC en el Control OC:
+fecha, proveedor, OC y cita) y un calendario mensual (semana de lunes a domingo, hoy resaltado,
+punto verde en los días con entrega; al pasar el mouse muestra las OC y citas de ese día).
+
+## V.2026.19 — Panel lateral
+Próximas entregas: 4 fechas, con PANISA 1 y PANISA 2 siempre visibles ("-" si no hay).
+Calendario: verde = entregado (hoy y antes), amarillo = calculado (hay Excel en la carpeta de
+cálculos, incluida la última fecha calculada), rojo = próxima entrega con OC y cita pero sin calcular.
+
+## V.2026.20 — Nombres de los cálculos
+Se reconocen los nombres nuevos "MM_DD Mes AAAA PANISA N.xlsm" (ej. "11_02 Noviembre 2026 PANISA 1.xlsm"),
+en la carpeta o en subcarpetas, y siguen funcionando los viejos "DD_Mes_AAAA_Panisa_N.xlsm".
+
+## V.2026.21 — Actualización del panel lateral
+Entregas y calendario se actualizan solos al volver a la ventana de la app (como mucho cada 20 s),
+cada 5 minutos y después de "Guardar Excel con Enviar". El botón ↻ fuerza la lectura en el momento.
+
 ## Correo del día
 Replica la pestaña **eMAIL** del Control OC para la fecha de entrega elegida
 (la misma de QR de garita): Asunto = K1, cuerpo = K3:K11, Para = K13, CC = K14.
@@ -118,3 +154,37 @@ instalación ni modo sin internet.
 Reemplaza el archivo en `src/tools/` (ingreso, entregas, comprobador, garita),
 ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 "Actualizar a la versión nueva".
+
+## V.2026.22 — Orden de columnas y panel compacto
+- Sugerido envío: arrastrá cualquier encabezado de la tabla para cambiar el orden de las columnas. Aplica a las dos OC y se recuerda en este navegador. Tienda queda fija como primera columna.
+- Cuando el orden fue cambiado aparece el enlace «Orden original» para volver al orden de fábrica.
+- Panel izquierdo más compacto (título, logo y menú) para que el calendario quepa sin desplazarse.
+
+## V.2026.23 — Formato de tienda
+- Sugerido envío: la columna Tienda muestra «Número Formato Nombre» (p. ej. «21 P VISTA HERMOSA»), con el formato tomado de la columna B de OC Table. Se quitó la columna F aparte, que quedaba repetida.
+
+## V.2026.24 — Correo por Gmail y orden del resumen
+- Correo a CEDI: la tarjeta Enviar tiene un selector Outlook | Gmail (se recuerda). Outlook funciona igual que antes.
+- Gmail: «Crear borrador en Gmail con adjuntos» inicia sesión con Google (Google Identity Services, permiso gmail.compose), sube el correo completo con la API de Gmail (borrador, nunca envía solo) y lo abre en Gmail. También «Abrir en Gmail sin adjuntos».
+- Configuración única: pegar el ID de cliente de Google Cloud; la app muestra el origen a autorizar. Requiere abrir la app desde https (GitHub Pages). Guía: «Conectar Gmail a Envíos al CD».
+- Sugerido envío: la tabla resumen por ítem usa el mismo orden que los botones de filtro.
+
+## V.2026.25 — Hoja para Fragua (PDF) e impresión de QR sin encabezados
+- Sugerido envío: tarjeta «Hoja para Fragua (PDF)» con un botón por OC (PANISA 1 / PANISA 2) y «Las dos OC en un PDF».
+  - Por OC: cuadros por tienda (16 por hoja, ordenados por código de despacho de Lista Store Nbr), en 2 copias, y una hoja de resumen por clave con dos copias para cortar.
+  - Cada cuadro: correlativo, código de despacho, número de tienda, formato y nombre completo (la letra se achica para que entre); 12 claves en el orden del Excel; cantidad = Enviar. Clave en gris = la tienda no la tiene en la OC. X = tienda de la OC sin envío.
+  - Resumen: RESTAR, total pedido, a entregar, parrillas + unidades, viajes + parrillas + unidades, parrillas; hora, rampa, cita y orden. Sin cuadro de fechas.
+  - Unidades por parrilla y rampa se leen de «Hoja Fragua MOD» (con valores por defecto si no están).
+- Inicio: nueva «Carpeta de PDF completos» (con permiso de escritura). El PDF se guarda ahí como «MM_DD Mes AAAA Fragua PANISA 1.pdf» (o «PANISA 1 y 2») y se abre para imprimir; sin carpeta se descarga.
+- Generador QR Entrega y QR Garita: la hoja de impresión ya no deja lugar para el encabezado y pie del navegador (fecha, título, dirección blob:), aunque esa opción esté activada.
+
+## V.2026.26 — Ajustes de la Hoja para Fragua y avisos en Sugerido
+- Rampa: casilla en la tarjeta «Hoja para Fragua (PDF)», 2053 por defecto; el cambio se recuerda. Ya no se lee de la hoja del Excel.
+- Unidades por parrilla: se buscan en «Hoja Fragua MOD» por clave (columna E) aunque la tabla esté en otras filas.
+- Cuadros: las claves de la OC con decisión 0 muestran «0» (antes quedaban en blanco).
+- Resumen por clave: columna «CONTEO» en blanco para apuntes a mano, entre «VIAJES + PARR + UNI» y «PARRILLAS».
+- Sugerido envío: punto verde junto a OC cuando Enviar = 100% del pedido; aviso en naranja de las tiendas que reciben una sola clave con menos de 5 unidades (lista y filas marcadas, se actualiza al editar).
+
+## V.2026.27 — Ajustes de cuadros y CONTEO
+- Cuadros: si toda la tienda va en 0, solo la X (sin ceros). Si la tienda lleva otras claves, las claves en 0 muestran «0».
+- Resumen: la columna CONTEO queda como espacio libre, sin líneas verticales.

@@ -124,7 +124,7 @@ table.cmp-tbl tr.row-onlyexcel td{background:#fffbea}
 
   <div class="card">
     <div class="card-title">📄 PDFs de QR</div>
-    <div class="card-help">Los archivos "Generador QR - Orden de Compra ... .pdf". Podés subir de 1 a 4 (uno por OC).</div>
+    <div class="card-help">Los archivos "Generador QR - Orden de Compra ... .pdf". Podés subir de 1 a 4 (uno por OC); si soltás varios a la vez en una casilla, los demás ocupan las vacías.</div>
     <div class="drops">
       <label class="drop" id="drop-pdf-1">
         <input type="file" id="file-pdf-1" accept=".pdf"/>
@@ -155,7 +155,7 @@ table.cmp-tbl tr.row-onlyexcel td{background:#fffbea}
 
   <div class="card">
     <div class="card-title">📊 Excel (Consolidado u OC Listado)</div>
-    <div class="card-help">Aceptan tanto una pestaña "Consolidado por tienda" del Generador como un "OC Listado" crudo — detecto las columnas solo. Podés subir de 1 a 4; se emparejan con los PDF por número de OC, sin importar el orden.</div>
+    <div class="card-help">Aceptan tanto una pestaña "Consolidado por tienda" del Generador como un "OC Listado" crudo — detecto las columnas solo. Podés subir de 1 a 4, también varios a la vez en una casilla; se emparejan con los PDF por número de OC, sin importar el orden.</div>
     <div class="drops">
       <label class="drop" id="drop-xlsx-1">
         <input type="file" id="file-xlsx-1" accept=".xlsx"/>
@@ -536,31 +536,37 @@ const N_SLOTS = 4;
 const emptySlots = () => ({ 1: null, 2: null, 3: null, 4: null });
 const state = { pdfs: emptySlots(), xlsx: emptySlots() };
 
-function wireDrop(dropId, inputId, nameId, onPick) {
-  const drop = document.getElementById(dropId);
-  const input = document.getElementById(inputId);
-  const nameEl = document.getElementById(nameId);
-  input.addEventListener('change', () => {
-    const f = input.files[0];
-    if (!f) return;
-    onPick(f);
-    nameEl.textContent = f.name;
-    drop.classList.add('filled');
-    updateProcesarBtn();
-    setStep(2);
-  });
+function setSlotFile(kind, n, f) {
+  state[kind === 'pdf' ? 'pdfs' : 'xlsx'][n] = f;
+  document.getElementById('name-' + kind + '-' + n).textContent = f ? f.name : '';
+  document.getElementById('drop-' + kind + '-' + n).classList.toggle('filled', !!f);
+}
+// Varios archivos soltados juntos: el primero va a la casilla elegida y el resto a las vacías
+function placeFiles(kind, n, files) {
+  const re = kind === 'pdf' ? /\.pdf$/i : /\.xlsx$/i;
+  const list = Array.from(files).filter(f => re.test(f.name));
+  const skipped = Array.from(files).filter(f => !re.test(f.name));
+  if (!list.length) { if (skipped.length) showError('Esta sección solo acepta archivos ' + (kind === 'pdf' ? '.pdf' : '.xlsx') + '.'); return; }
+  const bag = kind === 'pdf' ? state.pdfs : state.xlsx;
+  setSlotFile(kind, n, list.shift());
+  for (let k = 1; k <= N_SLOTS && list.length; k++) if (!bag[k]) setSlotFile(kind, k, list.shift());
+  const msgs = [];
+  if (list.length) msgs.push('Solo caben ' + N_SLOTS + ' archivos por sección: ' + list.map(f => f.name).join(', ') + ' quedó afuera.');
+  if (skipped.length) msgs.push('Se ignoró ' + skipped.map(f => f.name).join(', ') + ' (no es ' + (kind === 'pdf' ? '.pdf' : '.xlsx') + ').');
+  if (msgs.length) showError(msgs.join('\n')); else hideError();
+  updateProcesarBtn();
+  setStep(2);
+}
+function wireSlot(kind, n) {
+  const drop = document.getElementById('drop-' + kind + '-' + n);
+  const input = document.getElementById('file-' + kind + '-' + n);
+  input.multiple = true;
+  input.addEventListener('change', () => { if (input.files.length) placeFiles(kind, n, input.files); input.value = ''; });
   drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', e => {
-    e.preventDefault();
-    drop.classList.remove('over');
-    if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
-  });
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files.length) placeFiles(kind, n, e.dataTransfer.files); });
 }
-for (let n = 1; n <= N_SLOTS; n++) {
-  wireDrop('drop-pdf-' + n, 'file-pdf-' + n, 'name-pdf-' + n, f => { state.pdfs[n] = f; });
-  wireDrop('drop-xlsx-' + n, 'file-xlsx-' + n, 'name-xlsx-' + n, f => { state.xlsx[n] = f; });
-}
+for (let n = 1; n <= N_SLOTS; n++) { wireSlot('pdf', n); wireSlot('xlsx', n); }
 
 function updateProcesarBtn() {
   const anyPdf = Object.values(state.pdfs).some(Boolean);

@@ -30,6 +30,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .card-help{font-size:12.5px;color:#6b7280;margin-bottom:16px;line-height:1.5}
 
 .drops{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.drops.four{grid-template-columns:repeat(4,1fr)}
+@media(max-width:860px){.drops.four{grid-template-columns:1fr 1fr}}
+.pairing{margin-top:16px;display:none}
+.pairing.show{display:block}
+.pair-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#5b6472;margin-bottom:8px}
+.pair-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.pair-tbl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;color:#8a94a6;padding:6px 8px;border-bottom:1px solid #e5e9f2}
+.pair-tbl td{padding:7px 8px;border-bottom:1px solid #eef1f6;vertical-align:middle}
+.pair-tbl td.fn{color:#4b5563;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pair-tbl tr.ok td{background:#f7fcf5}
+.pair-tbl tr.bad td{background:#fff8f8}
+.pair-st{font-weight:700;font-size:12px}
+.pair-st.ok{color:#1e7a1e}.pair-st.bad{color:#b42318}.pair-st.wait{color:#3355bb}
+.pair-note{font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:7px 10px;margin-top:8px;line-height:1.5}
 @media(max-width:700px){.drops{grid-template-columns:1fr}}
 .drop{border:1.5px dashed #c7d0e0;border-radius:10px;padding:16px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
 .drop:hover{border-color:#0053e2;background:#f7f9ff}
@@ -112,11 +126,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
   <div class="hdr">
     <div class="hdr-eyebrow">Walmart Guatemala · CEDI</div>
     <div class="hdr-title">Generador QR Entrega</div>
-    <div class="hdr-desc">Subí hasta 4 citas (Formulario + OC Listado de cada una) y el Generador de QR del día. Cada cita se carga directo en su pestaña, sin fórmulas y sin perder el color ni el ancho de columnas originales, y por cada una te genera su grupo de QR listo para exportar a PDF.</div>
+    <div class="hdr-desc">Subí el Generador de QR del día, los Formularios y los OC Listado (hasta 4 de cada uno, en cualquier orden): los emparejo por número de OC. Cada cita se carga directo en su pestaña, sin fórmulas y sin perder el color ni el ancho de columnas originales, y por cada una te genera su grupo de QR listo para exportar a PDF.</div>
   </div>
 
   <div class="steps">
-    <div class="step active" id="step-1"><div class="step-num">1</div><div><div class="step-label">Subís tus citas</div><div class="step-sub">De 1 a 4, con su Formulario y OC</div></div></div>
+    <div class="step active" id="step-1"><div class="step-num">1</div><div><div class="step-label">Subís tus archivos</div><div class="step-sub">Formularios y OC Listado, en cualquier orden</div></div></div>
     <div class="step" id="step-2"><div class="step-num">2</div><div><div class="step-label">Revisás el resumen</div><div class="step-sub">Vendor, PO, pestaña, filas</div></div></div>
     <div class="step" id="step-3"><div class="step-num">3</div><div><div class="step-label">Generás el PDF por cita</div><div class="step-sub">Grupo de QR + Generador actualizado</div></div></div>
   </div>
@@ -136,86 +150,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
   </div>
 
   <div class="card">
-    <div class="card-title">🧾📦 Citas a cargar</div>
-    <div class="card-help">Subí el Formulario y el OC Listado de cada cita. No hace falta llenar las 4 — dejá vacías las que no uses, no importa cómo se llamen los archivos.</div>
-    <div class="slots">
+    <div class="card-title">🧾 Formularios</div>
+    <div class="card-help">El Formulario de cada cita (de 1 a 4). Podés soltar varios a la vez en cualquier casilla; no importa el orden.</div>
+    <div class="drops four">
+      <label class="drop small" id="drop-formulario-1">
+        <input type="file" id="file-formulario-1" accept=".xlsx" multiple/>
+        <div class="drop-icon">🧾</div>
+        <div class="drop-label">Formulario — 1</div>
+        <div class="drop-file" id="name-formulario-1"></div>
+      </label>
+      <label class="drop small" id="drop-formulario-2">
+        <input type="file" id="file-formulario-2" accept=".xlsx" multiple/>
+        <div class="drop-icon">🧾</div>
+        <div class="drop-label">Formulario — 2</div>
+        <div class="drop-file" id="name-formulario-2"></div>
+      </label>
+      <label class="drop small" id="drop-formulario-3">
+        <input type="file" id="file-formulario-3" accept=".xlsx" multiple/>
+        <div class="drop-icon">🧾</div>
+        <div class="drop-label">Formulario — 3</div>
+        <div class="drop-file" id="name-formulario-3"></div>
+      </label>
+      <label class="drop small" id="drop-formulario-4">
+        <input type="file" id="file-formulario-4" accept=".xlsx" multiple/>
+        <div class="drop-icon">🧾</div>
+        <div class="drop-label">Formulario — 4</div>
+        <div class="drop-file" id="name-formulario-4"></div>
+      </label>
+    </div>
+  </div>
 
-    <div class="slot" id="slot-1">
-      <div class="slot-hdr"><span class="slot-badge" id="badge-1">1</span><span class="slot-title">Cita 1</span><span class="slot-sub">→ pestaña 1 del Generador</span></div>
-      <div class="drops slots-drops">
-        <label class="drop small" id="drop-formulario-1">
-          <input type="file" id="file-formulario-1" accept=".xlsx"/>
-          <div class="drop-icon">🧾</div>
-          <div class="drop-label">Formulario</div>
-          <div class="drop-file" id="name-formulario-1"></div>
-        </label>
-        <label class="drop small" id="drop-oc-1">
-          <input type="file" id="file-oc-1" accept=".xlsx"/>
-          <div class="drop-icon">📦</div>
-          <div class="drop-label">OC Listado</div>
-          <div class="drop-file" id="name-oc-1"></div>
-        </label>
-      </div>
-      <div class="slot-check" id="slot-check-1"></div>
+  <div class="card">
+    <div class="card-title">📦 OC Listado</div>
+    <div class="card-help">El OC Listado de cada cita. Los emparejo con los Formularios por número de OC y te muestro vendor y cita de cada par.</div>
+    <div class="drops four">
+      <label class="drop small" id="drop-oc-1">
+        <input type="file" id="file-oc-1" accept=".xlsx" multiple/>
+        <div class="drop-icon">📦</div>
+        <div class="drop-label">OC Listado — 1</div>
+        <div class="drop-file" id="name-oc-1"></div>
+      </label>
+      <label class="drop small" id="drop-oc-2">
+        <input type="file" id="file-oc-2" accept=".xlsx" multiple/>
+        <div class="drop-icon">📦</div>
+        <div class="drop-label">OC Listado — 2</div>
+        <div class="drop-file" id="name-oc-2"></div>
+      </label>
+      <label class="drop small" id="drop-oc-3">
+        <input type="file" id="file-oc-3" accept=".xlsx" multiple/>
+        <div class="drop-icon">📦</div>
+        <div class="drop-label">OC Listado — 3</div>
+        <div class="drop-file" id="name-oc-3"></div>
+      </label>
+      <label class="drop small" id="drop-oc-4">
+        <input type="file" id="file-oc-4" accept=".xlsx" multiple/>
+        <div class="drop-icon">📦</div>
+        <div class="drop-label">OC Listado — 4</div>
+        <div class="drop-file" id="name-oc-4"></div>
+      </label>
     </div>
 
-    <div class="slot" id="slot-2">
-      <div class="slot-hdr"><span class="slot-badge" id="badge-2">2</span><span class="slot-title">Cita 2</span><span class="slot-sub">→ pestaña 2 del Generador</span></div>
-      <div class="drops slots-drops">
-        <label class="drop small" id="drop-formulario-2">
-          <input type="file" id="file-formulario-2" accept=".xlsx"/>
-          <div class="drop-icon">🧾</div>
-          <div class="drop-label">Formulario</div>
-          <div class="drop-file" id="name-formulario-2"></div>
-        </label>
-        <label class="drop small" id="drop-oc-2">
-          <input type="file" id="file-oc-2" accept=".xlsx"/>
-          <div class="drop-icon">📦</div>
-          <div class="drop-label">OC Listado</div>
-          <div class="drop-file" id="name-oc-2"></div>
-        </label>
-      </div>
-      <div class="slot-check" id="slot-check-2"></div>
-    </div>
-
-    <div class="slot" id="slot-3">
-      <div class="slot-hdr"><span class="slot-badge" id="badge-3">3</span><span class="slot-title">Cita 3</span><span class="slot-sub">→ pestaña 3 del Generador</span></div>
-      <div class="drops slots-drops">
-        <label class="drop small" id="drop-formulario-3">
-          <input type="file" id="file-formulario-3" accept=".xlsx"/>
-          <div class="drop-icon">🧾</div>
-          <div class="drop-label">Formulario</div>
-          <div class="drop-file" id="name-formulario-3"></div>
-        </label>
-        <label class="drop small" id="drop-oc-3">
-          <input type="file" id="file-oc-3" accept=".xlsx"/>
-          <div class="drop-icon">📦</div>
-          <div class="drop-label">OC Listado</div>
-          <div class="drop-file" id="name-oc-3"></div>
-        </label>
-      </div>
-      <div class="slot-check" id="slot-check-3"></div>
-    </div>
-
-    <div class="slot" id="slot-4">
-      <div class="slot-hdr"><span class="slot-badge" id="badge-4">4</span><span class="slot-title">Cita 4</span><span class="slot-sub">→ pestaña 4 del Generador</span></div>
-      <div class="drops slots-drops">
-        <label class="drop small" id="drop-formulario-4">
-          <input type="file" id="file-formulario-4" accept=".xlsx"/>
-          <div class="drop-icon">🧾</div>
-          <div class="drop-label">Formulario</div>
-          <div class="drop-file" id="name-formulario-4"></div>
-        </label>
-        <label class="drop small" id="drop-oc-4">
-          <input type="file" id="file-oc-4" accept=".xlsx"/>
-          <div class="drop-icon">📦</div>
-          <div class="drop-label">OC Listado</div>
-          <div class="drop-file" id="name-oc-4"></div>
-        </label>
-      </div>
-      <div class="slot-check" id="slot-check-4"></div>
-    </div>
-    </div>
+    <div class="pairing" id="pairing"></div>
 
     <div class="btn-row">
       <button class="btn btn-primary" id="btn-procesar" disabled>⚡ Procesar</button>
@@ -258,10 +253,20 @@ const ENGINE_PY = b64ToUtf8(ENGINE_PY_B64);
 // ═══════════════════════════════════════════════════════════
 //  HTML precargado por cita (usa lo que ya calculó Python)
 // ═══════════════════════════════════════════════════════════
+// Impresión sin el encabezado y pie del navegador (fecha, título, dirección blob:, n.º de página):
+// la hoja no deja margen para ellos (@page margin 0) y el margen real lo ponen la tabla marco
+// (encabezado y pie vacíos que Chrome repite en cada hoja) y el relleno lateral del body.
+const PRINT_FRAME = '<style id="pf-style">@page{margin:0}' +
+  '@media screen{table.pf,table.pf>tbody,table.pf>tbody>tr,table.pf>tbody>tr>td{display:block}table.pf>thead,table.pf>tfoot{display:none}}' +
+  '@media print{html,body{margin:0!important}body{padding:0 10mm!important}table.pf{width:100%;border-collapse:collapse;border:0}table.pf td{padding:0;border:0}table.pf>thead td,table.pf>tfoot td{height:10mm}}</style>' +
+  '<script>function pfWrap(){if(document.querySelector("table.pf"))return;var t=document.createElement("table");t.className="pf";' +
+  't.innerHTML="<thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td></td></tr></tbody>";' +
+  'var td=t.tBodies[0].rows[0].cells[0];Array.prototype.slice.call(document.body.childNodes).forEach(function(n){if(n.nodeName!=="SCRIPT"&&n.nodeName!=="STYLE")td.appendChild(n);});' +
+  'document.body.insertBefore(t,document.body.firstChild);}window.addEventListener("beforeprint",pfWrap);<\/script>';
 function buildHtml(header, filas, fechaCita) {
   const filasJson = JSON.stringify(filas).replace(/<\//g, '<\\/');
   const pdfTitle = 'Generador QR - Orden de Compra ' + (header.po || '') + ' Cita ' + (header.cita || '');
-  const inject = '\n<script>\n' +
+  const inject = '\n' + PRINT_FRAME + '\n<script>\n' +
     'document.addEventListener(\'DOMContentLoaded\', function() {\n' +
     "  document.getElementById('f_oc').value = " + JSON.stringify(String(header.po || '')) + ';\n' +
     "  document.getElementById('f_proveedor').value = " + JSON.stringify(String(header.proveedor || '')) + ';\n' +
@@ -271,7 +276,7 @@ function buildHtml(header, filas, fechaCita) {
     "  filas.forEach(function(f) { addRow(f.sNbr, f.sName, f.upc, f.itemN, f.cajas); });\n" +
     '  generarQRs();\n' +
     '  document.title = ' + JSON.stringify(pdfTitle) + ';\n' +
-    '  setTimeout(function() { window.print(); }, 500);\n' +
+    '  setTimeout(function() { pfWrap(); window.print(); }, 500);\n' +
     '});\n' +
     '<\/script>\n</body>\n</html>';
   let html = QR_TEMPLATE;
@@ -330,6 +335,7 @@ async function saveWithPicker(blob, suggestedName, mimeType, description, extens
 //  Motor Python (Pyodide + openpyxl)
 // ═══════════════════════════════════════════════════════════
 let _pyodidePromise = null;
+let pyodideReady = false;
 async function ensurePyodide() {
   if (_pyodidePromise) return _pyodidePromise;
   _pyodidePromise = (async () => {
@@ -339,6 +345,8 @@ async function ensurePyodide() {
     const micropip = pyodide.pyimport('micropip');
     await micropip.install('openpyxl');
     pyodide.runPython(ENGINE_PY);
+    pyodide.runPython(PAIR_PY);
+    pyodideReady = true;
     log('  ✓ Motor listo', 'l-ok');
     return pyodide;
   })();
@@ -376,11 +384,39 @@ function callPy(pyodide, fnName, ...args) {
 // ═══════════════════════════════════════════════════════════
 const state = {
   generador: null,
+  forms: { 1: null, 2: null, 3: null, 4: null },   // archivos subidos en "Formularios"
+  ocs:   { 1: null, 2: null, 3: null, 4: null },   // archivos subidos en "OC Listado"
+  info: new Map(),                                  // archivo -> { tipo, vendor, po, cita } leído del Excel
+  pairs: [],
   slots: { 1: { formulario: null, oc: null }, 2: { formulario: null, oc: null },
            3: { formulario: null, oc: null }, 4: { formulario: null, oc: null } },
 };
 let outXlsxBlob = null;
 
+function setSlotFile(kind, n, f) {
+  state[kind === 'formulario' ? 'forms' : 'ocs'][n] = f;
+  document.getElementById('name-' + kind + '-' + n).textContent = f ? f.name : '';
+  document.getElementById('drop-' + kind + '-' + n).classList.toggle('filled', !!f);
+}
+// Varios archivos soltados juntos: el primero va a la casilla elegida y el resto a las vacías
+function placeFiles(kind, n, files) {
+  const list = Array.from(files).filter(f => /\.xlsx$/i.test(f.name));
+  if (!list.length) return;
+  const bag = state[kind === 'formulario' ? 'forms' : 'ocs'];
+  setSlotFile(kind, n, list.shift());
+  for (let k = 1; k <= 4 && list.length; k++) if (!bag[k]) setSlotFile(kind, k, list.shift());
+  if (list.length) showError('Solo caben 4 archivos por sección: ' + list.map(f => f.name).join(', ') + ' quedó afuera.');
+  setStep(2);
+  emparejar();
+}
+function wireSlot(kind, n) {
+  const drop = document.getElementById('drop-' + kind + '-' + n);
+  const input = document.getElementById('file-' + kind + '-' + n);
+  input.addEventListener('change', () => { if (input.files.length) placeFiles(kind, n, input.files); input.value = ''; });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files.length) placeFiles(kind, n, e.dataTransfer.files); });
+}
 function wireDrop(dropId, inputId, nameId, onPick) {
   const drop = document.getElementById(dropId);
   const input = document.getElementById(inputId);
@@ -404,13 +440,97 @@ function wireDrop(dropId, inputId, nameId, onPick) {
 }
 
 wireDrop('drop-generador', 'file-generador', 'name-generador', f => { state.generador = f; ensurePyodide().catch(() => {}); });
-for (let n = 1; n <= 4; n++) {
-  wireDrop('drop-formulario-' + n, 'file-formulario-' + n, 'name-formulario-' + n, f => {
-    state.slots[n].formulario = f; state.slots[n].verified = undefined; verificarSlot(n);
+for (let n = 1; n <= 4; n++) { wireSlot('formulario', n); wireSlot('oc', n); }
+
+// Lee de cada Excel qué es (Formulario u OC Listado) y su vendor, OC y cita
+const PAIR_PY = `
+def identificar_archivo(path):
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True)
+    except Exception as e:
+        return json.dumps({"tipo": "error", "error": str(e)})
+    ws = wb[wb.sheetnames[0]]
+    labels = find_labels(ws)
+    if all(k in labels for k in ("vendor_number", "po", "cita")):
+        return json.dumps({"tipo": "formulario", "vendor": _norm_po(labels["vendor_number"].value),
+                           "po": _norm_po(labels["po"].value), "cita": _norm_po(labels["cita"].value)})
+    po = find_oc_po_number(ws)
+    if po is not None:
+        return json.dumps({"tipo": "oc", "po": _norm_po(po)})
+    return json.dumps({"tipo": "desconocido"})
+`;
+let pairToken = 0;
+async function identificar(f) {
+  if (state.info.has(f)) return state.info.get(f);
+  const pyodide = await ensurePyodide();
+  const path = '/id_' + Math.random().toString(36).slice(2) + '.xlsx';
+  pyodide.FS.writeFile(path, await fileToUint8Array(f));
+  let r;
+  try { r = callPy(pyodide, 'identificar_archivo', path); } catch (e) { r = { tipo: 'error', error: e.message || String(e) }; }
+  try { pyodide.FS.unlink(path); } catch (e) {}
+  state.info.set(f, r);
+  return r;
+}
+async function emparejar() {
+  const tok = ++pairToken;
+  const box = document.getElementById('pairing');
+  const files = [];
+  for (let n = 1; n <= 4; n++) {
+    if (state.forms[n]) files.push({ f: state.forms[n], section: 'formulario', n });
+    if (state.ocs[n]) files.push({ f: state.ocs[n], section: 'oc', n });
+  }
+  state.pairs = [];
+  rebuildSlots();
+  if (!files.length) { box.className = 'pairing'; box.innerHTML = ''; updateProcesarBtn(); return; }
+  box.className = 'pairing show';
+  box.innerHTML = '<div class="pair-title">Emparejamiento</div><div class="pair-st wait">🔎 Leyendo vendor, OC y cita de cada archivo…' + (pyodideReady ? '' : ' (la primera vez el motor tarda unos segundos)') + '</div>';
+  updateProcesarBtn();
+  for (const it of files) { it.info = await identificar(it.f); if (tok !== pairToken) return; }
+
+  const forms = files.filter(it => it.info.tipo === 'formulario');
+  const ocs = files.filter(it => it.info.tipo === 'oc');
+  const notes = [];
+  files.filter(it => it.info.tipo === 'formulario' && it.section === 'oc').forEach(it => notes.push('"' + it.f.name + '" está en OC Listado pero es un Formulario: lo usé como Formulario.'));
+  files.filter(it => it.info.tipo === 'oc' && it.section === 'formulario').forEach(it => notes.push('"' + it.f.name + '" está en Formularios pero es un OC Listado: lo usé como OC Listado.'));
+  files.filter(it => it.info.tipo === 'desconocido').forEach(it => notes.push('"' + it.f.name + '" no parece ni Formulario ni OC Listado.'));
+  files.filter(it => it.info.tipo === 'error').forEach(it => notes.push('"' + it.f.name + '" no se pudo leer: ' + it.info.error));
+
+  const rows = [];
+  const usedOc = new Set();
+  const seenPo = new Set();
+  forms.forEach(fm => {
+    const po = fm.info.po;
+    if (seenPo.has(po)) { notes.push('Hay dos Formularios con la OC ' + po + ': uso "' + forms.find(x => x.info.po === po).f.name + '".'); return; }
+    seenPo.add(po);
+    const match = ocs.filter(o => o.info.po === po && !usedOc.has(o));
+    if (match.length > 1) notes.push('Hay ' + match.length + ' OC Listado con la OC ' + po + ': uso "' + match[0].f.name + '".');
+    const oc = match[0] || null;
+    if (oc) usedOc.add(oc);
+    rows.push({ vendor: fm.info.vendor, po, cita: fm.info.cita, form: fm.f, oc: oc ? oc.f : null });
   });
-  wireDrop('drop-oc-' + n, 'file-oc-' + n, 'name-oc-' + n, f => {
-    state.slots[n].oc = f; state.slots[n].verified = undefined; verificarSlot(n);
-  });
+  ocs.filter(o => !usedOc.has(o) && !seenPo.has(o.info.po)).forEach(o => rows.push({ vendor: '', po: o.info.po, cita: '', form: null, oc: o.f }));
+  // Pestañas del Generador: pares completos ordenados por vendor y cita
+  const complete = rows.filter(r => r.form && r.oc).sort((a, b) => String(a.vendor).localeCompare(String(b.vendor)) || String(a.cita).localeCompare(String(b.cita)));
+  if (complete.length > 4) notes.push('El Generador tiene 4 pestañas de cita: proceso las primeras 4.');
+  complete.slice(0, 4).forEach((r, i) => { r.tab = i + 1; });
+  state.pairs = complete.slice(0, 4);
+  rebuildSlots();
+
+  const esc = v => escapeHtml(v == null ? '' : String(v));
+  const order = complete.concat(rows.filter(r => !(r.form && r.oc)));
+  box.innerHTML = '<div class="pair-title">Emparejamiento</div><table class="pair-tbl"><thead><tr><th>Pestaña</th><th>Vendor</th><th>OC</th><th>Cita</th><th>Formulario</th><th>OC Listado</th><th>Estado</th></tr></thead><tbody>' +
+    order.map(r => {
+      const ok = r.form && r.oc && r.tab;
+      const st = ok ? '<span class="pair-st ok">✓ Listo</span>' : '<span class="pair-st bad">✕ ' + (!r.oc ? 'Falta el OC Listado' : !r.form ? 'Falta el Formulario' : 'Fuera de las 4 pestañas') + '</span>';
+      return '<tr class="' + (ok ? 'ok' : 'bad') + '"><td>' + (r.tab ? '<span class="slot-badge" id="badge-' + r.tab + '">' + r.tab + '</span>' : '—') + '</td><td>' + esc(r.vendor || '—') + '</td><td><b>' + esc(r.po) + '</b></td><td>' + esc(r.cita || '—') + '</td>' +
+        '<td class="fn" title="' + esc(r.form ? r.form.name : '') + '">' + esc(r.form ? r.form.name : '—') + '</td><td class="fn" title="' + esc(r.oc ? r.oc.name : '') + '">' + esc(r.oc ? r.oc.name : '—') + '</td><td>' + st + '</td></tr>';
+    }).join('') + '</tbody></table>' +
+    (notes.length ? '<div class="pair-note">⚠ ' + notes.map(esc).join('<br>⚠ ') + '</div>' : '');
+  updateProcesarBtn();
+}
+function rebuildSlots() {
+  for (let n = 1; n <= 4; n++) state.slots[n] = { formulario: null, oc: null, verified: undefined };
+  state.pairs.forEach(p => { state.slots[p.tab] = { formulario: p.form, oc: p.oc, verified: true }; });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -420,6 +540,7 @@ for (let n = 1; n <= 4; n++) {
 //  "Procesar".
 // ═══════════════════════════════════════════════════════════
 async function verificarSlot(n) {
+  return; // reemplazado por emparejar()
   const slot = state.slots[n];
   const el = document.getElementById('slot-check-' + n);
   const slotCard = document.getElementById('slot-' + n);
@@ -465,7 +586,7 @@ function hasCompletePair() {
   return Object.values(state.slots).some(s => s.formulario && s.oc && s.verified === true);
 }
 function hasAnyMismatch() {
-  return Object.values(state.slots).some(s => s.formulario && s.oc && s.verified === false);
+  return false; // los pares se arman por número de OC; lo que no empareja se muestra y no se procesa
 }
 function updateProcesarBtn() {
   document.getElementById('btn-procesar').disabled = !(state.generador && hasCompletePair()) || hasAnyMismatch();
@@ -482,6 +603,7 @@ function setStep(n) {
 
 function setBadge(n, status) {
   const el = document.getElementById('badge-' + n);
+  if (!el) return;
   el.classList.remove('ok', 'error');
   if (status === 'ok') { el.classList.add('ok'); el.textContent = '✓'; }
   else if (status === 'error') { el.classList.add('error'); el.textContent = '✕'; }
@@ -580,6 +702,8 @@ document.getElementById('btn-procesar').addEventListener('click', async () => {
     for (let n = 1; n <= 4; n++) {
       const f = state.slots[n].formulario, o = state.slots[n].oc;
       if (!f && !o) continue;
+      const pr = state.pairs.find(p => p.tab === n);
+      if (pr) log('Pestaña ' + n + ': OC ' + pr.po + ' · cita ' + (pr.cita || '—') + ' · vendor ' + (pr.vendor || '—'), 'l-info');
       if (!f || !o) {
         log('Cita ' + n + ': falta el ' + (f ? 'OC Listado' : 'Formulario') + ' — se omite esta cita.', 'l-err');
         setBadge(n, 'error');
@@ -617,7 +741,7 @@ document.getElementById('btn-procesar').addEventListener('click', async () => {
     }
 
     if (!algunaCitaIntentada) {
-      showError('Subí al menos un par completo (Formulario + OC) en alguna cita.');
+      showError('No hay ningún par completo: subí el Formulario y el OC Listado de la misma OC.');
       return;
     }
     if (!resultados.length) {
@@ -672,19 +796,11 @@ document.getElementById('btn-limpiar').addEventListener('click', () => {
   document.getElementById('name-generador').textContent = '';
   document.getElementById('drop-generador').classList.remove('filled');
   document.getElementById('file-generador').value = '';
-  for (let n = 1; n <= 4; n++) {
-    state.slots[n] = { formulario: null, oc: null, verified: undefined };
-    ['formulario', 'oc'].forEach(k => {
-      document.getElementById('name-' + k + '-' + n).textContent = '';
-      document.getElementById('drop-' + k + '-' + n).classList.remove('filled');
-      document.getElementById('file-' + k + '-' + n).value = '';
-    });
-    setBadge(n, 'pending');
-    const el = document.getElementById('slot-check-' + n);
-    el.textContent = '';
-    el.className = 'slot-check';
-    document.getElementById('slot-' + n).classList.remove('slot-mismatch');
-  }
+  for (let n = 1; n <= 4; n++) { setSlotFile('formulario', n, null); setSlotFile('oc', n, null); }
+  state.info = new Map();
+  state.pairs = [];
+  rebuildSlots();
+  emparejar();
   clearLog(); hideError();
   document.getElementById('results-container').classList.remove('show');
   document.getElementById('results-container').innerHTML = '';

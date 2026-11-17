@@ -454,7 +454,7 @@ function dmy(ymd) { const p = ymd.split('-'); return p[2] + '-' + p[1] + '-' + p
 function buildGaritaHtml(d, autoPrint) {
   if (autoPrint === undefined) autoPrint = true;
   const payload = JSON.stringify(d).replace(/<\//g, '<\\/');
-  const inject = '\n<script>\n(function(){\n' +
+  const inject = '\n' + PRINT_FRAME + '\n<script>\n(function(){\n' +
     '  var d = ' + payload + ';\n' +
     "  function setVal(id, v){ var el = document.getElementById(id); if (el) el.value = v; }\n" +
     "  setVal('f-lugar', d.lugar);\n" +
@@ -469,12 +469,22 @@ function buildGaritaHtml(d, autoPrint) {
     "  var btn = document.querySelector('.actions .btn-primary');\n" +
     "  if (btn) btn.click(); else if (typeof actualizarQR === 'function') actualizarQR();\n" +
     "  document.title = d.title;\n" +
-    (autoPrint ? "  setTimeout(function(){ window.print(); }, 700);\n" : '') +
+    (autoPrint ? "  setTimeout(function(){ pfWrap(); window.print(); }, 700);\n" : '') +
     '})();\n<\/script>\n</body>\n</html>';
   const i = GARITA_TEMPLATE.lastIndexOf('</body>');
   return (i === -1 ? GARITA_TEMPLATE : GARITA_TEMPLATE.slice(0, i)) + inject;
 }
 
+// Impresión sin el encabezado y pie del navegador (fecha, título, dirección blob:, n.º de página):
+// la hoja no deja margen para ellos (@page margin 0) y el margen real lo ponen la tabla marco
+// (encabezado y pie vacíos que Chrome repite en cada hoja) y el relleno lateral del body.
+const PRINT_FRAME = '<style id="pf-style">@page{margin:0}' +
+  '@media screen{table.pf,table.pf>tbody,table.pf>tbody>tr,table.pf>tbody>tr>td{display:block}table.pf>thead,table.pf>tfoot{display:none}}' +
+  '@media print{html,body{margin:0!important}body{padding:0 10mm!important}table.pf{width:100%;border-collapse:collapse;border:0}table.pf td{padding:0;border:0}table.pf>thead td,table.pf>tfoot td{height:10mm}}</style>' +
+  '<script>function pfWrap(){if(document.querySelector("table.pf"))return;var t=document.createElement("table");t.className="pf";' +
+  't.innerHTML="<thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td></td></tr></tbody>";' +
+  'var td=t.tBodies[0].rows[0].cells[0];Array.prototype.slice.call(document.body.childNodes).forEach(function(n){if(n.nodeName!=="SCRIPT"&&n.nodeName!=="STYLE")td.appendChild(n);});' +
+  'document.body.insertBefore(t,document.body.firstChild);}window.addEventListener("beforeprint",pfWrap);<\/script>';
 function citaData(g, hora, placa) {
   return {
     lugar: LUGAR_VALUE, fecha: state.fecha, vendor: g.vendor, hora: hora, empresa: EMPRESA, cita: g.cita, placa: placa,
@@ -521,9 +531,9 @@ async function generarPdfTodas(list, btn) {
     for (const it of list) snaps.push(await snapshotCita(citaData(it.g, it.hora, it.placa)));
     const title = safeName('QR Garita - ' + dmy(state.fecha) + ' - ' + list.map(it => 'Cita ' + it.g.cita).join(' y '));
     const html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' + snaps[0].styles +
-      '<style>.hoja{break-after:page;page-break-after:always}.hoja:last-child{break-after:auto;page-break-after:auto}@media screen{.hoja{margin-bottom:28px}}</style></head><body>' +
+      '<style>.hoja{break-after:page;page-break-after:always}.hoja:last-child{break-after:auto;page-break-after:auto}@media screen{.hoja{margin-bottom:28px}}</style>' + PRINT_FRAME + '</head><body>' +
       snaps.map(sn => '<div class="hoja">' + sn.page + '</div>').join('') +
-      '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>';
+      '<script>window.onload=function(){setTimeout(function(){pfWrap();window.print();},400);};<\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close();
   } catch (e) {
     w.close(); toast('No se pudo armar el PDF combinado: ' + (e.message || e));

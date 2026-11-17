@@ -26,13 +26,13 @@ button{font:inherit;cursor:pointer}
 .app{display:grid;grid-template-columns:var(--rail) 1fr;height:100vh;height:100dvh}
 
 /* ── Rail ─────────────────────────────────────── */
-.rail{background:var(--ink);color:#dfe7f5;display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top,0px)) 0 calc(14px + env(safe-area-inset-bottom,0px));min-height:0}
-.brand{display:flex;align-items:center;gap:11px;padding:0 18px 18px;border-bottom:1px solid var(--ink-line);margin-bottom:10px}
-.brand img{width:38px;height:38px;border-radius:9px}
-.brand b{display:block;font-size:16px;font-weight:700;color:#fff;letter-spacing:.1px}
-.brand span{display:block;font-size:12px;color:#93a6c6}
+.rail{background:var(--ink);color:#dfe7f5;display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 0 calc(10px + env(safe-area-inset-bottom,0px));min-height:0}
+.brand{display:flex;align-items:center;gap:9px;padding:0 16px 9px;border-bottom:1px solid var(--ink-line);margin-bottom:6px}
+.brand img{width:28px;height:28px;border-radius:7px}
+.brand b{display:block;font-size:14px;font-weight:700;color:#fff;letter-spacing:.1px;line-height:1.2}
+.brand span{display:block;font-size:11px;color:#93a6c6;line-height:1.2}
 .nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
-.nav-item{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;color:#cfdaee;padding:9px 10px;border-radius:9px}
+.nav-item{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;color:#cfdaee;padding:5px 10px;border-radius:9px}
 .nav-item:hover{background:var(--ink-2);color:#fff}
 .nav-item[aria-current="page"]{background:var(--ink-2);color:#fff}
 .nav-item[aria-current="page"]::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:4px;border-radius:0 3px 3px 0;background:var(--spark)}
@@ -44,7 +44,38 @@ button{font:inherit;cursor:pointer}
 .nav-txt small{display:block;font-size:11.5px;color:#8ea1c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav-live{width:7px;height:7px;border-radius:50%;background:#4ade80;flex:0 0 7px;display:none}
 .nav-item.alive .nav-live{display:block}
-.nav-sep{height:1px;background:var(--ink-line);margin:10px 8px}
+.nav-sep{height:1px;background:var(--ink-line);margin:5px 8px}
+.rail{overflow-y:auto;scrollbar-width:thin;scrollbar-color:#24406b transparent}
+.rail > *{flex-shrink:0}
+.rail-box{margin:10px 12px 0;padding:8px 10px 7px;border:1px solid var(--ink-line);border-radius:10px;background:#112a4f}
+.rb-h{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-weight:700;color:#9fb2d3;letter-spacing:.3px;margin-bottom:4px}
+.rb-h button{background:none;border:0;color:#cfdaee;font-size:15px;line-height:1;padding:0 6px;border-radius:5px}
+.rb-h button:hover{background:#1b3560;color:#fff}
+.rb-h button.spin{animation:rbspin .8s linear infinite}
+@keyframes rbspin{to{transform:rotate(360deg)}}
+.rb-empty{font-size:11.5px;color:#8ea1c2;line-height:1.4}
+.rb-day{font-size:11px;font-weight:700;color:#fff;margin:5px 0 1px}
+.rb-day:first-of-type{margin-top:0}
+.rb-day.hoy{color:var(--spark)}
+.rb-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;white-space:nowrap;font-size:11px;color:#dfe7f5;font-variant-numeric:tabular-nums;padding:1px 0}
+.rb-row span:first-child{color:#9fb2d3}
+.rb-row .nc{color:#f5b8b0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-variant-numeric:tabular-nums}
+.cal-grid .wd{font-size:10px;color:#7f93b6;font-weight:700;padding-bottom:2px}
+.cal-grid .d{position:relative;font-size:11px;color:#dfe7f5;padding:3px 0 4px;border-radius:6px}
+.cal-grid .d.out{color:#4f6489}
+.cal-grid .d.we{color:#9fb2d3}
+.cal-grid .d.hoy{background:var(--spark);color:var(--ink);font-weight:800}
+.cal-grid .d[class*="p-"]::after{content:"";position:absolute;left:50%;bottom:0;width:5px;height:5px;margin-left:-2.5px;border-radius:50%}
+.cal-grid .d.p-ok::after{background:#4ade80}
+.cal-grid .d.p-calc::after{background:#ffc220}
+.cal-grid .d.p-pend::after{background:#ff5a4f}
+.cal-grid .d.hoy.p-ok::after{background:#0f7a2e}
+.cal-grid .d.hoy.p-calc::after{background:#9a6a00}
+.cal-ley{display:flex;justify-content:space-between;gap:4px;margin-top:6px;font-size:9.5px;color:#9fb2d3}
+.cal-ley i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px;vertical-align:1px}
+.cal-ley i.ok{background:#4ade80}.cal-ley i.calc{background:#ffc220}.cal-ley i.pend{background:#ff5a4f}
+.cal-hoy{display:block;margin:6px auto 0;background:none;border:0;color:#9fb2d3;font-size:11px;text-decoration:underline;cursor:pointer}
 .rail-foot{margin-top:auto;padding:12px 18px 0;font-size:12px;color:#8ea1c2;display:flex;flex-direction:column;gap:8px}
 .net{display:flex;align-items:center;gap:7px}
 .net i{width:8px;height:8px;border-radius:50%;background:#4ade80}
@@ -173,6 +204,19 @@ button{font:inherit;cursor:pointer}
 .dropbox{border:1.5px dashed #c7d0e0;border-radius:10px;padding:14px;text-align:center;font-size:13.5px;color:var(--muted);cursor:pointer}
 .dropbox.over,.dropbox:hover{border-color:var(--blue);background:#f7f9ff;color:var(--blue)}
 .send-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.via-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.via-head h2{margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;padding:3px;background:#f3f6fb}
+.seg button{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:600;padding:6px 16px;border-radius:7px;color:var(--muted);cursor:pointer}
+.seg button[aria-selected="true"]{background:#fff;color:var(--text);box-shadow:0 1px 2px rgba(15,23,42,.12)}
+.gsetup ol{margin:6px 0 10px;padding-left:20px;font-size:13.5px;line-height:1.6}
+.gorig{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;margin:4px 0 10px}
+.gorig code{background:#f3f6fb;border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:13.5px}
+.gcid{display:flex;gap:8px;flex-wrap:wrap}
+.gcid input{flex:1;min-width:280px;font:inherit;font-size:14px;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px}
+.gcid input:focus{outline:none;border-color:var(--blue)}
+.okbox{background:#f1f9ee;border:1px solid #cde8c2;color:#245b12;border-radius:9px;padding:10px 14px;font-size:13.5px;margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.gstat{font-size:13px;color:var(--muted);margin-top:10px}
 .btn.big{padding:11px 18px;font-size:15px}
 .hint{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:75ch}
 .warnbox{background:#fff8eb;border:1px solid #f6d9a4;color:#7a4300;border-radius:9px;padding:10px 14px;font-size:13.5px;margin-bottom:14px}
@@ -193,9 +237,26 @@ button{font:inherit;cursor:pointer}
 .envtab tr.dif td{background:#fffcf3}
 .envtab tr.dif td.sug{background:#fff3d6}
 .envtab .mut{color:var(--muted);font-size:12px}
+.envtab td.fmt{font-weight:600;text-align:center}
 .envtab .mot{color:var(--muted);font-size:12.5px;white-space:normal;min-width:220px}
 #envio .mail, #envio{max-width:none}
 .envtab th.envh{background:#fff3c4}
+.envtab th[draggable="true"]{cursor:grab;user-select:none}
+.envtab td.tdtienda{white-space:nowrap}
+.envtab .full-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0;background:transparent}
+.envtab tr.full .full-dot{background:#1f9d55;box-shadow:0 0 0 2px #d6f2e0}
+.envtab tbody tr.solo td{background:#fff1e3}
+.envtab tr.solo td.tdtienda{box-shadow:inset 3px 0 0 #e8740c}
+.solobox{background:#fff4e8;border:1px solid #f3c99b;color:#7a3e00;border-radius:9px;padding:10px 14px;font-size:13.5px;margin:12px 0 0}
+.solo-list{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px}
+.fr-rampa{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+.fr-rampa input{width:72px;font:inherit;padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;text-align:center}
+.envtab td.tdtienda .fmt{font-weight:700}
+.envtab th[draggable="true"]:hover{box-shadow:inset 0 -2px 0 #9fb2d3}
+.envtab th.dragging{opacity:.45}
+.envtab th.drop-l{box-shadow:inset 3px 0 0 var(--blue)}
+.envtab th.drop-r{box-shadow:inset -3px 0 0 var(--blue)}
+.linkbtn{background:none;border:0;padding:0;color:var(--blue);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 .envtab td.envc{padding:3px 6px;background:#fffbea}
 .env-in{width:74px;font:inherit;font-size:14px;font-weight:700;text-align:right;padding:5px 7px;border:1.5px solid #e2c56b;border-radius:7px;background:#fff;color:var(--text);font-variant-numeric:tabular-nums}
 .env-in:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,83,226,.18)}
@@ -218,8 +279,15 @@ button{font:inherit;cursor:pointer}
 .itemsum thead th.lbl{background:#f3f6fb}
 .itemsum tr.rs td,.itemsum tr.rf td{color:var(--text);border-bottom:1px solid #edf0f5}
 .itemsum tr.rf td{color:var(--muted)}
-.envtab th.dev{color:var(--bad)}
-.envtab td.dev{color:var(--bad);font-weight:600}
+.envtab th.dev{color:var(--bad);background:#fbd9d6}
+.envtab td.dev{color:var(--bad);font-weight:600;background:#fdeceb}
+.envtab th.vta{background:#cfeec4}
+.envtab td.vta{background:#ecf8e7}
+.envtab tr.mod td.vta{background:#e3f3dc}
+.envtab tr.mod td.dev{background:#fbe3e1}
+.envtab tbody tr:last-child td{border-bottom:4px double #1d2229}
+.envtab tfoot td.fin{text-align:center;font-size:12.5px;font-weight:600;color:#5f6b7d;background:#eef1f6;padding:9px;border-bottom:0;letter-spacing:.2px}
+.envtab{border-bottom:3px solid #1d2229}
 .itemsum tr.re td{font-weight:700;background:#fffbea}
 .itemsum tr.re th.lbl{background:#fff3c4;color:var(--text)}
 .itemsum tr.re td.dif{background:#ffe08a}
@@ -227,6 +295,7 @@ button{font:inherit;cursor:pointer}
 .itemsum .tot{font-weight:800;background:#eef2f8;border-left:1.5px solid var(--line)}
 .itemsum tr.re td.tot{background:#fff3c4}
 .sumbar{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fffbea;border-color:#f0d27a}
+.sumbar.frag{background:#f4f7fe;border-color:#cdd9f3}
 dialog:has(.resdlg){max-width:min(1060px,96vw)}
 .resbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px}
 .resbar input{font:inherit;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px}
@@ -264,7 +333,8 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:1fr auto}
   .rail{order:2;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ink-line)}
-  .brand,.nav-sep,.rail-foot{display:none}
+  .brand,.nav-sep,.rail-foot,.rail-box{display:none}
+  .rail{overflow:visible}
   .nav{flex-direction:row;flex:1;padding:0;gap:2px}
   .nav-item{flex:1;flex-direction:column;gap:3px;padding:6px 2px;align-items:center;text-align:center}
   .nav-item[aria-current="page"]::before{left:20%;right:20%;top:-6px;bottom:auto;width:auto;height:3px;border-radius:0 0 3px 3px}
@@ -288,6 +358,8 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
       <div><b>Envíos al CD</b><span>PANISA · CEDI Walmart</span></div>
     </div>
     <div class="nav" id="nav"></div>
+    <div class="rail-box" id="rail-entregas" aria-label="Próximas entregas"></div>
+    <div class="rail-box" id="rail-cal" aria-label="Calendario"></div>
     <div class="rail-foot">
       <button class="rail-btn spark hidden" id="btn-update">Actualizar a la versión nueva</button>
       <button class="rail-btn hidden" id="btn-install">Instalar la app</button>
@@ -331,7 +403,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.13</div>
+<div class="ver" aria-label="Versión de la app">V.2026.27</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -386,9 +458,10 @@ const KINDS = {
   controloc: { label:'Control OC FBD POD', help:'Se actualiza a diario · garita, cita del pedido y correo', ext:['xlsx','xlsm'], tool:'garita', input:'file-xlsx', staleDays:1, also:{ ingreso:'file-ctrl' } },
 };
 const HAS_DIR = 'showDirectoryPicker' in window;
-if (HAS_DIR) KINDS.calculos = { label:'Carpeta de cálculos de envío', help:'Los Excel tipo "07_Octubre_2026_Panisa_2.xlsm" (pestaña OC Table)', dir:true, tool:'sugerido', staleDays:null };
+if (HAS_DIR) KINDS.calculos = { label:'Carpeta de cálculos de envío', help:'Los Excel tipo "11_02 Noviembre 2026 PANISA 1.xlsm" (pestaña OC Table)', dir:true, tool:'sugerido', staleDays:null };
+if (HAS_DIR) KINDS.pdfs = { label:'Carpeta de PDF completos', help:'Donde se guarda la Hoja para Fragua (PDF) que se arma en Sugerido envío', dir:true, write:true, tool:'sugerido', staleDays:null };
 if (HAS_DIR) KINDS.carpeta = { label:'Carpeta de archivos generados', help:'Donde guardás los PDF de QR y el Excel del Generador QR Entrega', dir:true, tool:'correo', staleDays:null };
-const KIND_ORDER = ['cdpanisa','inventario','generador','controloc'].concat(HAS_DIR ? ['carpeta','calculos'] : []);
+const KIND_ORDER = ['cdpanisa','inventario','generador','controloc'].concat(HAS_DIR ? ['carpeta','calculos','pdfs'] : []);
 
 // ═════════════ Utilidades ═════════════
 const $ = id => document.getElementById(id);
@@ -495,10 +568,11 @@ async function pickFile(kind) {
 }
 async function linkTemplate(kind, existingId) {
   if (KINDS[kind].dir) {
-    let h; try { h = await window.showDirectoryPicker({ id:'envios-cd-' + kind, mode:'read' }); } catch (e) { return; }
+    let h; try { h = await window.showDirectoryPicker({ id:'envios-cd-' + kind, mode: KINDS[kind].write ? 'readwrite' : 'read' }); } catch (e) { return; }
     const cur = templates.find(t => t.kind === kind);
     await DB.put({ id: cur ? cur.id : kind, kind, name:h.name, mode:'dir', handle:h, lastModified:Date.now(), linkedAt:Date.now(), size:0 });
     await loadTemplates(); renderHome(); refreshBars(); if (current === 'correo') renderCorreo(); if (current === 'sugerido') openEnvio(true);
+    if (kind === 'calculos') loadRailData(true);
     toast('Carpeta "' + h.name + '" vinculada.');
     return;
   }
@@ -520,6 +594,7 @@ async function linkTemplate(kind, existingId) {
     const cur = templates.find(t => t.kind === kind); if (cur) rec.id = cur.id;
   }
   await DB.put(rec); await loadTemplates(); renderHome(); refreshBars();
+  if (kind === 'controloc') { mail.dataKey = ''; loadRailData(true); }
   toast((rec.vendor ? 'Plantilla del vendor ' + rec.vendor : KINDS[kind].label) + ' vinculada.');
 }
 async function unlinkTemplate(id) {
@@ -1071,6 +1146,9 @@ async function setMailDate(fecha, src, interactive) {
 async function renderCorreo() {
   const f = mail.fields, data = mail.data; if (!f || !data) return;
   const from = (await DB.get('mailFrom').catch(() => null)) || MAIL_FROM_DEFAULT;
+  const via = mail.via || (mail.via = (await DB.get('mailVia').catch(() => null)) || 'outlook');
+  if (gmail.clientId === undefined) gmail.clientId = (await DB.get('gmailClientId').catch(() => null)) || null;
+  if (via === 'gmail' && gmail.clientId && gmailOriginOk()) loadGis().catch(() => {});
   const up = upcomingDates(data);
   const sel = selectedAttachments();
   const expect = [];
@@ -1117,11 +1195,15 @@ async function renderCorreo() {
         : '<p class="hint">El Excel que guardes desde Generador QR Entrega queda disponible aquí automáticamente; los PDF de QR agregalos arriba.</p>') +
     '</div>' +
 
-    '<div class="mcard"><h2>Enviar desde Outlook</h2>' +
-      '<div class="send-row"><button class="btn primary big" id="m-eml">Abrir en Outlook con adjuntos</button>' +
-      '<button class="btn big" id="m-copyall">Copiar asunto y cuerpo</button>' +
-      '<button class="btn big" id="m-mailto">Abrir sin adjuntos</button></div>' +
-      '<p class="hint">"Abrir en Outlook" descarga un borrador (.eml) con destinatarios, asunto, cuerpo y ' + sel.length + ' adjunto' + (sel.length === 1 ? '' : 's') + '. Abrilo con doble clic: Outlook lo muestra listo para enviar. Antes de enviar revisá que en <b>De</b> figure ' + esc(from) + '; si no, elegila en ese menú.</p>' +
+    '<div class="mcard"><div class="via-head"><h2>Enviar</h2><div class="seg" role="tablist" aria-label="Enviar con">' +
+      '<button role="tab" data-via="outlook" aria-selected="' + (via === 'outlook') + '">Outlook</button>' +
+      '<button role="tab" data-via="gmail" aria-selected="' + (via === 'gmail') + '">Gmail</button></div></div>' +
+      (via === 'outlook'
+        ? '<div class="send-row"><button class="btn primary big" id="m-eml">Abrir en Outlook con adjuntos</button>' +
+          '<button class="btn big" id="m-copyall">Copiar asunto y cuerpo</button>' +
+          '<button class="btn big" id="m-mailto">Abrir sin adjuntos</button></div>' +
+          '<p class="hint">"Abrir en Outlook" descarga un borrador (.eml) con destinatarios, asunto, cuerpo y ' + sel.length + ' adjunto' + (sel.length === 1 ? '' : 's') + '. Abrilo con doble clic: Outlook lo muestra listo para enviar. Antes de enviar revisá que en <b>De</b> figure ' + esc(from) + '; si no, elegila en ese menú.</p>'
+        : gmailPanelHtml(from, sel.length)) +
     '</div>';
 
   // eventos
@@ -1147,13 +1229,16 @@ async function renderCorreo() {
   drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); };
   const g = $('att-grant'); if (g) g.onclick = async () => { await scanAttachments(true); renderCorreo(); };
   const dd = $('att-dir'); if (dd) dd.onclick = () => linkTemplate('carpeta');
-  $('m-eml').onclick = buildEml;
-  $('m-copyall').onclick = async () => { await copyRich($('m-body').value, $('m-subject').value); toast('Asunto y cuerpo copiados. Pegalos en un correo nuevo de Outlook.'); };
-  $('m-mailto').onclick = () => {
-    const u = 'mailto:' + addrList($('m-to').value).replace(/\s/g, '') +
-      '?cc=' + encodeURIComponent(addrList($('m-cc').value).replace(/\s/g, '')) + '&subject=' + encodeURIComponent(mail.fields.subject) + '&body=' + encodeURIComponent(mail.fields.body);
-    location.href = u;
-  };
+  document.querySelectorAll('#mail [data-via]').forEach(b => b.onclick = () => { mail.via = b.dataset.via; DB.set('mailVia', mail.via); renderCorreo(); });
+  if (via === 'outlook') {
+    $('m-eml').onclick = buildEml;
+    $('m-copyall').onclick = async () => { await copyRich($('m-body').value, $('m-subject').value); toast('Asunto y cuerpo copiados. Pegalos en un correo nuevo de Outlook.'); };
+    $('m-mailto').onclick = () => {
+      const u = 'mailto:' + addrList($('m-to').value).replace(/\s/g, '') +
+        '?cc=' + encodeURIComponent(addrList($('m-cc').value).replace(/\s/g, '')) + '&subject=' + encodeURIComponent(mail.fields.subject) + '&body=' + encodeURIComponent(mail.fields.body);
+      location.href = u;
+    };
+  } else wireGmailPanel();
 }
 const scanAttachmentsManual = () => scanAttachments(false);
 
@@ -1179,19 +1264,29 @@ const addrList = s => String(s || '').split(/[;,]/).map(x => x.trim()).filter(Bo
 function mimeOf(name) { return /\.pdf$/i.test(name) ? 'application/pdf' : /\.xlsx$/i.test(name) ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/octet-stream'; }
 
 async function buildEml() {
+  const m = await buildMime(false); if (!m) return;
+  const name = (m.subject || 'Correo').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 120) + '.eml';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(m.blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  toast('Borrador descargado: abrilo con doble clic para que Outlook lo muestre listo para enviar.', 6500);
+}
+
+// Arma el correo completo (MIME). forGmail: sin la marca de borrador de Outlook.
+async function buildMime(forGmail) {
   const F = mail.fields;
   const from = $('m-from').value.trim() || MAIL_FROM_DEFAULT;
   const to = addrList($('m-to').value), cc = addrList($('m-cc').value);
   const subject = $('m-subject').value, body = $('m-body').value;
-  if (!to) { toast('Falta el destinatario (Para).'); return; }
+  if (!to) { toast('Falta el destinatario (Para).'); return null; }
   const atts = selectedAttachments();
   const missing = [];
   F.ocs.forEach(oc => { if (!atts.some(a => a.type === 'qr' && a.oc === oc)) missing.push('QR de la OC ' + oc); });
   if (F.ocs.length && !F.ocs.every(oc => atts.some(a => a.type === 'cons' && a.ocs.includes(oc)))) missing.push('el Consolidado (Generador QR)');
-  if (missing.length && !(await confirmDlg('Faltan adjuntos', 'Falta ' + missing.join(', ') + '. ¿Armar el correo de todas formas?', 'Armar igual'))) return;
+  if (missing.length && !(await confirmDlg('Faltan adjuntos', 'Falta ' + missing.join(', ') + '. ¿Armar el correo de todas formas?', 'Armar igual'))) return null;
   const b1 = '----=_EnviosCD_' + Date.now().toString(36), b2 = b1 + '_alt';
   const L = [];
-  L.push('X-Unsent: 1', 'From: ' + from, 'To: ' + to);
+  if (!forGmail) L.push('X-Unsent: 1');
+  L.push('From: ' + from, 'To: ' + to);
   if (cc) L.push('Cc: ' + cc);
   L.push('Subject: ' + encWord(subject), 'Date: ' + new Date().toUTCString(), 'MIME-Version: 1.0',
     'Content-Type: multipart/mixed; boundary="' + b1 + '"', '', 'This is a multi-part message in MIME format.', '',
@@ -1206,12 +1301,149 @@ async function buildEml() {
       'Content-Disposition: attachment; filename="' + nm + '"', '', b64Bytes(bytes), '');
   }
   L.push('--' + b1 + '--', '');
-  const blob = new Blob([L.join('\r\n')], { type:'message/rfc822' });
-  const name = (subject || 'Correo').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 120) + '.eml';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-  toast('Borrador descargado: abrilo con doble clic para que Outlook lo muestre listo para enviar.', 6500);
+  return { blob: new Blob([L.join('\r\n')], { type:'message/rfc822' }), subject, count: atts.length };
 }
+
+// ── Gmail: crea un borrador con adjuntos usando la API de Gmail ──
+// Inicio de sesión con Google Identity Services (solo en el navegador, sin servidor).
+// Permiso pedido: crear borradores (gmail.compose). El token vive solo en memoria.
+const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.compose';
+const gmail = { clientId: undefined, token: null, exp: 0, email: '', lastDraft: null, loading: null, client: null, clientKey: '', pending: null, busy: false, editId: false };
+const gmailOriginOk = () => location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const gmailHasToken = () => !!gmail.token && Date.now() < gmail.exp - 60000;
+
+function loadGis() {
+  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  if (!gmail.loading) gmail.loading = new Promise((res, rej) => {
+    const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+    sc.onload = () => res();
+    sc.onerror = () => { gmail.loading = null; sc.remove(); rej(new Error('No se pudo cargar el inicio de sesión de Google. Revisá la conexión a internet.')); };
+    document.head.appendChild(sc);
+  });
+  return gmail.loading;
+}
+
+// Debe llamarse directo desde el clic (sin esperas antes) para que el navegador no bloquee la ventana de Google
+function gmailToken(hint) {
+  return new Promise((res, rej) => {
+    if (gmailHasToken()) return res(gmail.token);
+    if (!(window.google && google.accounts && google.accounts.oauth2)) return rej(new Error('El inicio de sesión de Google todavía está cargando. Esperá un momento y volvé a tocar el botón.'));
+    const key = gmail.clientId + '|' + hint;
+    if (!gmail.client || gmail.clientKey !== key) {
+      gmail.client = google.accounts.oauth2.initTokenClient({
+        client_id: gmail.clientId, scope: GMAIL_SCOPE, login_hint: hint,
+        callback: r => gmail.pending && gmail.pending.ok(r),
+        error_callback: e => gmail.pending && gmail.pending.err(e)
+      });
+      gmail.clientKey = key;
+    }
+    gmail.pending = {
+      ok: r => {
+        gmail.pending = null;
+        if (r.error) return rej(new Error(r.error === 'access_denied' ? 'No se dio permiso en Google.' : 'Google respondió: ' + (r.error_description || r.error)));
+        if (!google.accounts.oauth2.hasGrantedAllScopes(r, GMAIL_SCOPE)) return rej(new Error('Falta el permiso para crear borradores. Volvé a intentarlo y dejá marcada la casilla de Gmail.'));
+        gmail.token = r.access_token; gmail.exp = Date.now() + (+r.expires_in || 3600) * 1000; res(r.access_token);
+      },
+      err: e => {
+        gmail.pending = null;
+        rej(new Error(e && e.type === 'popup_closed' ? 'Se cerró la ventana de Google antes de terminar.'
+          : e && e.type === 'popup_failed_to_open' ? 'El navegador bloqueó la ventana de Google. Permití las ventanas emergentes para esta página y volvé a intentarlo.'
+          : 'No se pudo iniciar sesión con Google (' + ((e && e.type) || 'error') + ').'));
+      }
+    };
+    try { gmail.client.requestAccessToken(); } catch (e) { gmail.pending = null; rej(e); }
+  });
+}
+
+async function gmailFetch(url, opts) {
+  const r = await fetch(url, { ...opts, headers: { ...(opts && opts.headers), Authorization: 'Bearer ' + gmail.token } });
+  if (r.ok) return r.json();
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  const er = j.error || {}, reason = ((er.errors || [])[0] || {}).reason || (er.details || []).map(d => d.reason).join(' ') || er.status || '';
+  if (r.status === 401) { gmail.token = null; throw new Error('La sesión de Google venció. Tocá de nuevo "Crear borrador en Gmail".'); }
+  if (/accessNotConfigured|SERVICE_DISABLED/i.test(reason) || /has not been used|is disabled/i.test(er.message || '')) throw new Error('La API de Gmail no está activada en tu proyecto de Google Cloud (paso 2 de la guía).');
+  if (r.status === 403) { gmail.token = null; throw new Error('Google no dio permiso para crear el borrador (' + (er.message || reason || '403') + ').'); }
+  if (r.status === 413) throw new Error('El correo con los adjuntos es demasiado grande para Gmail (máximo 25 MB).');
+  throw new Error('Gmail respondió ' + r.status + (er.message ? ': ' + er.message : '') + '.');
+}
+
+const gmailDraftUrl = (email, msgId) => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(email || '') + '#drafts?compose=' + encodeURIComponent(msgId);
+
+async function gmailCreateDraft() {
+  if (gmail.busy) return;
+  const hint = ($('m-from').value || '').trim() || MAIL_FROM_DEFAULT;
+  const tokP = gmailToken(hint); // se inicia dentro del clic
+  const btn = $('g-draft');
+  try {
+    await tokP;
+    const m = await buildMime(true); if (!m) return;
+    gmail.busy = true; if (btn) { btn.disabled = true; btn.textContent = 'Creando borrador…'; }
+    const d = await gmailFetch('https://gmail.googleapis.com/upload/gmail/v1/users/me/drafts?uploadType=media', { method: 'POST', headers: { 'Content-Type': 'message/rfc822' }, body: m.blob });
+    if (!gmail.email) { try { gmail.email = (await gmailFetch('https://gmail.googleapis.com/gmail/v1/users/me/profile')).emailAddress || ''; } catch (e) {} }
+    const msgId = (d.message && d.message.id) || d.id;
+    gmail.lastDraft = { url: gmailDraftUrl(gmail.email || hint, msgId), at: Date.now(), count: m.count, subject: m.subject };
+    const w = window.open(gmail.lastDraft.url, '_blank'); if (w) { try { w.opener = null; } catch (e) {} }
+    toast(w ? 'Borrador creado en Gmail. Revisalo y tocá Enviar.' : 'Borrador creado en Gmail. Tocá "Abrir borrador en Gmail".', 6500);
+  } catch (e) {
+    toast(e.message || String(e), 8000);
+  } finally {
+    gmail.busy = false; renderCorreo();
+  }
+}
+
+function gmailComposeUrl(from) {
+  const q = new URLSearchParams({ view: 'cm', fs: '1', to: addrList($('m-to').value), cc: addrList($('m-cc').value), su: $('m-subject').value, body: $('m-body').value });
+  return 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(from) + '&' + q.toString();
+}
+
+function gmailPanelHtml(from, nAtt) {
+  const origin = location.origin;
+  if (!gmail.clientId || gmail.editId) {
+    return '<div class="gsetup">' +
+      (gmail.clientId ? '' : '<p class="sub" style="margin:0 0 6px">Para crear el borrador directamente en Gmail, con los adjuntos, hay que conectar la app con Google una sola vez.</p>') +
+      '<ol><li>Creá el <b>ID de cliente</b> en Google Cloud siguiendo la guía paso a paso.</li>' +
+      '<li>Cuando Google te pida los <b>orígenes autorizados de JavaScript</b>, usá esta dirección:</li></ol>' +
+      (gmailOriginOk()
+        ? '<div class="gorig"><code id="g-origin">' + esc(origin) + '</code><button class="btn copy" id="g-origin-copy">Copiar</button></div>'
+        : '<div class="warnbox" style="margin:8px 0">Gmail solo funciona con la app abierta desde su dirección web (por ejemplo, la de GitHub Pages que empieza con https://). Así como está abierta ahora (' + esc(location.protocol.replace(':', '')) + ') Google no permite iniciar sesión.</div>') +
+      '<ol start="3"><li>Pegá aquí el ID de cliente que te da Google:</li></ol>' +
+      '<div class="gcid"><input id="g-cid" placeholder="123456789012-abc123.apps.googleusercontent.com" value="' + esc(gmail.clientId || '') + '" spellcheck="false" autocomplete="off">' +
+      '<button class="btn primary" id="g-cid-save">Guardar</button>' + (gmail.clientId ? '<button class="btn" id="g-cid-cancel">Cancelar</button>' : '') + '</div>' +
+      '</div>';
+  }
+  const ld = gmail.lastDraft;
+  return '<div class="send-row"><button class="btn primary big" id="g-draft"' + (gmailOriginOk() ? '' : ' disabled') + '>Crear borrador en Gmail con adjuntos</button>' +
+      '<button class="btn big" id="m-copyall">Copiar asunto y cuerpo</button>' +
+      '<button class="btn big" id="g-compose">Abrir en Gmail sin adjuntos</button></div>' +
+    (ld ? '<div class="okbox"><span>✓ Borrador creado a las ' + esc(new Date(ld.at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })) + ' con ' + ld.count + ' adjunto' + (ld.count === 1 ? '' : 's') + '.</span><a class="btn" href="' + esc(ld.url) + '" target="_blank" rel="noopener">Abrir borrador en Gmail</a></div>' : '') +
+    (gmailOriginOk() ? '' : '<div class="warnbox" style="margin:12px 0 0">Abrí la app desde su dirección web (https://) para usar Gmail.</div>') +
+    '<p class="hint">Crea el borrador en Gmail con destinatarios, asunto, cuerpo y ' + nAtt + ' adjunto' + (nAtt === 1 ? '' : 's') + ', y lo abre para que lo revises. <b>Nada se envía solo</b>: el envío lo hacés vos desde Gmail. Si no se abre directo, lo encontrás primero en <b>Borradores</b>.</p>' +
+    '<div class="gstat">' + (gmail.email && gmailHasToken() ? 'Conectado como <b>' + esc(gmail.email) + '</b> · <button class="linkbtn" id="g-logout">Desconectar</button>'
+      : 'La primera vez Google te pide elegir la cuenta (' + esc(from) + ') y dar permiso para crear borradores.') +
+      ' · ID de cliente …' + esc(String(gmail.clientId).split('.')[0].slice(-6)) + ' <button class="linkbtn" id="g-cid-edit">Cambiar</button></div>';
+}
+
+function wireGmailPanel() {
+  const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+  on('g-origin-copy', async () => { await navigator.clipboard.writeText(location.origin); $('g-origin-copy').textContent = 'Copiado'; setTimeout(() => { const b = $('g-origin-copy'); if (b) b.textContent = 'Copiar'; }, 1400); });
+  on('g-cid-save', async () => {
+    const v = ($('g-cid').value || '').trim();
+    if (!/^[\w-]+\.apps\.googleusercontent\.com$/.test(v)) { toast('Ese no parece un ID de cliente de Google. Termina en ".apps.googleusercontent.com".', 6500); return; }
+    gmail.clientId = v; gmail.editId = false; gmail.token = null; gmail.email = ''; gmail.client = null;
+    await DB.set('gmailClientId', v); loadGis().catch(() => {}); renderCorreo(); toast('ID de cliente guardado. Ya podés crear el borrador en Gmail.');
+  });
+  on('g-cid-cancel', () => { gmail.editId = false; renderCorreo(); });
+  on('g-cid-edit', () => { gmail.editId = true; renderCorreo(); });
+  on('g-draft', gmailCreateDraft);
+  on('g-compose', () => window.open(gmailComposeUrl(($('m-from').value || '').trim() || MAIL_FROM_DEFAULT), '_blank', 'noopener'));
+  on('m-copyall', async () => { await copyRich($('m-body').value, $('m-subject').value); toast('Asunto y cuerpo copiados.'); });
+  on('g-logout', () => {
+    const t = gmail.token; gmail.token = null; gmail.email = ''; gmail.lastDraft = null;
+    try { if (t) google.accounts.oauth2.revoke(t, () => {}); } catch (e) {}
+    renderCorreo(); toast('Gmail desconectado en esta app.');
+  });
+}
+
 
 $('mail-reload').onclick = () => { mail.dataKey = ''; mail.data = null; openCorreo(true); };
 
@@ -1231,12 +1463,22 @@ const VENDOR_SUFFIX = { '240502811':'1', '240502812':'2' };
 const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const env = { params:{ ...ENVIO_DEFAULTS }, files:[], picked:null, results:[], filterItem:'', onlyDiff:false, sort:'tienda', manual:[] };
 
+// Nombres aceptados para los Excel de cálculo:
+//   nuevo:  "11_02 Noviembre 2026 PANISA 1.xlsm"  (MM_DD Mes AAAA PANISA N)
+//   viejo:  "07_Octubre_2026_Panisa_2.xlsm"       (DD_Mes_AAAA_Panisa_N)
 function parseCalcName(name) {
-  const m = /^(\d{1,2})[_\s-]+([a-záéíóúñ]+)[_\s-]+(\d{4})[_\s-]+panisa[_\s-]*(\d)/i.exec(name.normalize('NFC'));
+  const n = name.normalize('NFC');
+  const mesIdx = txt => { let m = txt.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (m === 'setiembre') m = 'septiembre'; return MESES_ES.indexOf(m); };
+  let m = /^(\d{1,2})[_\s.-]+(\d{1,2})[_\s.-]+([a-záéíóúñ]+)[_\s.-]+(\d{4})[_\s.-]+panisa[_\s.-]*(\d)/i.exec(n);
+  if (m) {
+    const mi = mesIdx(m[3]);
+    const mm = mi >= 0 ? mi + 1 : +m[1];   // si el número y el nombre del mes no coinciden, manda el nombre
+    if (mm < 1 || mm > 12 || +m[2] < 1 || +m[2] > 31) return null;
+    return { fecha: m[4] + '-' + String(mm).padStart(2, '0') + '-' + String(m[2]).padStart(2, '0'), suf: m[5] };
+  }
+  m = /^(\d{1,2})[_\s.-]+([a-záéíóúñ]+)[_\s.-]+(\d{4})[_\s.-]+panisa[_\s.-]*(\d)/i.exec(n);
   if (!m) return null;
-  let mes = m[2].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  if (mes === 'setiembre') mes = 'septiembre';
-  const mi = MESES_ES.indexOf(mes); if (mi < 0) return null;
+  const mi = mesIdx(m[2]); if (mi < 0) return null;
   return { fecha: m[3] + '-' + String(mi + 1).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0'), suf: m[4] };
 }
 const xmlDecode = s => String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
@@ -1314,7 +1556,7 @@ async function readCalcWorkbook(file) {
     ['T','U','V','W','X'].forEach(c => { prev = prev + 1 > 30 ? 1 : prev + 1; dayCols[c] = prev; });
     dayCols.AA = ab2 - 1 > 30 ? 2 : ab2 - 1;
   }
-  const COLS = ['A','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','AA','AB','AD'];
+  const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','AA','AB','AD'];
   const data = [];
   const iFormulaRows = [];
   for (const [rn, cells] of rows.entries()) {
@@ -1327,7 +1569,14 @@ async function readCalcWorkbook(file) {
     rec._hStatic = !!hRaw && !/<f\b/.test(hRaw) && /<v>/.test(hRaw);
     data.push(rec);
   }
-  return { file, bytes, entries, workbookXml, relsXml, nameToPath, ocPath, ocXml, data, dayCols, iFormulaRows, stale, form, sheetName: ocName };
+  // Lectura de otra hoja del mismo archivo (para la Hoja para Fragua)
+  const readSheet = async nm => {
+    const key = Object.keys(nameToPath).find(n => n.trim().toLowerCase() === nm.toLowerCase());
+    if (!key) return null;
+    const srows = w.parseAllRows(await readText(nameToPath[key]));
+    return { rows: srows, get: ref => { const m = /^([A-Z]+)(\d+)$/.exec(ref); const row = srows.get(+m[2]); return row ? val(row.get(ref)) : null; } };
+  };
+  return { file, bytes, entries, workbookXml, relsXml, nameToPath, ocPath, ocXml, data, dayCols, iFormulaRows, stale, form, sheetName: ocName, readSheet };
 }
 
 // ── Cálculo ──
@@ -1509,6 +1758,8 @@ async function writeEnviar(x) {
 
 // ── Vista ──
 async function openEnvio(interactive) {
+  env.colOrder = await DB.get('envioCols').catch(() => null);
+  env.rampa = (await DB.get('fraguaRampa').catch(() => null)) || FR_RAMPA_DEF;
   const saved = await DB.get('envioParams').catch(() => null);
   if (saved) env.params = { ...ENVIO_DEFAULTS, ...saved };
   env.files = await envioFolderFiles(interactive);
@@ -1534,7 +1785,7 @@ function renderEnvio() {
   const opts = ocOptions();
   const pickedLbl = env.picked ? env.picked.label : '';
   box.innerHTML =
-    '<div class="mcard"><h2>¿Qué entrega u OC calculamos?</h2><p class="sub">Escribí el número de OC o elegí la fecha de entrega. Busco el Excel de cálculo (por ejemplo "07_Octubre_2026_Panisa_2.xlsm") en tu carpeta.</p>' +
+    '<div class="mcard"><h2>¿Qué entrega u OC calculamos?</h2><p class="sub">Escribí el número de OC o elegí la fecha de entrega. Busco el Excel de cálculo (por ejemplo "11_02 Noviembre 2026 PANISA 1.xlsm") en tu carpeta.</p>' +
       '<div class="date-line"><input id="env-oc" inputmode="numeric" placeholder="OC, ej. 2301070122" style="font:inherit;font-size:16px;padding:8px 11px;border:1.5px solid var(--blue);border-radius:8px;width:230px" value="' + esc(env.ocQuery || '') + '"><button class="btn primary" id="env-go">Buscar</button>' +
       '<input type="date" id="env-date" value="' + esc(env.fechaQuery || '') + '" style="font:inherit;font-size:15px;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px"></div>' +
       '<div class="dchips" style="margin-top:10px">' +
@@ -1573,7 +1824,7 @@ function findByOc(oc) {
   // Sin Control OC: se busca la OC dentro de los archivos (celda D8 del Formulario de Entrega)
   scanFilesForOc(oc);
 }
-function nameFor(fecha, suf) { const [y, m, d] = fecha.split('-'); const mes = MESES_ES[+m - 1]; return d + '_' + mes[0].toUpperCase() + mes.slice(1) + '_' + y + '_Panisa_' + suf + '.xlsm'; }
+function nameFor(fecha, suf) { const [y, m, d] = fecha.split('-'); const mes = MESES_ES[+m - 1]; return m + '_' + d + ' ' + mes[0].toUpperCase() + mes.slice(1) + ' ' + y + ' PANISA ' + suf + '.xlsm'; }
 async function scanFilesForOc(oc) {
   pickMsg('Buscando la OC ' + esc(oc) + ' dentro de los archivos…');
   for (const f of env.files.slice(0, 20)) {
@@ -1609,7 +1860,7 @@ async function runFor(list, label, ctx = {}, preRead) {
       env.results.push(x);
     } catch (e) { env.results.push({ f, error: e.message || String(e) }); }
   }
-  env.label = label; env.filterItem = '';
+  env.label = label;
   pickMsg('');
   renderEnvioResults();
 }
@@ -1642,6 +1893,7 @@ function itemSummaryHtml(x) {
     if (!by[it]) { by[it] = { f: 0, s: 0, e: 0 }; order.push(it); }
     by[it].f += z.F; by[it].s += z.c.s; by[it].e += envOf(x, z);
   });
+  order.sort(); // mismo orden que los botones de filtro de la tabla
   let tf = 0, ts = 0, te = 0;
   order.forEach(it => { tf += by[it].f; ts += by[it].s; te += by[it].e; });
   const cls = it => by[it].e !== by[it].s ? ' class="dif"' : '';
@@ -1651,6 +1903,19 @@ function itemSummaryHtml(x) {
     '<tr class="re"><th class="lbl">Enviar</th>' + order.map(it => '<td' + cls(it) + '>' + nf(by[it].e) + '</td>').join('') + '<td class="tot">' + nf(te) + '</td></tr>' +
     '</tbody></table>';
 }
+// Tiendas que reciben una sola clave y menos de 5 unidades (poco para una caja)
+const SOLO_MIN = 5;
+function soloCombos(x) {
+  const by = new Map();
+  x.res.rows.forEach(z => { const e = envOf(x, z); if (e > 0) { const k = String(z.r.A); if (!by.has(k)) by.set(k, []); by.get(k).push({ z, e }); } });
+  return Array.from(by.values()).filter(l => l.length === 1 && l[0].e < SOLO_MIN).map(l => l[0]).sort((a, b) => a.z.r.row - b.z.r.row);
+}
+function soloHtml(x, i) {
+  const l = soloCombos(x);
+  if (!l.length) return '<div id="envsolo-' + i + '" hidden></div>';
+  return '<div class="solobox" id="envsolo-' + i + '"><b>' + l.length + (l.length === 1 ? ' tienda recibe' : ' tiendas reciben') + ' una sola clave con menos de ' + SOLO_MIN + ' unidades.</b> Revisá si vale la pena enviarlas (están marcadas en naranja en la tabla):' +
+    '<div class="solo-list">' + l.map(o => '<span>Tienda ' + esc(o.z.r.A) + ' ' + esc(String(o.z.r.B || '').trim()) + ' ' + esc(String(o.z.r.C || '').trim()) + ' · <b>' + esc(o.z.r.E) + ': ' + o.e + '</b></span>').join('') + '</div></div>';
+}
 function rowCells(x, z) {
   const r = z.r, c = z.c, e = envOf(x, z);
   const G = num(r.G);
@@ -1659,6 +1924,69 @@ function rowCells(x, z) {
   const semana = before != null ? before + e : null;
   return { e, doh, semana };
 }
+// ── Columnas de la tabla de Sugerido (el orden lo elige el usuario arrastrando encabezados) ──
+const ENV_COLS = [
+  { id:'tienda', fixed:true, th:'<th>Tienda</th>', td:(z, r) => '<td class="tdtienda">' + esc(r.A) + (String(r.B || '').trim() ? ' <b class="fmt">' + esc(String(r.B).trim()) + '</b>' : '') + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td>' },
+  { id:'item', th:'<th>Item</th>', td:(z, r) => '<td>' + esc(r.E) + '</td>' },
+  { id:'oc', th:'<th class="n" title="Pedido OC · punto verde = se envía el 100%">OC</th>', td:z => '<td class="n ocn"><i class="full-dot" title="Se envía el 100% de lo pedido"></i>' + z.F + '</td>' },
+  { id:'sug', th:'<th class="n sug">Sugerido</th>', td:(z, r, c) => '<td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' },
+  { id:'env', th:'<th class="n envh">Enviar</th>', td:(z, r, c, k, i) => '<td class="n envc"><input class="env-in" type="number" inputmode="numeric" min="0" max="' + z.F + '" step="' + (z.F % 5 === 0 ? 5 : 1) + '" value="' + k.e + '" data-i="' + i + '" data-row="' + r.row + '" aria-label="Enviar a tienda ' + esc(r.A) + ' ' + esc(r.E) + '"></td>' },
+  { id:'inv', th:'<th class="n">INV</th>', td:(z, r) => '<td class="n">' + (num(r.G) ?? '—') + '</td>' },
+  { id:'doh', th:'<th class="n" title="Days on Hand: (INV + Tránsito + Enviar) / venta diaria">DOH</th>', td:(z, r, c, k, i, P) => '<td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td>' },
+  { id:'tra', th:'<th class="n">Tránsito</th>', td:(z, r, c) => '<td class="n">' + (c.transit || '') + '</td>' },
+  { id:'vta', th:'<th class="n vta">Vta Sem</th>', td:(z, r) => '<td class="n vta">' + (num(r.J) ?? '') + '</td>' },
+  { id:'p4s', th:'<th class="n">Prom 4S</th>', td:(z, r) => '<td class="n">' + (num(r.K) ?? '') + '</td>' },
+  { id:'vsa', th:'<th class="n" title="Venta semana anterior">Vt SAnt</th>', td:(z, r) => '<td class="n">' + (num(r.M) ?? '') + '</td>' },
+  { id:'dev', th:'<th class="n dev" title="Devoluciones (columna P)">DEV</th>', td:(z, r) => '<td class="n dev">' + (num(r.P) ? num(r.P) : '') + '</td>' },
+  { id:'fcst', th:'<th class="n">FCST</th>', td:(z, r) => { const fc = [num(r.Q), num(r.R)].filter(v => v != null); return '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td>'; } },
+  { id:'fcp', th:'<th class="n" title="Venta semanal esperada usada para el sugerido">FCST Prom</th>', td:(z, r, c) => '<td class="n">' + Math.round(c.W) + '</td>' },
+  { id:'esa', th:'<th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Env SAct</th>', td:(z, r, c, k) => '<td class="n sem' + (k.semana != null && k.semana > c.W * 1.25 ? ' alto' : '') + '">' + (k.semana ?? '') + '</td>' },
+  { id:'mot', th:'<th>Motivo Sugerido</th>', td:(z, r, c) => '<td class="mot">' + esc(c.motivo) + '</td>' },
+];
+const ENV_COL_DEFAULT = ENV_COLS.map(cd => cd.id);
+function envColOrder() {
+  const order = ['tienda', ...(Array.isArray(env.colOrder) ? env.colOrder.filter(id => ENV_COL_DEFAULT.includes(id) && id !== 'tienda') : [])];
+  // Columnas nuevas (que no estaban en el orden guardado) entran junto a su vecina de fábrica
+  ENV_COL_DEFAULT.forEach((id, i) => { if (!order.includes(id)) order.splice(order.indexOf(ENV_COL_DEFAULT[i - 1]) + 1, 0, id); });
+  return order;
+}
+const envColumns = () => envColOrder().map(id => ENV_COLS.find(cd => cd.id === id));
+const envColsCustom = () => envColOrder().join() !== ENV_COL_DEFAULT.join();
+function moveEnvCol(from, to, after) {
+  if (from === to || from === 'tienda') return;
+  const order = envColOrder().filter(id => id !== from);
+  let idx = order.indexOf(to) + (after ? 1 : 0);
+  if (idx < 1) idx = 1; // Tienda siempre primera
+  order.splice(idx, 0, from);
+  env.colOrder = order;
+  DB.set('envioCols', order).catch(() => {});
+  renderEnvioResults();
+}
+function wireColDrag(box) {
+  let dragId = null;
+  const clear = () => box.querySelectorAll('.envtab th').forEach(th => th.classList.remove('drop-l', 'drop-r', 'dragging'));
+  box.addEventListener('dragstart', e => {
+    const th = e.target.closest && e.target.closest('th[draggable="true"]'); if (!th) return;
+    dragId = th.dataset.col; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+    box.querySelectorAll('th[data-col="' + dragId + '"]').forEach(t => t.classList.add('dragging'));
+  });
+  box.addEventListener('dragover', e => {
+    const th = dragId && e.target.closest && e.target.closest('.envtab th[data-col]'); if (!th) return;
+    e.preventDefault();
+    const r = th.getBoundingClientRect(), after = e.clientX > r.left + r.width / 2 || th.dataset.col === 'tienda';
+    box.querySelectorAll('.envtab th').forEach(t => t.classList.remove('drop-l', 'drop-r'));
+    if (th.dataset.col !== dragId) th.classList.add(after ? 'drop-r' : 'drop-l');
+  });
+  box.addEventListener('drop', e => {
+    const th = dragId && e.target.closest && e.target.closest('.envtab th[data-col]'); if (!th) return;
+    e.preventDefault();
+    const r = th.getBoundingClientRect(), after = e.clientX > r.left + r.width / 2 || th.dataset.col === 'tienda';
+    const from = dragId; dragId = null; clear();
+    moveEnvCol(from, th.dataset.col, after);
+  });
+  box.addEventListener('dragend', () => { dragId = null; clear(); });
+}
+
 function renderEnvioResults() {
   const box = $('env-results'); if (!box) return;
   const P = env.params;
@@ -1672,17 +2000,25 @@ function renderEnvioResults() {
     const n = env.results.filter(x => !x.error && x.res.rows.length).length;
     html += '<div class="mcard sumbar"><div><h2>Resumen de envío</h2><p class="sub" style="margin:0">' + (n > 1 ? 'Une las ' + n + ' órdenes de compra' : 'De esta orden de compra') + ' con lo que pusiste en Enviar: totales por item, parrillas y viajes, cita y vencimientos.</p></div>' +
       '<button class="btn primary" id="btn-resumen">Ver resumen y enviar por WhatsApp</button></div>';
+    const okx = env.results.map((x, i) => ({ x, i })).filter(o => !o.x.error && o.x.res.rows.length).sort((a, b) => fraguaSuf(a.x).localeCompare(fraguaSuf(b.x)));
+    const pdir = templates.find(t => t.kind === 'pdfs');
+    html += '<div class="mcard sumbar frag"><div><h2>Hoja para Fragua (PDF)</h2><p class="sub" style="margin:0">Cuadros por tienda (2 copias) y resumen por clave de cada OC, con lo que está en Enviar. ' +
+      (pdir ? 'Se guarda en la carpeta <b>' + esc(pdir.name) + '</b>.' : (HAS_DIR ? 'Sin carpeta de PDF completos vinculada en Inicio: se descarga.' : 'Se descarga.')) + '</p></div>' +
+      '<div class="send-row"><label class="fr-rampa">Rampa <input id="fr-rampa" type="text" inputmode="numeric" value="' + esc(env.rampa || FR_RAMPA_DEF) + '" aria-label="Rampa para la Hoja para Fragua"></label>' + okx.map(o => '<button class="btn" data-fragua="' + o.i + '">PANISA ' + esc(fraguaSuf(o.x)) + (o.x.wbk.form.oc ? ' · OC ' + esc(o.x.wbk.form.oc) : '') + '</button>').join('') +
+      (okx.length > 1 ? '<button class="btn primary" data-fragua="all">Las dos OC en un PDF</button>' : '') + '</div></div>';
   }
   for (const [i, x] of env.results.entries()) {
     if (x.error) { html += '<div class="mcard"><h2>' + esc(x.f.name) + '</h2><div class="warnbox">' + esc(x.error) + '</div></div>'; continue; }
     const items = Array.from(new Set(x.res.rows.map(r => r.r.E))).sort();
     const tr = x.res.dinfo.transit;
     const dayLbl = c => ({ AA:'vie', AB:'sáb', S:'lun', T:'mar', U:'mié', V:'jue', W:'vie', X:'sáb' }[c] + ' ' + x.wbk.dayCols[c]);
-    let rows = x.res.rows.filter(r => !env.filterItem || r.r.E === env.filterItem);
-    if (env.onlyDiff) rows = rows.filter(z => envOf(x, z) !== z.c.s);
+    const cols = envColumns();
+    const soloSet = new Set(soloCombos(x).map(o => o.z.r.row));
+    let rows = x.res.rows.filter(r => !(x.filterItem || '') || r.r.E === (x.filterItem || ''));
+    if (x.onlyDiff) rows = rows.filter(z => envOf(x, z) !== z.c.s);
     const sorters = { tienda: (a, b) => a.r.row - b.r.row, sug: (a, b) => b.c.s - a.c.s, dif: (a, b) => Math.abs(envOf(x, b) - b.c.s) - Math.abs(envOf(x, a) - a.c.s) };
-    rows = rows.slice().sort(sorters[env.sort] || sorters.tienda);
-    const scope = env.filterItem ? ' (solo ' + esc(env.filterItem) + ')' : '';
+    rows = rows.slice().sort(sorters[(x.sort || 'tienda')] || sorters.tienda);
+    const scope = (x.filterItem || '') ? ' (solo ' + esc((x.filterItem || '')) + ')' : '';
     html += '<div class="mcard" data-card="' + i + '"><div class="sec-h" style="margin-bottom:8px"><h2>' + esc(x.f.name) + '</h2>' +
       '<button class="btn primary" data-save="' + i + '">Guardar Excel con Enviar</button></div>' +
       '<div class="facts">' +
@@ -1693,39 +2029,40 @@ function renderEnvioResults() {
       '</div>' +
       '<div class="sumgrid"><div class="facts" id="envsum-' + i + '">' + envSummaryHtml(x) + '</div>' +
       '<div class="itemsum-wrap" id="envitems-' + i + '">' + itemSummaryHtml(x) + '</div></div>' +
+      soloHtml(x, i) +
       (x.warn.length ? '<div class="warnbox" style="margin:12px 0 0">' + x.warn.map(esc).join('<br>') + '</div>' : '') +
       (x.useFile ? '<div class="infobox">La columna Enviar ya traía valores en el archivo: los cargué como tu decisión. <button class="btn" data-bulk="sug" data-i="' + i + '">Reemplazar por el sugerido' + scope + '</button></div>' : '') +
       (x.draftCount ? '<div class="infobox">Recuperé ' + x.draftCount + ' ' + (x.draftCount === 1 ? 'cambio que no habías guardado' : 'cambios que no habías guardado') + ' en este archivo.</div>' : '') +
-      '<div class="date-line" style="margin:14px 0 8px;gap:8px"><div class="dchips"><button class="dchip' + (!env.filterItem ? ' sel' : '') + '" data-item="">Todos</button>' +
-        items.map(it => '<button class="dchip' + (env.filterItem === it ? ' sel' : '') + '" data-item="' + esc(it) + '">' + esc(it) + '</button>').join('') + '</div>' +
-        '<select id="env-sort-' + i + '" style="font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;margin-left:auto"><option value="tienda"' + (env.sort === 'tienda' ? ' selected' : '') + '>Orden de la hoja</option><option value="sug"' + (env.sort === 'sug' ? ' selected' : '') + '>Mayor sugerido</option><option value="dif"' + (env.sort === 'dif' ? ' selected' : '') + '>Mayor diferencia Enviar vs sugerido</option></select>' +
-        '<label style="font-size:13px"><input type="checkbox" data-onlydiff' + (env.onlyDiff ? ' checked' : '') + '> Solo las que cambié</label></div>' +
-      '<div class="env-tools"><span>Escribí en <b>Enviar</b> lo que vas a mandar. <kbd>Enter</kbd> pasa a la siguiente tienda; las flechas ↑ ↓ suben o bajan de ' + '5 en 5.</span>' +
+      '<div class="date-line" style="margin:14px 0 8px;gap:8px"><div class="dchips"><button class="dchip' + (!(x.filterItem || '') ? ' sel' : '') + '" data-i="' + i + '" data-item="">Todos</button>' +
+        items.map(it => '<button class="dchip' + ((x.filterItem || '') === it ? ' sel' : '') + '" data-i="' + i + '" data-item="' + esc(it) + '">' + esc(it) + '</button>').join('') + '</div>' +
+        '<select id="env-sort-' + i + '" style="font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;margin-left:auto"><option value="tienda"' + ((x.sort || 'tienda') === 'tienda' ? ' selected' : '') + '>Orden de la hoja</option><option value="sug"' + ((x.sort || 'tienda') === 'sug' ? ' selected' : '') + '>Mayor sugerido</option><option value="dif"' + ((x.sort || 'tienda') === 'dif' ? ' selected' : '') + '>Mayor diferencia Enviar vs sugerido</option></select>' +
+        '<label style="font-size:13px"><input type="checkbox" data-i="' + i + '" data-onlydiff' + (x.onlyDiff ? ' checked' : '') + '> Solo las que cambié</label></div>' +
+      '<div class="env-tools"><span>Escribí en <b>Enviar</b> lo que vas a mandar. Arrastrá un encabezado para cambiar el orden de las columnas' + (envColsCustom() ? ' · <button class="linkbtn" data-colreset>Orden original</button>' : '') + '.<br> <kbd>Enter</kbd> pasa a la siguiente tienda; las flechas ↑ ↓ suben o bajan de ' + '5 en 5.</span>' +
         '<span class="env-tools-btns"><button class="btn" data-bulk="sug" data-i="' + i + '">Poner el sugerido en Enviar' + scope + '</button>' +
         '<button class="btn" data-bulk="oc" data-i="' + i + '">Poner el Pedido OC en Enviar' + scope + '</button></span></div>' +
-      '<div class="envtab"><table><thead><tr><th>Tienda</th><th>Item</th><th class="n" title="Pedido OC">OC</th><th class="n sug">Sugerido</th><th class="n envh">Enviar</th><th class="n">INV</th><th class="n" title="Days on Hand: (INV + Tránsito + Enviar) / venta diaria">DOH</th><th class="n">Tránsito</th><th class="n">Vta Sem</th><th class="n">Prom 4S</th><th class="n" title="Venta semana anterior">Vt SAnt</th><th class="n dev" title="Devoluciones (columna P)">DEV</th><th class="n">FCST</th><th class="n" title="Venta semanal esperada usada para el sugerido">FCST Prom</th><th class="n" title="Enviado esta semana antes de la entrega + Enviar, contra la venta semanal esperada">Env SAct</th><th>Motivo Sugerido</th></tr></thead><tbody>' +
-      (rows.length ? rows.map(z => { const r = z.r, c = z.c; const fc = [num(r.Q), num(r.R)].filter(v => v != null); const k = rowCells(x, z);
-        const step = z.F % 5 === 0 ? 5 : 1;
-        return '<tr data-row="' + r.row + '"' + (k.e !== c.s ? ' class="mod"' : '') + '><td>' + esc(r.A) + ' <span class="mut">' + esc(String(r.C || '').trim()) + '</span></td><td>' + esc(r.E) + '</td>' +
-          '<td class="n">' + z.F + '</td><td class="n sug' + (c.tag === 'tope' ? ' tope' : '') + '">' + c.s + '</td>' +
-          '<td class="n envc"><input class="env-in" type="number" inputmode="numeric" min="0" max="' + z.F + '" step="' + step + '" value="' + k.e + '" data-i="' + i + '" data-row="' + r.row + '" aria-label="Enviar a tienda ' + esc(r.A) + ' ' + esc(r.E) + '"></td>' +
-          '<td class="n">' + (num(r.G) ?? '—') + '</td><td class="n doh' + (k.doh != null && k.e > 0 && k.doh > P.maxDoh + 1e-9 ? ' alto' : '') + '">' + (k.doh != null ? fmt1(k.doh) : '') + '</td><td class="n">' + (c.transit || '') + '</td><td class="n">' + (num(r.J) ?? '') + '</td><td class="n">' + (num(r.K) ?? '') + '</td><td class="n">' + (num(r.M) ?? '') + '</td><td class="n dev">' + (num(r.P) ? num(r.P) : '') + '</td>' +
-          '<td class="n">' + (fc.length ? fc.join(' / ') : 'sin FCST') + '</td><td class="n">' + Math.round(c.W) + '</td><td class="n sem' + (k.semana != null && k.semana > c.W * 1.25 ? ' alto' : '') + '">' + (k.semana ?? '') + '</td>' +
-          '<td class="mot">' + esc(c.motivo) + '</td></tr>'; }).join('')
-        : '<tr><td colspan="16" class="empty">' + (env.onlyDiff ? 'Todavía no cambiaste ninguna fila' + scope + '.' : 'Sin filas.') + '</td></tr>') +
-      '</tbody></table></div></div>';
+      '<div class="envtab"><table><thead><tr>' + cols.map(cd => cd.th.replace(/^<th/, '<th data-col="' + cd.id + '"' + (cd.fixed ? '' : ' draggable="true"'))).join('') + '</tr></thead><tbody>' +
+      (rows.length ? rows.map(z => { const r = z.r, c = z.c; const k = rowCells(x, z);
+        const cl = (k.e !== c.s ? 'mod' : '') + (z.F > 0 && k.e === z.F ? ' full' : '') + (soloSet.has(r.row) ? ' solo' : '');
+        return '<tr data-row="' + r.row + '"' + (cl.trim() ? ' class="' + cl.trim() + '"' : '') + '>' + cols.map(cd => cd.td(z, r, c, k, i, P)).join('') + '</tr>'; }).join('')
+        : '<tr><td colspan="16" class="empty">' + (x.onlyDiff ? 'Todavía no cambiaste ninguna fila' + scope + '.' : 'Sin filas.') + '</td></tr>') +
+      '</tbody>' + (rows.length ? '<tfoot><tr><td colspan="16" class="fin">Fin de la tabla · ' + rows.length + (rows.length === 1 ? ' fila' : ' filas') + ((x.filterItem || '') ? ' de ' + esc((x.filterItem || '')) : '') + ' · ' + esc(x.f.name) + '</td></tr></tfoot>' : '') + '</table></div></div>';
   }
   box.innerHTML = html;
   const saveP = () => { DB.set('envioParams', env.params).catch(() => {}); recompute(); };
   const bind = (id, k, lo, hi) => { const el = $(id); el.onchange = () => { const v = Math.max(lo, Math.min(hi, parseInt(el.value, 10) || ENVIO_DEFAULTS[k])); env.params[k] = v; saveP(); }; };
   bind('ep-target', 'target', 1, 21); bind('ep-max', 'maxDoh', 1, 30); bind('ep-tr', 'transitDays', 0, 3);
   $('ep-reset').onclick = () => { env.params = { ...ENVIO_DEFAULTS }; saveP(); };
-  box.querySelectorAll('[data-item]').forEach(b => b.onclick = () => { env.filterItem = b.dataset.item; renderEnvioResults(); });
-  box.querySelectorAll('select[id^="env-sort-"]').forEach(s => s.onchange = () => { env.sort = s.value; renderEnvioResults(); });
-  box.querySelectorAll('[data-onlydiff]').forEach(c => c.onchange = () => { env.onlyDiff = c.checked; renderEnvioResults(); });
+  // Filtros, orden y "solo las que cambié" son de cada orden de compra por separado
+  box.querySelectorAll('[data-item]').forEach(b => b.onclick = () => { env.results[+b.dataset.i].filterItem = b.dataset.item; renderEnvioResults(); });
+  box.querySelectorAll('select[id^="env-sort-"]').forEach(s => s.onchange = () => { env.results[+s.id.slice(9)].sort = s.value; renderEnvioResults(); });
+  box.querySelectorAll('[data-onlydiff]').forEach(c => c.onchange = () => { env.results[+c.dataset.i].onlyDiff = c.checked; renderEnvioResults(); });
   box.querySelectorAll('[data-save]').forEach(b => b.onclick = () => saveEnvio(env.results[+b.dataset.save], b));
   box.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => bulkEnviar(env.results[+b.dataset.i], b.dataset.bulk));
   const rb = $('btn-resumen'); if (rb) rb.onclick = openResumen;
+  box.querySelectorAll('[data-fragua]').forEach(b => b.onclick = () => generarFragua(b.dataset.fragua, b));
+  const frr = $('fr-rampa'); if (frr) frr.onchange = () => { const v = frr.value.trim() || FR_RAMPA_DEF; frr.value = v; env.rampa = v; DB.set('fraguaRampa', v).catch(() => {}); toast('Rampa ' + v + ' guardada para la Hoja para Fragua.'); };
+  box.querySelectorAll('[data-colreset]').forEach(b => b.onclick = () => { env.colOrder = null; DB.set('envioCols', null).catch(() => {}); renderEnvioResults(); });
+  if (!box.dataset.drag) { wireColDrag(box); box.dataset.drag = '1'; }
   // Edición de Enviar: se actualiza la fila y los totales sin redibujar la tabla
   box.oninput = ev => { const inp = ev.target.closest('.env-in'); if (inp) onEnvInput(inp, false); };
   box.onchange = ev => { const inp = ev.target.closest('.env-in'); if (inp) onEnvInput(inp, true); };
@@ -1755,6 +2092,10 @@ function onEnvInput(inp, commit) {
   const tr = inp.closest('tr');
   const k = rowCells(x, z);
   tr.classList.toggle('mod', k.e !== z.c.s);
+  tr.classList.toggle('full', z.F > 0 && k.e === z.F);
+  const solo = soloCombos(x), sset = new Set(solo.map(o => o.z.r.row));
+  inp.closest('tbody').querySelectorAll('tr[data-row]').forEach(t => t.classList.toggle('solo', sset.has(+t.dataset.row)));
+  const sb = $('envsolo-' + inp.dataset.i); if (sb) sb.outerHTML = soloHtml(x, +inp.dataset.i);
   const doh = tr.querySelector('.doh'); doh.textContent = k.doh != null ? fmt1(k.doh) : '';
   doh.classList.toggle('alto', k.doh != null && k.e > 0 && k.doh > env.params.maxDoh + 1e-9);
   const sem = tr.querySelector('.sem'); sem.textContent = k.semana ?? ''; sem.classList.toggle('alto', k.semana != null && k.semana > z.c.W * 1.25);
@@ -1762,8 +2103,8 @@ function onEnvInput(inp, commit) {
   $('envitems-' + inp.dataset.i).innerHTML = itemSummaryHtml(x);
 }
 function bulkEnviar(x, mode) {
-  const rows = x.res.rows.filter(z => !env.filterItem || z.r.E === env.filterItem);
-  if (mode === 'sug' && !env.filterItem) { x.useFile = false; x.edits.clear(); }
+  const rows = x.res.rows.filter(z => !x.filterItem || z.r.E === x.filterItem);
+  if (mode === 'sug' && !x.filterItem) { x.useFile = false; x.edits.clear(); }
   else rows.forEach(z => {
     const v = mode === 'oc' ? z.F : z.c.s;
     if (v === baseEnv(x, z)) x.edits.delete(z.r.row); else x.edits.set(z.r.row, v);
@@ -1801,11 +2142,249 @@ async function saveEnvio(x, btn) {
     sigs.push(savedName + '|' + blob.size);
     DB.set('envio-saved', sigs.slice(-50)).catch(() => {});
     clearTimeout(draftTimer); DB.set(draftKey(x), null).catch(() => {});
+    setTimeout(() => refreshRail('guardado'), 800);
     const st = statsOf(x);
     const DIA = { S:'lunes', T:'martes', U:'miércoles', V:'jueves', W:'viernes', X:'sábado' };
     toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades' + (x.dayWritten ? ', también en la columna ' + x.dayWritten + ' (enviado ' + DIA[x.dayWritten] + ')' : '') + ' y Sugerido (I) = ' + nf(st.S) + '.', 7000);
   } catch (e) { toast('No se pudo guardar: ' + (e.message || e), 6000); }
   finally { btn.disabled = false; btn.textContent = old; }
+}
+
+// ═════════════ Hoja para Fragua (PDF): cuadros por tienda + resumen por clave, por OC ═════════════
+const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+let jspdfP = null;
+function loadJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if (!jspdfP) jspdfP = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = JSPDF_URL; s.async = true;
+    s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? res(window.jspdf.jsPDF) : rej(new Error('No se pudo iniciar el generador de PDF.'));
+    s.onerror = () => { jspdfP = null; s.remove(); rej(new Error('No se pudo cargar el generador de PDF. La primera vez necesita internet; después funciona sin conexión.')); };
+    document.head.appendChild(s);
+  });
+  return jspdfP;
+}
+
+// Datos extra del archivo de cálculo: código de despacho por tienda (Lista Store Nbr) y,
+// de "Hoja Fragua MOD", unidades por parrilla (Z285:Z296) y rampa (E302).
+async function fraguaExtra(x) {
+  if (x.fragua) return x.fragua;
+  const out = { slot: {}, uxp: { ...UXP } };
+  try {
+    const ls = await x.wbk.readSheet('Lista Store Nbr');
+    if (ls) for (const [rn, cells] of ls.rows.entries()) {
+      if (rn < 2) continue;
+      const a = ls.get('A' + rn), b = ls.get('B' + rn);
+      if (a == null || a === '' || !b) continue;
+      const k = String(a).trim().replace(/\.0+$/, '');
+      const m = /(\d+)-(\d+)/.exec(String(b));
+      if (m) out.slot[k] = m[1] + '-' + m[2];
+    }
+    const md = await x.wbk.readSheet('Hoja Fragua MOD');
+    // Unidades por parrilla: filas donde E es una clave y Z un número (la tabla puede estar más arriba o más abajo)
+    if (md) for (const rn of md.rows.keys()) {
+      const it = md.get('E' + rn), u = num(md.get('Z' + rn));
+      if (it && RES_ITEMS.includes(String(it).trim()) && u > 0 && u <= 200) out.uxp[String(it).trim()] = u;
+    }
+  } catch (e) { console.warn('Hoja para Fragua: datos extra', e); }
+  x.fragua = out;
+  return out;
+}
+function fraguaSuf(x) { return x.f.suf || (String(x.wbk.form.vendor || '').slice(-1) === '2' ? '2' : '1'); }
+function fraguaOc(x, extra) {
+  const by = new Map();
+  x.res.rows.forEach(z => {
+    const k = String(z.r.A).trim().replace(/\.0+$/, '');
+    if (!by.has(k)) by.set(k, { nbr: k, fmt: String(z.r.B || '').trim(), name: String(z.r.C || '').trim(), q: {}, inOc: new Set(), first: z.r.row });
+    const s = by.get(k); const it = String(z.r.E).trim();
+    s.inOc.add(it); s.q[it] = (s.q[it] || 0) + envOf(x, z);
+  });
+  const key = s => { const m = /(\d+)-(\d+)/.exec(extra.slot[s.nbr] || ''); return m ? [0, +m[2], +m[1], 0] : [1, +s.nbr || 0, 0, s.first]; };
+  const stores = Array.from(by.values()).map(s => ({ ...s, slot: extra.slot[s.nbr] || '', total: Object.values(s.q).reduce((a, b) => a + b, 0) }))
+    .sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < 4; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i]; return 0; });
+  const present = new Set(); stores.forEach(s => s.inOc.forEach(it => present.add(it)));
+  const items = RES_ITEMS.concat(Array.from(present).filter(it => !RES_ITEMS.includes(it)).sort());
+  const sum = items.map(it => {
+    let pedido = 0, enviar = 0;
+    x.res.rows.forEach(z => { if (String(z.r.E).trim() === it) { pedido += z.F; enviar += envOf(x, z); } });
+    const u = extra.uxp[it] || UXP[it] || 0;
+    const parr = u ? Math.floor(enviar / u) : 0, uni = enviar - parr * u;
+    const viajes = Math.floor(parr / PARR_X_VIAJE), parrRest = parr - viajes * PARR_X_VIAJE;
+    return { it, pedido, enviar, restar: pedido - enviar, parr, uni, viajes, parrRest, totalParr: u && enviar ? Math.ceil(enviar / u) : 0 };
+  });
+  const d = x.fecha ? ymdDate(x.fecha) : null;
+  const suf = fraguaSuf(x);
+  return {
+    suf, oc: x.wbk.form.oc || '', cita: x.wbk.form.cita || '', hora: fmtHora(x.wbk.form.hora), rampa: env.rampa || FR_RAMPA_DEF,
+    titulo: 'PANISA ' + suf + (d ? ' ' + DIA_LARGO[d.getDay()] + ' ' + dmyOf(d) : ''),
+    stores, items, sum, gridPages: Math.max(1, Math.ceil(stores.length / 16)),
+  };
+}
+const FR_COPIAS = 2;
+const FR_RAMPA_DEF = '2053';
+async function buildFraguaPdf(ocs) {
+  const jsPDF = await loadJsPDF();
+  const doc = new jsPDF({ unit: 'pt', format: 'letter', compress: true });
+  const W = 612, H = 792, M = 24;
+  const C = { ink: [17, 24, 39], gray: [107, 114, 128], faint: [184, 190, 201], line: [205, 210, 218], band: [241, 243, 247] };
+  const color = (k, what) => { const c = C[k]; if (what === 'draw') doc.setDrawColor(...c); else if (what === 'fill') doc.setFillColor(...c); else doc.setTextColor(...c); };
+  const font = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
+  const fitSize = (txt, st, sz, maxw, min) => { font(st, sz); while (sz > (min || 3) && doc.getTextWidth(txt) > maxw) { sz -= 0.25; font(st, sz); } return sz; };
+  const total = ocs.reduce((a, o) => a + o.gridPages * FR_COPIAS + 1, 0);
+  let page = 0;
+  const newPage = () => { if (page > 0) doc.addPage(); page++; };
+  const header = (o, sub) => {
+    font('bold', 12); color('ink'); doc.text(o.titulo, M, 32);
+    font('normal', 8.5); color('gray');
+    doc.text('OC ' + o.oc + '   ·   Cita ' + o.cita + (sub ? '   ·   ' + sub : ''), M, 45);
+    doc.text('Hoja ' + page + ' de ' + total, W - M, 32, { align: 'right' });
+    color('ink');
+  };
+  const footer = txt => { font('normal', 7); color('gray'); doc.text(txt, M, H - 20); color('ink'); };
+
+  for (const o of ocs) {
+    // ── Cuadros por tienda, en copias ──
+    const cols = 4, rowsPg = 4, per = cols * rowsPg, bw = 134, gx = (W - 2 * M - cols * bw) / (cols - 1);
+    const hh = 13, n = o.items.length, rh = Math.min(11.8, 141.6 / n * (12 / 12)), bh = hh + n * rh, gy = 14;
+    for (let cp = 1; cp <= FR_COPIAS; cp++) {
+      for (let p = 0; p < o.gridPages; p++) {
+        newPage();
+        header(o, 'Cuadros por tienda (' + o.stores.length + ')   ·   Copia ' + cp + ' de ' + FR_COPIAS);
+        const top = 58;
+        o.stores.slice(p * per, (p + 1) * per).forEach((s, i) => {
+          const idx = p * per + i + 1, col = i % cols, row = Math.floor(i / cols);
+          const x = M + col * (bw + gx), y = top + row * (bh + gy);
+          // Encabezado: correlativo, código de despacho, número de tienda, formato y nombre (completo)
+          let nx = x;
+          font('normal', 6.5); color('gray'); doc.text(String(idx), nx, y + 9); nx += doc.getTextWidth(String(idx)) + 3;
+          if (s.slot) { doc.text(s.slot, nx, y + 9); nx += doc.getTextWidth(s.slot) + 3; }
+          font('bold', 8.5); color('ink'); doc.text(s.nbr, nx, y + 9); nx += doc.getTextWidth(s.nbr) + 3;
+          const nm = (s.fmt + ' ' + s.name).replace(/\s+/g, ' ').trim();
+          const sz = fitSize(nm, 'normal', 7.8, x + bw - nx, 2.5);
+          font('normal', sz); doc.text(nm, nx, y + 9);
+          // Filas por clave
+          const y0 = y + hh;
+          doc.setLineWidth(0.5); color('line', 'draw');
+          o.items.forEach((it, k) => {
+            const ry = y0 + k * rh;
+            if (k) doc.line(x, ry, x + bw, ry);
+            const inOc = s.inOc.has(it);
+            font('normal', 7.5); color(inOc ? 'ink' : 'faint'); doc.text(it, x + 3, ry + rh - 3.3);
+            const v = s.q[it] || 0;
+            if (inOc && s.total) { font('bold', 9.5); color('ink'); doc.text(String(v), x + bw - 4, ry + rh - 3, { align: 'right' }); }
+          });
+          doc.setLineWidth(0.9); color('ink', 'draw'); doc.rect(x, y0, bw, n * rh, 'S');
+          if (!s.total) {
+            const cx = x + bw / 2, cy = y0 + n * rh / 2, d = 26;
+            doc.setLineWidth(6); color('ink', 'draw'); doc.line(cx - d, cy - d, cx + d, cy + d); doc.line(cx - d, cy + d, cx + d, cy - d);
+            doc.setLineWidth(3.6); doc.setDrawColor(255, 255, 255); doc.line(cx - d + 1, cy - d + 1, cx + d - 1, cy + d - 1); doc.line(cx - d + 1, cy + d - 1, cx + d - 1, cy - d + 1);
+            color('ink', 'draw');
+          }
+        });
+        footer('Clave en gris: esa tienda no la tiene en la OC.   X: tienda de la OC sin envío.');
+      }
+    }
+    // ── Resumen por clave: dos copias en la misma hoja, para cortar ──
+    newPage();
+    const block = y0 => {
+      font('bold', 12); color('ink'); doc.text(o.titulo + '   ·   Resumen por clave', M, y0);
+      font('normal', 8.5); color('gray'); doc.text('Hoja ' + page + ' de ' + total, W - M, y0, { align: 'right' }); color('ink');
+      const cw = [[ 'RESTAR', 50 ], [ 'TOTAL PEDIDO', 64 ], [ 'CLAVE', 56 ], [ 'A ENTREGAR', 68 ], [ 'PARR + UNI', 62 ], [ 'VIAJES + PARR + UNI', 108 ], [ 'CONTEO', 104 ], [ 'PARRILLAS', 52 ]];
+      const tw = cw.reduce((a, c) => a + c[1], 0), rh = Math.min(15, 180 / o.sum.length);
+      let y = y0 + 10;
+      color('band', 'fill'); doc.rect(M, y, tw, 15, 'F');
+      let x = M; font('bold', 7); cw.forEach(([t, w]) => { doc.text(t, x + w / 2, y + 10, { align: 'center' }); x += w; });
+      y += 15;
+      o.sum.forEach((r, k) => {
+        const ry = y + k * rh, has = r.pedido > 0;
+        const vals = [has ? String(r.restar) : '', has ? String(r.pedido) : '', r.it, has ? String(r.enviar) : '',
+          r.enviar ? (r.parr + ' + ' + r.uni) : '', r.enviar ? (r.viajes + ' + ' + r.parrRest + ' + ' + r.uni) : '', '', r.totalParr ? String(r.totalParr) : ''];
+        let xx = M;
+        cw.forEach(([t, w], c) => {
+          const big = t === 'A ENTREGAR' || t === 'VIAJES + PARR + UNI';
+          font(big || t === 'CLAVE' ? 'bold' : 'normal', big ? 10.5 : 9);
+          color(has || t === 'CLAVE' ? 'ink' : 'faint');
+          doc.text(vals[c], xx + w / 2, ry + rh - 4, { align: 'center' }); xx += w;
+        });
+        if (k) { doc.setLineWidth(0.4); color('line', 'draw'); doc.line(M, ry, M + tw, ry); }
+      });
+      const bot = y + o.sum.length * rh;
+            doc.setLineWidth(0.9); color('ink', 'draw'); doc.rect(M, y0 + 10, tw, bot - (y0 + 10), 'S');
+      // Totales
+      const tR = o.sum.reduce((a, r) => a + r.restar, 0), tP = o.sum.reduce((a, r) => a + r.pedido, 0), tE = o.sum.reduce((a, r) => a + r.enviar, 0), tPa = o.sum.reduce((a, r) => a + r.totalParr, 0);
+      color('band', 'fill'); doc.rect(M, bot + 5, tw, 20, 'F');
+      const tv = [tR, tP, 'TOTAL', tE, '', '', '', tPa];
+      x = M; cw.forEach(([t, w], c) => { font('bold', 11); color('ink'); doc.text(String(tv[c]), x + w / 2, bot + 19, { align: 'center' }); x += w; });
+      font('normal', 7); color('gray'); doc.text('RESTAR = pedido - a entregar.   Parrillas por viaje: ' + PARR_X_VIAJE + '.', M, bot + 35);
+      // Datos de la cita
+      const dy = bot + 54; const datos = [['HORA', o.hora], ['RAMPA', o.rampa], ['CITA No.', o.cita], ['ORDEN No.', o.oc]];
+      const dw = tw / 4;
+      datos.forEach(([k, v], i) => {
+        const dx = M + i * dw;
+        font('normal', 7.5); color('gray'); doc.text(k, dx, dy);
+        font('bold', 12); color('ink'); doc.text(String(v || ''), dx, dy + 15);
+        doc.setLineWidth(0.5); color('line', 'draw'); doc.line(dx, dy + 19, dx + dw - 14, dy + 19);
+      });
+      color('ink');
+    };
+    block(40);
+    doc.setLineDashPattern([4, 4], 0); doc.setLineWidth(0.6); color('line', 'draw'); doc.line(M, H / 2, W - M, H / 2); doc.setLineDashPattern([], 0);
+    font('normal', 6.5); color('gray'); doc.text('cortar aquí', W / 2, H / 2 - 3, { align: 'center' }); color('ink');
+    block(H / 2 + 26);
+  }
+  return doc.output('blob');
+}
+function fraguaName(ocs, fecha) {
+  const sufs = ocs.map(o => o.suf).join(' y ');
+  if (!fecha) return 'Hoja para Fragua PANISA ' + sufs + '.pdf';
+  const [y, m, d] = fecha.split('-'); const mes = MESES_ES[+m - 1];
+  return m + '_' + d + ' ' + mes[0].toUpperCase() + mes.slice(1) + ' ' + y + ' Fragua PANISA ' + sufs + '.pdf';
+}
+async function generarFragua(which, btn) {
+  const list = env.results.filter(x => !x.error && x.res.rows.length);
+  const sel = which === 'all' ? list : list.filter(x => x === env.results[+which]);
+  if (!sel.length) return;
+  // Permiso de escritura en la carpeta de PDF (se pide dentro del clic)
+  let dir = templates.find(t => t.kind === 'pdfs');
+  if (dir && dir.handle) {
+    try {
+      let p = await dir.handle.queryPermission({ mode: 'readwrite' });
+      if (p !== 'granted') p = await dir.handle.requestPermission({ mode: 'readwrite' });
+      if (p !== 'granted') dir = null;
+    } catch (e) { dir = null; }
+  } else dir = null;
+  const win = window.open('', '_blank');
+  if (win) { try { win.document.write('<p style="font:16px Arial;padding:24px">Armando la Hoja para Fragua…</p>'); } catch (e) {} }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Armando PDF…';
+  try {
+    const ocs = [];
+    for (const x of sel) ocs.push(fraguaOc(x, await fraguaExtra(x)));
+    ocs.sort((a, b) => a.suf.localeCompare(b.suf));
+    const blob = await buildFraguaPdf(ocs);
+    const name = fraguaName(ocs, sel[0].fecha);
+    let where = '';
+    if (dir) {
+      try {
+        const fh = await dir.handle.getFileHandle(name, { create: true });
+        const ws = await fh.createWritable(); await ws.write(blob); await ws.close();
+        where = 'Guardado en la carpeta "' + dir.name + '"';
+      } catch (e) {
+        if (e.name === 'NoModificationAllowedError' || e.name === 'InvalidStateError') throw new Error('No se pudo escribir "' + name + '": cerralo si está abierto y probá de nuevo.');
+        throw e;
+      }
+    } else {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      where = 'Descargado' + (templates.find(t => t.kind === 'pdfs') ? '' : ' (vinculá la carpeta de PDF completos en Inicio para guardarlo ahí directo)');
+    }
+    const url = URL.createObjectURL(blob);
+    if (win && !win.closed) win.location.href = url; else window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 10 * 60000);
+    const pend = sel.filter(x => x.edits.size).length;
+    toast(where + ': "' + name + '".' + (pend ? ' Usa lo que está en Enviar en pantalla; acordate de guardar el Excel.' : ''), 7500);
+  } catch (e) {
+    if (win && !win.closed) win.close();
+    toast('No se pudo armar la Hoja para Fragua: ' + (e.message || e), 7000);
+  } finally { btn.disabled = false; btn.textContent = old; }
 }
 
 
@@ -2077,12 +2656,116 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 DB.get('offlineReady').then(t => { if (t) $('offline-msg').textContent = 'Preparada para usar sin internet desde ' + fmtDate(t) + '.'; }).catch(() => {});
 
+
+// ═════════════ Panel lateral: próximas entregas + calendario ═════════════
+const railState = { recs: [], err: null, month: null };
+const MESES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const provCorto = r => r.vendor === '240502811' ? 'PANISA 1' : r.vendor === '240502812' ? 'PANISA 2' : (r.proveedor || r.vendor || '—');
+const ymdOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+async function loadRailData(interactive) {
+  try { const d = await loadMailData(interactive); railState.recs = d.records || []; railState.err = null; }
+  catch (e) { railState.recs = []; railState.err = e.code || 'err'; }
+  // Fechas con Excel de cálculo en la carpeta de cálculos (por vendor: _1 / _2)
+  try {
+    const files = await envioFolderFiles(interactive);
+    railState.calc = {};
+    files.filter(f => f.src === 'carpeta' && f.fecha).forEach(f => { (railState.calc[f.fecha] = railState.calc[f.fecha] || new Set()).add(f.suf); });
+    railState.lastCalc = Object.keys(railState.calc).sort().pop() || null;
+  } catch (e) { railState.calc = {}; railState.lastCalc = null; }
+  renderRailEntregas(); renderRailCal();
+}
+const SUF_OF = { '240502811': '1', '240502812': '2' };
+function renderRailEntregas() {
+  const box = $('rail-entregas'); if (!box) return;
+  const head = '<div class="rb-h"><span>PRÓXIMAS ENTREGAS</span><button id="rb-reload" title="Actualizar entregas y calendario (Control OC y carpeta de cálculos)" aria-label="Actualizar entregas y calendario">↻</button></div>';
+  if (railState.err === 'nolink') box.innerHTML = head + '<div class="rb-empty">Vinculá el Control OC FBD POD en Inicio para ver aquí las OC y citas.</div>';
+  else if (railState.err === 'perm') box.innerHTML = head + '<div class="rb-empty">Hace falta dar acceso al Control OC.</div><button class="rail-btn" id="rb-perm" style="margin-top:6px;width:100%">Dar acceso</button>';
+  else if (railState.err) box.innerHTML = head + '<div class="rb-empty">No se pudo leer el Control OC.</div>';
+  else {
+    const t = ymdOf(new Date());
+    const recs = railState.recs.filter(r => r.fecha >= t && r.oc && r.oc !== '-');
+    const dates = Array.from(new Set(recs.map(r => r.fecha))).sort().slice(0, 4);
+    while (dates.length < 4) dates.push(null);
+    const provs = ['PANISA 1', 'PANISA 2'];
+    box.innerHTML = head + dates.map(f => {
+      if (!f) return '<div class="rb-day">-</div><div class="rb-row"><span>-</span><span>-</span><span>-</span></div>';
+      const d = ymdDate(f);
+      const lbl = (f === t ? 'Hoy · ' : '') + DIA_LARGO[d.getDay()] + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+      const rows = recs.filter(r => r.fecha === f);
+      const extra = rows.filter(r => !provs.includes(provCorto(r)));
+      return '<div class="rb-day' + (f === t ? ' hoy' : '') + '">' + esc(lbl) + '</div>' +
+        provs.map(pv => {
+          const r = rows.find(x => provCorto(x) === pv);
+          if (!r) return '<div class="rb-row"><span>' + pv + '</span><span>-</span><span>-</span></div>';
+          const cita = r.cita && /\d/.test(r.cita) ? r.cita : '';
+          return '<div class="rb-row"><span>' + pv + '</span><span>' + esc(r.oc) + '</span><span' + (cita ? '' : ' class="nc"') + '>' + esc(cita || 'sin cita') + '</span></div>';
+        }).join('') +
+        extra.map(r => '<div class="rb-row"><span>' + esc(provCorto(r)) + '</span><span>' + esc(r.oc) + '</span><span>' + esc(r.cita || '-') + '</span></div>').join('');
+    }).join('');
+  }
+  const rl = $('rb-reload'); if (rl) rl.onclick = async () => { rl.disabled = true; rl.classList.add('spin'); mail.dataKey = ''; await loadRailData(true); toast('Entregas y calendario actualizados.', 2500); };
+  const pm = $('rb-perm'); if (pm) pm.onclick = () => loadRailData(true);
+}
+function renderRailCal() {
+  const box = $('rail-cal'); if (!box) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  if (!railState.month) railState.month = new Date(today.getFullYear(), today.getMonth(), 1);
+  const m = railState.month, y = m.getFullYear(), mo = m.getMonth();
+  const todayKey = ymdOf(today);
+  const byDate = {};
+  railState.recs.forEach(r => { if (r.oc && r.oc !== '-') (byDate[r.fecha] = byDate[r.fecha] || []).push(r); });
+  const first = new Date(y, mo, 1), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7)); // semana empieza lunes
+  let cells = '';
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    if (i >= 35 && d.getMonth() !== mo) break;
+    const f = ymdOf(d), ent = byDate[f];
+    const calc = (railState.calc || {})[f];
+    // Verde: entregado (hoy o antes) · Amarillo: calculado (tiene Excel en la carpeta) · Rojo: con OC y cita pero sin calcular
+    let est = '';
+    if (ent && f <= todayKey) est = 'ok';
+    else if (f > todayKey && (calc || f === railState.lastCalc)) est = 'calc';
+    else if (f === railState.lastCalc) est = 'calc';
+    else if (ent && f > todayKey && ent.some(r => r.cita && /\d/.test(r.cita))) est = 'pend';
+    const cls = ['d', d.getMonth() !== mo ? 'out' : '', d.getDay() === 0 || d.getDay() === 6 ? 'we' : '', d.getTime() === today.getTime() ? 'hoy' : '', est ? 'p-' + est : ''].filter(Boolean).join(' ');
+    const ESTXT = { ok: 'Entregado', calc: 'Calculado', pend: 'Sin calcular' };
+    const tip = DIA_LARGO[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES_LARGO[d.getMonth()].toLowerCase() + (est ? ' · ' + ESTXT[est] : '') +
+      (ent ? '\n' + ent.map(r => provCorto(r) + ' · OC ' + r.oc + ' · cita ' + (r.cita || '—') + (f > todayKey ? ((calc && calc.has(SUF_OF[r.vendor])) ? ' · calculado' : ' · sin calcular') : '')).join('\n') : '');
+    cells += '<div class="' + cls + '" title="' + esc(tip) + '">' + d.getDate() + '</div>';
+  }
+  const isCur = y === today.getFullYear() && mo === today.getMonth();
+  box.innerHTML = '<div class="rb-h"><button id="cal-prev" aria-label="Mes anterior">‹</button><span>' + MESES_LARGO[mo].toUpperCase() + ' ' + y + '</span><button id="cal-next" aria-label="Mes siguiente">›</button></div>' +
+    '<div class="cal-grid">' + ['L','M','M','J','V','S','D'].map(w => '<div class="wd">' + w + '</div>').join('') + cells + '</div>' +
+    '<div class="cal-ley"><span><i class="ok"></i>Entregado</span><span><i class="calc"></i>Calculado</span><span><i class="pend"></i>Por calcular</span></div>' +
+    (isCur ? '' : '<button class="cal-hoy" id="cal-hoy">Volver a hoy</button>');
+  $('cal-prev').onclick = () => { railState.month = new Date(y, mo - 1, 1); renderRailCal(); };
+  $('cal-next').onclick = () => { railState.month = new Date(y, mo + 1, 1); renderRailCal(); };
+  const h = $('cal-hoy'); if (h) h.onclick = () => { railState.month = null; renderRailCal(); };
+}
+// Actualización automática: al volver a la ventana, cada 5 minutos y después de guardar un cálculo.
+// Solo vuelve a procesar el Control OC si el archivo cambió.
+let railBusy = false, railLast = 0;
+async function refreshRail(why) {
+  if (railBusy || (why === 'foco' && Date.now() - railLast < 20000)) return;
+  railBusy = true;
+  try { await loadRailData(false); } finally { railBusy = false; railLast = Date.now(); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshRail('foco'); });
+addEventListener('focus', () => refreshRail('foco'));
+setInterval(() => { if (document.visibilityState === 'visible') refreshRail('reloj'); }, 5 * 60 * 1000);
+
+// A medianoche se actualiza "hoy" en el calendario y en las entregas
+setInterval(() => { const k = ymdOf(new Date()); if (railState.lastDay !== k) { railState.lastDay = k; railState.month = null; renderRailEntregas(); renderRailCal(); } }, 60000);
+
 // ═════════════ Arranque ═════════════
 (async function init() {
   renderNav(); renderDock(); updateNet();
   await loadTemplates();
   const h = location.hash.slice(1);
   go(toolById(h) ? h : 'home', { user:false });
+  railState.lastDay = ymdOf(new Date());
+  renderRailCal();
+  loadRailData(false);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();
 </script>
