@@ -403,7 +403,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.27</div>
+<div class="ver" aria-label="Versión de la app">V.2026.28</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -2002,7 +2002,7 @@ function renderEnvioResults() {
       '<button class="btn primary" id="btn-resumen">Ver resumen y enviar por WhatsApp</button></div>';
     const okx = env.results.map((x, i) => ({ x, i })).filter(o => !o.x.error && o.x.res.rows.length).sort((a, b) => fraguaSuf(a.x).localeCompare(fraguaSuf(b.x)));
     const pdir = templates.find(t => t.kind === 'pdfs');
-    html += '<div class="mcard sumbar frag"><div><h2>Hoja para Fragua (PDF)</h2><p class="sub" style="margin:0">Cuadros por tienda (2 copias) y resumen por clave de cada OC, con lo que está en Enviar. ' +
+    html += '<div class="mcard sumbar frag"><div><h2>Hoja para Fragua (PDF)</h2><p class="sub" style="margin:0">Cuadros por tienda (2 copias) y resumen por clave de cada OC, con lo que está en Enviar. El de las dos OC lleva al final los QR Garita de sus citas. ' +
       (pdir ? 'Se guarda en la carpeta <b>' + esc(pdir.name) + '</b>.' : (HAS_DIR ? 'Sin carpeta de PDF completos vinculada en Inicio: se descarga.' : 'Se descarga.')) + '</p></div>' +
       '<div class="send-row"><label class="fr-rampa">Rampa <input id="fr-rampa" type="text" inputmode="numeric" value="' + esc(env.rampa || FR_RAMPA_DEF) + '" aria-label="Rampa para la Hoja para Fragua"></label>' + okx.map(o => '<button class="btn" data-fragua="' + o.i + '">PANISA ' + esc(fraguaSuf(o.x)) + (o.x.wbk.form.oc ? ' · OC ' + esc(o.x.wbk.form.oc) : '') + '</button>').join('') +
       (okx.length > 1 ? '<button class="btn primary" data-fragua="all">Las dos OC en un PDF</button>' : '') + '</div></div>';
@@ -2333,6 +2333,55 @@ async function buildFraguaPdf(ocs) {
   }
   return doc.output('blob');
 }
+// ── QR Garita al final del PDF de las dos OC ──
+const PDFLIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+let pdflibP = null;
+function loadPdfLib() {
+  if (window.PDFLib && window.PDFLib.PDFDocument) return Promise.resolve(window.PDFLib);
+  if (!pdflibP) pdflibP = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = PDFLIB_URL; s.async = true;
+    s.onload = () => window.PDFLib ? res(window.PDFLib) : rej(new Error('No se pudo iniciar la unión de PDF.'));
+    s.onerror = () => { pdflibP = null; s.remove(); rej(new Error('No se pudo cargar la unión de PDF. La primera vez necesita internet.')); };
+    document.head.appendChild(s);
+  });
+  return pdflibP;
+}
+// Busca en la carpeta de archivos generados y en la de PDF completos los PDF "QR Garita … Cita N"
+async function findGaritaPdfs(citas, dirs) {
+  const found = [];
+  const walk = async (h, depth) => {
+    for await (const [nm, e] of h.entries()) {
+      if (e.kind === 'file' && /\.pdf$/i.test(nm) && /qr[\s_-]*garita/i.test(nm)) {
+        const hit = citas.filter(c => c && nm.includes(c));
+        if (hit.length) { const f = await e.getFile(); found.push({ file: f, citas: hit }); }
+      } else if (e.kind === 'directory' && depth < 2) await walk(e, depth + 1);
+    }
+  };
+  for (const d of dirs) { try { await walk(d.handle, 0); } catch (e) {} }
+  // Preferir el PDF que trae todas las citas; si no, el más reciente de cada cita
+  found.sort((a, b) => b.citas.length - a.citas.length || b.file.lastModified - a.file.lastModified);
+  const out = [], cubiertas = new Set();
+  for (const g of found) { if (g.citas.some(c => !cubiertas.has(c))) { out.push(g); g.citas.forEach(c => cubiertas.add(c)); } }
+  return { files: out, faltan: citas.filter(c => c && !cubiertas.has(c)) };
+}
+function pickPdfFiles() {
+  return new Promise(res => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.pdf,application/pdf'; inp.multiple = true;
+    inp.onchange = () => res(Array.from(inp.files || []));
+    inp.addEventListener('cancel', () => res([]));
+    inp.click();
+  });
+}
+async function appendPdfs(blob, files) {
+  const { PDFDocument } = await loadPdfLib();
+  const out = await PDFDocument.load(await blob.arrayBuffer());
+  for (const f of files) {
+    const src = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+    const pages = await out.copyPages(src, src.getPageIndices());
+    pages.forEach(pg => out.addPage(pg));
+  }
+  return new Blob([await out.save()], { type: 'application/pdf' });
+}
 function fraguaName(ocs, fecha) {
   const sufs = ocs.map(o => o.suf).join(' y ');
   if (!fecha) return 'Hoja para Fragua PANISA ' + sufs + '.pdf';
@@ -2352,6 +2401,12 @@ async function generarFragua(which, btn) {
       if (p !== 'granted') dir = null;
     } catch (e) { dir = null; }
   } else dir = null;
+  // Carpetas donde buscar los PDF de QR Garita (solo para el PDF de las dos OC)
+  const gDirs = [];
+  if (which === 'all') for (const k of ['carpeta', 'pdfs']) {
+    const t = templates.find(r => r.kind === k); if (!t || !t.handle) continue;
+    try { let p = await t.handle.queryPermission({ mode: 'read' }); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'read' }); if (p === 'granted') gDirs.push(t); } catch (e) {}
+  }
   const win = window.open('', '_blank');
   if (win) { try { win.document.write('<p style="font:16px Arial;padding:24px">Armando la Hoja para Fragua…</p>'); } catch (e) {} }
   const old = btn.textContent; btn.disabled = true; btn.textContent = 'Armando PDF…';
@@ -2359,8 +2414,25 @@ async function generarFragua(which, btn) {
     const ocs = [];
     for (const x of sel) ocs.push(fraguaOc(x, await fraguaExtra(x)));
     ocs.sort((a, b) => a.suf.localeCompare(b.suf));
-    const blob = await buildFraguaPdf(ocs);
+    let blob = await buildFraguaPdf(ocs);
     const name = fraguaName(ocs, sel[0].fecha);
+    let garitaMsg = '';
+    if (which === 'all') {
+      const citas = ocs.map(o => String(o.cita || '')).filter(Boolean);
+      const g = await findGaritaPdfs(citas, gDirs);
+      let files = g.files.map(x => x.file);
+      if (g.faltan.length) {
+        btn.textContent = 'Esperando QR Garita…';
+        const ok = await confirmDlg('QR Garita', 'No encontré el PDF de QR Garita de ' + (g.faltan.length === 1 ? 'la cita ' : 'las citas ') + g.faltan.join(' y ') +
+          (gDirs.length ? ' en la carpeta de archivos generados.' : '. Vinculá la carpeta de archivos generados en Inicio para que lo busque solo.') + ' ¿Querés elegirlo para agregarlo al final?', 'Elegir PDF');
+        if (ok) files = files.concat(await pickPdfFiles());
+        btn.textContent = 'Armando PDF…';
+      }
+      if (files.length) {
+        try { blob = await appendPdfs(blob, files); garitaMsg = ' Con QR Garita al final (' + files.map(f => f.name).join(', ') + ').'; }
+        catch (e) { garitaMsg = ' No se pudo agregar QR Garita: ' + (e.message || e) + '.'; }
+      } else garitaMsg = ' Sin QR Garita.';
+    }
     let where = '';
     if (dir) {
       try {
@@ -2380,7 +2452,7 @@ async function generarFragua(which, btn) {
     if (win && !win.closed) win.location.href = url; else window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 10 * 60000);
     const pend = sel.filter(x => x.edits.size).length;
-    toast(where + ': "' + name + '".' + (pend ? ' Usa lo que está en Enviar en pantalla; acordate de guardar el Excel.' : ''), 7500);
+    toast(where + ': "' + name + '".' + garitaMsg + (pend ? ' Usa lo que está en Enviar en pantalla; acordate de guardar el Excel.' : ''), 7500);
   } catch (e) {
     if (win && !win.closed) win.close();
     toast('No se pudo armar la Hoja para Fragua: ' + (e.message || e), 7000);

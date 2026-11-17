@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.27
+# Envíos al CD — PANISA (PWA) · V.2026.28
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -188,3 +188,9 @@ ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 ## V.2026.27 — Ajustes de cuadros y CONTEO
 - Cuadros: si toda la tienda va en 0, solo la X (sin ceros). Si la tienda lleva otras claves, las claves en 0 muestran «0».
 - Resumen: la columna CONTEO queda como espacio libre, sin líneas verticales.
+
+## V.2026.28 — QR Garita al final del PDF de las dos OC
+- «Las dos OC en un PDF» agrega al final las hojas de QR Garita de las citas de esas OC.
+- Busca los PDF cuyo nombre tenga «QR Garita» y el número de cita en la carpeta de archivos generados y en la de PDF completos (prefiere el que trae las dos citas; si hay varios, el más reciente).
+- Si no los encuentra, pregunta y deja elegir el PDF a mano, o seguir sin QR Garita.
+- Los PDF de una sola OC no cambian.
