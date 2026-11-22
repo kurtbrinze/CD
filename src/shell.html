@@ -403,7 +403,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.28</div>
+<div class="ver" aria-label="Versión de la app">V.2026.30</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -460,8 +460,9 @@ const KINDS = {
 const HAS_DIR = 'showDirectoryPicker' in window;
 if (HAS_DIR) KINDS.calculos = { label:'Carpeta de cálculos de envío', help:'Los Excel tipo "11_02 Noviembre 2026 PANISA 1.xlsm" (pestaña OC Table)', dir:true, tool:'sugerido', staleDays:null };
 if (HAS_DIR) KINDS.pdfs = { label:'Carpeta de PDF completos', help:'Donde se guarda la Hoja para Fragua (PDF) que se arma en Sugerido envío', dir:true, write:true, tool:'sugerido', staleDays:null };
+if (HAS_DIR) KINDS.garita = { label:'Carpeta de QR Garita (respaldo)', help:'Donde se guarda un PDF de cada hoja de QR Garita que arma la Hoja para Fragua', dir:true, write:true, tool:'sugerido', staleDays:null };
 if (HAS_DIR) KINDS.carpeta = { label:'Carpeta de archivos generados', help:'Donde guardás los PDF de QR y el Excel del Generador QR Entrega', dir:true, tool:'correo', staleDays:null };
-const KIND_ORDER = ['cdpanisa','inventario','generador','controloc'].concat(HAS_DIR ? ['carpeta','calculos','pdfs'] : []);
+const KIND_ORDER = ['cdpanisa','inventario','generador','controloc'].concat(HAS_DIR ? ['carpeta','calculos','pdfs','garita'] : []);
 
 // ═════════════ Utilidades ═════════════
 const $ = id => document.getElementById(id);
@@ -2002,7 +2003,7 @@ function renderEnvioResults() {
       '<button class="btn primary" id="btn-resumen">Ver resumen y enviar por WhatsApp</button></div>';
     const okx = env.results.map((x, i) => ({ x, i })).filter(o => !o.x.error && o.x.res.rows.length).sort((a, b) => fraguaSuf(a.x).localeCompare(fraguaSuf(b.x)));
     const pdir = templates.find(t => t.kind === 'pdfs');
-    html += '<div class="mcard sumbar frag"><div><h2>Hoja para Fragua (PDF)</h2><p class="sub" style="margin:0">Cuadros por tienda (2 copias) y resumen por clave de cada OC, con lo que está en Enviar. El de las dos OC lleva al final los QR Garita de sus citas. ' +
+    html += '<div class="mcard sumbar frag"><div><h2>Hoja para Fragua (PDF)</h2><p class="sub" style="margin:0">Cuadros por tienda (2 copias) y resumen por clave de cada OC, con lo que está en Enviar. El de las dos OC lleva al final los QR Garita de la entrega anterior en una hoja horizontal (los arma la app con el Control OC). ' +
       (pdir ? 'Se guarda en la carpeta <b>' + esc(pdir.name) + '</b>.' : (HAS_DIR ? 'Sin carpeta de PDF completos vinculada en Inicio: se descarga.' : 'Se descarga.')) + '</p></div>' +
       '<div class="send-row"><label class="fr-rampa">Rampa <input id="fr-rampa" type="text" inputmode="numeric" value="' + esc(env.rampa || FR_RAMPA_DEF) + '" aria-label="Rampa para la Hoja para Fragua"></label>' + okx.map(o => '<button class="btn" data-fragua="' + o.i + '">PANISA ' + esc(fraguaSuf(o.x)) + (o.x.wbk.form.oc ? ' · OC ' + esc(o.x.wbk.form.oc) : '') + '</button>').join('') +
       (okx.length > 1 ? '<button class="btn primary" data-fragua="all">Las dos OC en un PDF</button>' : '') + '</div></div>';
@@ -2221,7 +2222,7 @@ function fraguaOc(x, extra) {
 }
 const FR_COPIAS = 2;
 const FR_RAMPA_DEF = '2053';
-async function buildFraguaPdf(ocs) {
+async function buildFraguaPdf(ocs, gar) {
   const jsPDF = await loadJsPDF();
   const doc = new jsPDF({ unit: 'pt', format: 'letter', compress: true });
   const W = 612, H = 792, M = 24;
@@ -2229,7 +2230,7 @@ async function buildFraguaPdf(ocs) {
   const color = (k, what) => { const c = C[k]; if (what === 'draw') doc.setDrawColor(...c); else if (what === 'fill') doc.setFillColor(...c); else doc.setTextColor(...c); };
   const font = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
   const fitSize = (txt, st, sz, maxw, min) => { font(st, sz); while (sz > (min || 3) && doc.getTextWidth(txt) > maxw) { sz -= 0.25; font(st, sz); } return sz; };
-  const total = ocs.reduce((a, o) => a + o.gridPages * FR_COPIAS + 1, 0);
+  const total = ocs.reduce((a, o) => a + o.gridPages * FR_COPIAS + 1, 0) + (gar && gar.items.length ? 1 : 0);
   let page = 0;
   const newPage = () => { if (page > 0) doc.addPage(); page++; };
   const header = (o, sub) => {
@@ -2331,6 +2332,22 @@ async function buildFraguaPdf(ocs) {
     font('normal', 6.5); color('gray'); doc.text('cortar aquí', W / 2, H / 2 - 3, { align: 'center' }); color('ink');
     block(H / 2 + 26);
   }
+  // ── QR Garita de la entrega anterior: las hojas lado a lado en una hoja horizontal ──
+  if (gar && gar.items.length) {
+    doc.addPage('letter', 'l'); page++;
+    const LW = 792, LH = 612, LM = 22, G = 18, top = 34;
+    const d = ymdDate(gar.fecha);
+    font('bold', 11); color('ink'); doc.text('QR Garita · entrega anterior: ' + DIA_LARGO[d.getDay()].toLowerCase() + ' ' + dmyOf(d), LM, 22);
+    font('normal', 8); color('gray');
+    doc.text(gar.items.map(it => 'Cita ' + it.g.cita + ' (PANISA ' + it.suf + ')').join(' y ') + '      Hoja ' + page + ' de ' + total, LW - LM, 22, { align: 'right' });
+    const n = gar.items.length, slotW = (LW - 2 * LM - G * (n - 1)) / n, slotH = LH - top - LM;
+    const sc = Math.min(...gar.items.map(it => Math.min(slotW / it.w, slotH / it.h)));
+    gar.items.forEach((it, k) => {
+      const w = it.w * sc, h = it.h * sc;
+      doc.addImage(it.png, 'PNG', LM + k * (slotW + G) + (slotW - w) / 2, top + (slotH - h) / 2, w, h, undefined, 'FAST');
+    });
+    color('ink');
+  }
   return doc.output('blob');
 }
 // ── QR Garita al final del PDF de las dos OC ──
@@ -2346,23 +2363,138 @@ function loadPdfLib() {
   });
   return pdflibP;
 }
-// Busca en la carpeta de archivos generados y en la de PDF completos los PDF "QR Garita … Cita N"
-async function findGaritaPdfs(citas, dirs) {
-  const found = [];
+// QR Garita de la ENTREGA ANTERIOR a la del cálculo: citas de PANISA 1 y 2 en la fecha de entrega
+// previa según el Control OC. Sin Control OC, se usa la fecha más reciente anterior en el nombre del PDF.
+async function prevGaritaTarget(fecha) {
+  let recs = railState.recs || [];
+  if (!recs.length) { try { recs = (await loadMailData(false)).records || []; } catch (e) { recs = []; } }
+  const ok = recs.filter(r => SUF_OF[String(r.vendor)] && r.fecha && r.fecha < fecha && r.cita && /\d{5,}/.test(r.cita));
+  if (!ok.length) return { fecha: '', citas: [] };
+  const prev = ok.map(r => r.fecha).sort().pop();
+  return { fecha: prev, citas: Array.from(new Set(ok.filter(r => r.fecha === prev).map(r => String(r.cita).trim()))) };
+}
+async function listGaritaPdfs(dirs) {
+  const all = [];
   const walk = async (h, depth) => {
     for await (const [nm, e] of h.entries()) {
       if (e.kind === 'file' && /\.pdf$/i.test(nm) && /qr[\s_-]*garita/i.test(nm)) {
-        const hit = citas.filter(c => c && nm.includes(c));
-        if (hit.length) { const f = await e.getFile(); found.push({ file: f, citas: hit }); }
+        const m = /(\d{1,2})[-_.](\d{1,2})[-_.](\d{4})/.exec(nm);
+        const fecha = m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : '';
+        const citas = (nm.match(/cita[\s_-]*(\d{5,})/gi) || []).map(x => x.replace(/\D/g, ''));
+        all.push({ entry: e, nm, fecha, citas });
       } else if (e.kind === 'directory' && depth < 2) await walk(e, depth + 1);
     }
   };
   for (const d of dirs) { try { await walk(d.handle, 0); } catch (e) {} }
-  // Preferir el PDF que trae todas las citas; si no, el más reciente de cada cita
-  found.sort((a, b) => b.citas.length - a.citas.length || b.file.lastModified - a.file.lastModified);
-  const out = [], cubiertas = new Set();
-  for (const g of found) { if (g.citas.some(c => !cubiertas.has(c))) { out.push(g); g.citas.forEach(c => cubiertas.add(c)); } }
-  return { files: out, faltan: citas.filter(c => c && !cubiertas.has(c)) };
+  for (const g of all) { try { g.file = await g.entry.getFile(); } catch (e) {} }
+  return all.filter(g => g.file);
+}
+// Elige los PDF: por citas (prefiere el que trae todas; si hay varios, el más reciente)
+function chooseGarita(all, citas) {
+  const cand = all.map(g => ({ ...g, hit: citas.filter(c => g.citas.includes(c) || g.nm.includes(c)) })).filter(g => g.hit.length)
+    .sort((a, b) => b.hit.length - a.hit.length || b.file.lastModified - a.file.lastModified);
+  const out = [], cub = new Set();
+  for (const g of cand) if (g.hit.some(c => !cub.has(c))) { out.push(g.file); g.hit.forEach(c => cub.add(c)); }
+  return { files: out, faltan: citas.filter(c => !cub.has(c)) };
+}
+async function findPrevGarita(calcFecha, dirs) {
+  const all = await listGaritaPdfs(dirs);
+  const t = await prevGaritaTarget(calcFecha);
+  if (t.citas.length) return { ...chooseGarita(all, t.citas), fecha: t.fecha, citas: t.citas };
+  // Sin Control OC: la fecha más reciente anterior al cálculo que aparezca en el nombre de los PDF
+  const prev = all.map(g => g.fecha).filter(f => f && f < calcFecha).sort().pop();
+  if (!prev) return { files: [], faltan: ['?'], fecha: '', citas: [] };
+  const del = all.filter(g => g.fecha === prev);
+  const citas = Array.from(new Set(del.flatMap(g => g.citas)));
+  const r = citas.length ? chooseGarita(del, citas) : { files: [del.sort((a, b) => b.file.lastModified - a.file.lastModified)[0].file], faltan: [] };
+  return { ...r, fecha: prev, citas };
+}
+// ── QR Garita armado por la app (opción automática) ──
+const H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+// Convierte la hoja (HTML ya llenado, QR como imagen) en una imagen PNG
+function garitaImage(sn) {
+  return new Promise((res, rej) => {
+    const f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+    f.style.cssText = 'position:fixed;left:-12000px;top:0;width:820px;height:1300px;border:0;background:#fff';
+    const fail = e => { f.remove(); rej(e instanceof Error ? e : new Error(String(e))); };
+    const timer = setTimeout(() => fail(new Error('La hoja de QR Garita tardó demasiado en armarse.')), 45000);
+    f.onload = async () => {
+      try {
+        const w = f.contentWindow, dd = f.contentDocument;
+        if (!w.html2canvas) await new Promise((ok, ko) => {
+          const sc = dd.createElement('script'); sc.src = H2C_URL;
+          sc.onload = ok; sc.onerror = () => ko(new Error('No se pudo cargar el armado de imagen para QR Garita. La primera vez necesita internet.'));
+          dd.head.appendChild(sc);
+        });
+        try { await dd.fonts.ready; } catch (e) {}
+        // Campos como texto fijo (como se ven impresos): html2canvas no dibuja bien inputs ni selects
+        dd.querySelectorAll('input,select').forEach(el => {
+          if (el.type === 'hidden') return;
+          const cs = w.getComputedStyle(el), div = dd.createElement('div');
+          let txt = el.tagName === 'SELECT' ? ((el.options[el.selectedIndex] || {}).text || '') : el.value;
+          if (el.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(txt)) { const [y, m, d] = txt.split('-'); txt = m + '/' + d + '/' + y; }
+          if (el.type === 'time' && /^\d{1,2}:\d{2}/.test(txt)) { let [h, mi] = txt.split(':'); h = +h; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; txt = String(h).padStart(2, '0') + ':' + mi.slice(0, 2) + ' ' + ap; }
+          ['width', 'height', 'boxSizing', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderRadius', 'paddingLeft', 'paddingRight',
+           'fontFamily', 'fontSize', 'fontWeight', 'color', 'backgroundColor', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'letterSpacing', 'flex', 'minWidth', 'maxWidth'].forEach(k => { div.style[k] = cs[k]; });
+          div.style.display = cs.display === 'none' ? 'none' : (cs.display.indexOf('inline') >= 0 ? 'inline-flex' : 'flex');
+          div.style.alignItems = 'center'; div.style.justifyContent = 'space-between'; div.style.whiteSpace = 'nowrap'; div.style.overflow = 'hidden'; div.style.paddingTop = div.style.paddingBottom = '0';
+          const sp = dd.createElement('span'); sp.textContent = txt; div.appendChild(sp);
+          if (el.tagName === 'SELECT') { const ar = dd.createElement('span'); ar.textContent = '\u25BE'; ar.style.marginLeft = '6px'; div.appendChild(ar); }
+          el.replaceWith(div);
+        });
+        await Promise.all(Array.from(dd.images).map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+        const el = dd.querySelector('.page') || dd.body;
+        const cv = await w.html2canvas(el, { scale: 2.5, backgroundColor: '#ffffff', logging: false, useCORS: true });
+        clearTimeout(timer);
+        const out = { png: cv.toDataURL('image/png'), w: cv.width, h: cv.height };
+        f.remove(); res(out);
+      } catch (e) { clearTimeout(timer); fail(e); }
+    };
+    // Se usan las reglas de impresión del formulario (sin botones, encabezado claro), como al imprimirlo
+    const st = sn.styles.replace(/@media\s+screen/gi, '@media not all').replace(/@media\s+print/gi, '@media all');
+    f.srcdoc = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' + st +
+      '<style>html,body{margin:0;padding:0;background:#fff}body{padding:0!important}</style></head><body>' + sn.page + '</body></html>';
+    document.body.appendChild(f);
+  });
+}
+// Citas de PANISA 1 y 2 de la entrega anterior según el Control OC, con hora y placa
+async function garitaAuto(calcFecha) {
+  const d = await loadMailData(false);
+  const recs = (d.records || []).filter(r => SUF_OF[String(r.vendor)] && r.fecha && r.fecha < calcFecha && /\d{5,}/.test(String(r.cita || '')));
+  if (!recs.length) throw new Error('el Control OC no tiene una entrega anterior de PANISA con cita');
+  const prev = recs.map(r => r.fecha).sort().pop();
+  const groups = [], by = {};
+  recs.filter(r => r.fecha === prev).forEach(r => {
+    const k = r.vendor + '|' + String(r.cita).trim();
+    let g = by[k];
+    if (!g) { g = by[k] = { proveedor: r.proveedor, vendor: String(r.vendor), cita: String(r.cita).trim(), hora: r.hora || '', placa: r.placa || '' }; groups.push(g); }
+    if (!g.hora && r.hora) g.hora = r.hora;
+    if (!g.placa && r.placa) g.placa = r.placa;
+  });
+  groups.sort((a, b) => SUF_OF[a.vendor].localeCompare(SUF_OF[b.vendor]));
+  const w = await toolHelper('garita');
+  const items = [];
+  for (const g of groups) {
+    const sn = await w.garitaSnapFor(g, prev);
+    items.push({ g, suf: SUF_OF[g.vendor], title: sn.title, ...(await garitaImage(sn)) });
+  }
+  return { fecha: prev, items };
+}
+// Respaldo: un PDF por hoja de QR Garita
+async function garitaBackups(gar, rec) {
+  const jsPDF = await loadJsPDF();
+  const saved = [];
+  for (const it of gar.items) {
+    const doc = new jsPDF({ unit: 'pt', format: 'letter', compress: true });
+    const M = 28, maxW = 612 - 2 * M, maxH = 792 - 2 * M, sc = Math.min(maxW / it.w, maxH / it.h);
+    doc.addImage(it.png, 'PNG', M + (maxW - it.w * sc) / 2, M, it.w * sc, it.h * sc, undefined, 'FAST');
+    const name = it.title + '.pdf';
+    const fh = await rec.handle.getFileHandle(name, { create: true });
+    const ws = await fh.createWritable(); await ws.write(doc.output('blob')); await ws.close();
+    saved.push(name);
+  }
+  return saved;
 }
 function pickPdfFiles() {
   return new Promise(res => {
@@ -2402,8 +2534,15 @@ async function generarFragua(which, btn) {
     } catch (e) { dir = null; }
   } else dir = null;
   // Carpetas donde buscar los PDF de QR Garita (solo para el PDF de las dos OC)
+  let gBack = null;
+  if (which === 'all') {
+    const t = templates.find(r => r.kind === 'garita');
+    if (t && t.handle) { try { let p = await t.handle.queryPermission({ mode: 'readwrite' }); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'readwrite' }); if (p === 'granted') gBack = t; } catch (e) {} }
+    const co = templates.find(r => r.kind === 'controloc');
+    if (co && co.handle && co.mode === 'handle') { try { if (await co.handle.queryPermission({ mode: 'read' }) !== 'granted') await co.handle.requestPermission({ mode: 'read' }); } catch (e) {} }
+  }
   const gDirs = [];
-  if (which === 'all') for (const k of ['carpeta', 'pdfs']) {
+  if (which === 'all') for (const k of ['carpeta', 'pdfs', 'garita']) {
     const t = templates.find(r => r.kind === k); if (!t || !t.handle) continue;
     try { let p = await t.handle.queryPermission({ mode: 'read' }); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'read' }); if (p === 'granted') gDirs.push(t); } catch (e) {}
   }
@@ -2414,24 +2553,41 @@ async function generarFragua(which, btn) {
     const ocs = [];
     for (const x of sel) ocs.push(fraguaOc(x, await fraguaExtra(x)));
     ocs.sort((a, b) => a.suf.localeCompare(b.suf));
-    let blob = await buildFraguaPdf(ocs);
-    const name = fraguaName(ocs, sel[0].fecha);
-    let garitaMsg = '';
+    let gar = null, garErr = '', garitaMsg = '';
     if (which === 'all') {
-      const citas = ocs.map(o => String(o.cita || '')).filter(Boolean);
-      const g = await findGaritaPdfs(citas, gDirs);
-      let files = g.files.map(x => x.file);
+      btn.textContent = 'Armando QR Garita…';
+      try { gar = await garitaAuto(sel[0].fecha || ymdOf(new Date())); if (!gar.items.length) gar = null; }
+      catch (e) { gar = null; garErr = e.message || String(e); console.warn('QR Garita automático', e); }
+      btn.textContent = 'Armando PDF…';
+    }
+    let blob = await buildFraguaPdf(ocs, gar);
+    const name = fraguaName(ocs, sel[0].fecha);
+    if (gar) {
+      const d = ymdDate(gar.fecha), cuando = DIA_LARGO[d.getDay()].toLowerCase() + ' ' + dmyOf(d);
+      const sinPlaca = gar.items.filter(it => !it.g.placa).map(it => it.g.cita);
+      garitaMsg = ' Con QR Garita de la entrega anterior (' + cuando + ', ' + gar.items.map(it => 'cita ' + it.g.cita).join(' y ') + ') en una hoja horizontal al final.' +
+        (sinPlaca.length ? ' Ojo: el Control OC no tiene placa para ' + sinPlaca.join(' y ') + '.' : '');
+      if (gBack) {
+        try { const sv = await garitaBackups(gar, gBack); garitaMsg += ' Respaldo de ' + sv.length + (sv.length === 1 ? ' hoja' : ' hojas') + ' en "' + gBack.name + '".'; }
+        catch (e) { garitaMsg += ' No se pudo guardar el respaldo de QR Garita: ' + (e.message || e) + '.'; }
+      } else if (HAS_DIR) garitaMsg += ' Vinculá la carpeta de QR Garita en Inicio para guardar un respaldo de cada hoja.';
+    } else if (which === 'all') {
+      if (garErr) garitaMsg = ' No se pudo armar QR Garita solo (' + garErr + ').';
+      const g = await findPrevGarita(sel[0].fecha || ymdOf(new Date()), gDirs);
+      let files = g.files;
+      const cuando = g.fecha ? 'de la entrega anterior (' + DIA_LARGO[ymdDate(g.fecha).getDay()].toLowerCase() + ' ' + dmyOf(ymdDate(g.fecha)) + ')' : 'de la entrega anterior';
       if (g.faltan.length) {
         btn.textContent = 'Esperando QR Garita…';
-        const ok = await confirmDlg('QR Garita', 'No encontré el PDF de QR Garita de ' + (g.faltan.length === 1 ? 'la cita ' : 'las citas ') + g.faltan.join(' y ') +
-          (gDirs.length ? ' en la carpeta de archivos generados.' : '. Vinculá la carpeta de archivos generados en Inicio para que lo busque solo.') + ' ¿Querés elegirlo para agregarlo al final?', 'Elegir PDF');
+        const falt = g.faltan.filter(c => c !== '?');
+        const ok = await confirmDlg('QR Garita', 'No encontré el PDF de QR Garita ' + cuando + (falt.length ? (falt.length === 1 ? ', cita ' : ', citas ') + falt.join(' y ') : '') +
+          (gDirs.length ? ', en la carpeta de archivos generados.' : '. Vinculá la carpeta de archivos generados en Inicio para que lo busque solo.') + ' ¿Querés elegirlo para agregarlo al final?', 'Elegir PDF');
         if (ok) files = files.concat(await pickPdfFiles());
         btn.textContent = 'Armando PDF…';
       }
       if (files.length) {
-        try { blob = await appendPdfs(blob, files); garitaMsg = ' Con QR Garita al final (' + files.map(f => f.name).join(', ') + ').'; }
+        try { blob = await appendPdfs(blob, files); garitaMsg += ' Con QR Garita ' + cuando + ' al final (' + files.map(f => f.name).join(', ') + ').'; }
         catch (e) { garitaMsg = ' No se pudo agregar QR Garita: ' + (e.message || e) + '.'; }
-      } else garitaMsg = ' Sin QR Garita.';
+      } else garitaMsg += ' Sin QR Garita.';
     }
     let where = '';
     if (dir) {

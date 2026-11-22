@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.28
+# Envíos al CD — PANISA (PWA) · V.2026.30
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -194,3 +194,15 @@ ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 - Busca los PDF cuyo nombre tenga «QR Garita» y el número de cita en la carpeta de archivos generados y en la de PDF completos (prefiere el que trae las dos citas; si hay varios, el más reciente).
 - Si no los encuentra, pregunta y deja elegir el PDF a mano, o seguir sin QR Garita.
 - Los PDF de una sola OC no cambian.
+
+## V.2026.29 — QR Garita de la entrega anterior
+- El PDF de las dos OC agrega al final el QR Garita de la ENTREGA ANTERIOR a la del cálculo (para el cálculo del 16, el del 15).
+- La entrega anterior y sus citas (PANISA 1 y 2) salen del Control OC; se buscan los PDF «QR Garita … Cita N» con esas citas.
+- Sin Control OC, se usa la fecha más reciente anterior al cálculo que aparezca en el nombre del PDF («QR Garita - 15-10-2026 - …»).
+- Si no lo encuentra, pregunta y deja elegirlo a mano.
+
+## V.2026.30 — QR Garita armado por la app, en una hoja horizontal
+- «Las dos OC en un PDF» arma sola las hojas de QR Garita de la entrega anterior (citas, hora y placa de PANISA 1 y 2 tomadas del Control OC) y las pone lado a lado en una hoja horizontal al final.
+- Las hojas se arman con el mismo formulario de QR Garita (reglas de impresión, campos como texto) y se convierten en imagen nítida (html2canvas, escala 2.5). Los QR se leen bien (probado decodificándolos).
+- Inicio: nueva «Carpeta de QR Garita (respaldo)». Si está vinculada, se guarda un PDF por hoja: «QR Garita - PANISA 1 - Cita N - DD-MM-AAAA.pdf».
+- Si el Control OC no está o no tiene la entrega anterior, se usa lo de antes: buscar el PDF guardado o elegirlo a mano.

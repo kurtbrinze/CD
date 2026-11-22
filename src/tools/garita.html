@@ -521,6 +521,13 @@ function snapshotCita(data) {
   });
 }
 
+// Usado por la Hoja para Fragua (app principal): hoja de QR Garita de una cita en una fecha dada.
+function garitaSnapFor(g, fecha) {
+  const title = safeName('QR Garita - ' + (g.proveedor || ('Vendor ' + g.vendor)) + ' - Cita ' + g.cita + ' - ' + dmy(fecha));
+  return snapshotCita({ lugar: LUGAR_VALUE, fecha: fecha, vendor: g.vendor, hora: g.hora || '', empresa: EMPRESA, cita: g.cita, placa: (g.placa || '').toUpperCase(), title: title })
+    .then(sn => ({ page: sn.page, styles: sn.styles, title: title }));
+}
+
 async function generarPdfTodas(list, btn) {
   const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Armando…';
   const w = window.open('', '_blank');
