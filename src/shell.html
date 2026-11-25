@@ -243,6 +243,10 @@ button{font:inherit;cursor:pointer}
 .envtab th.envh{background:#fff3c4}
 .envtab th[draggable="true"]{cursor:grab;user-select:none}
 .envtab td.tdtienda{white-space:nowrap}
+.hora-fact{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hora-fact input{font:inherit;font-weight:700;border:1.5px solid var(--line);border-radius:6px;padding:2px 6px;background:#fff}
+.hora-fact.warn{background:#fff4e8;border-color:#f3c99b}
+.hora-fact em{font-style:normal;font-size:12px;color:var(--warn)}
 .envtab .full-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0;background:transparent}
 .envtab tr.full .full-dot{background:#1f9d55;box-shadow:0 0 0 2px #d6f2e0}
 .envtab tbody tr.solo td{background:#fff1e3}
@@ -377,6 +381,14 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
 
         <div class="sec-h"><h2>Plantillas</h2></div>
         <p class="sec-p" id="tpl-intro">Vinculá una vez los Excel que usás siempre. Cada herramienta los carga sola, y cuando actualizás el archivo en tu computadora la app lee la versión nueva sin volver a subirlo.</p>
+        <div class="warnbox fs-slow" id="fs-slow" hidden>
+          <b><span class="fs-br">Edge</span> no responde al abrir algunos archivos o carpetas vinculados.</b> Suele pasar cuando <span class="fs-br">Edge</span> deja de reconocer los vínculos guardados (por ejemplo, después de una actualización).
+          <ol style="margin:6px 0 0;padding-left:20px">
+            <li><b>Volvé a vincularlos:</b> en cada fila marcada «El navegador no responde», tocá <b>Volver a vincular</b> y elegí el mismo archivo o carpeta de siempre.</li>
+            <li>Si así no se arregla, cerrá <span class="fs-br">Edge</span> por completo: en cualquier ventana de <span class="fs-br">Edge</span> escribí <code id="fs-url">edge://restart</code> en la barra de direcciones y presioná Enter. Después volvé a abrir la app.</li>
+          </ol>
+          <div style="margin-top:8px"><button class="btn" id="fs-retry">Reintentar</button></div>
+        </div>
         <div class="tpl-list" id="tpl-list"></div>
         <p class="mode-note" id="mode-note"></p>
 
@@ -403,7 +415,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.30</div>
+<div class="ver" aria-label="Versión de la app">V.2026.32</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -515,12 +527,35 @@ let templates = [];
 async function loadTemplates() { try { templates = await DB.all(); } catch (e) { templates = []; } }
 
 // Devuelve el File actual de una plantilla. interactive=true solo dentro de un clic.
+// ── Acceso a archivos con tiempo límite: si el navegador no responde, la app no se queda en blanco ──
+const FS_TIMEOUT = 6000;
+let fsSlow = false;
+function fsCall(p, ms) {
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => { fsSlow = true; showFsSlow(); const e = new Error('El navegador no responde al abrir tus archivos'); e.code = 'slow'; rej(e); }, ms || FS_TIMEOUT);
+    Promise.resolve(p).then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+  });
+}
+const qPerm = (h, mode) => fsCall(h.queryPermission({ mode }));
+function showFsSlow() {
+  const b = $('fs-slow'); if (b) b.hidden = !fsSlow;
+  if (b && fsSlow) {
+    const edge = /Edg\//.test(navigator.userAgent);
+    b.querySelectorAll('.fs-br').forEach(x => { x.textContent = edge ? 'Edge' : 'Chrome'; });
+    const u = $('fs-url'); if (u) u.textContent = edge ? 'edge://restart' : 'chrome://restart';
+  }
+  if (fsSlow && !showFsSlow.told && current !== 'home') { showFsSlow.told = true; toast('El navegador no está respondiendo al abrir tus archivos. Mirá el aviso en Inicio.', 8000); }
+}
+async function retryFs() {
+  fsSlow = false; showFsSlow.told = false; showFsSlow();
+  await loadTemplates(); renderHome(); loadRailData(false);
+}
 async function fileFromTemplate(rec, interactive) {
   if (rec.mode === 'handle' && rec.handle) {
-    let perm = await rec.handle.queryPermission({ mode:'read' });
+    let perm = await qPerm(rec.handle, 'read');
     if (perm !== 'granted' && interactive) perm = await rec.handle.requestPermission({ mode:'read' });
     if (perm !== 'granted') { const e = new Error('Sin permiso'); e.code = 'perm'; throw e; }
-    const f = await rec.handle.getFile();
+    const f = await fsCall(rec.handle.getFile(), 15000);
     if (f.lastModified !== rec.lastModified || f.size !== rec.size) {
       rec.lastModified = f.lastModified; rec.size = f.size; rec.name = f.name;
       DB.put(rec).catch(() => {});
@@ -532,10 +567,10 @@ async function fileFromTemplate(rec, interactive) {
 }
 async function templateState(rec) {
   if (!rec) return 'none';
-  if (rec.mode === 'dir') { try { return (await rec.handle.queryPermission({ mode:'read' })) === 'granted' ? 'ok' : 'perm'; } catch (e) { return 'missing'; } }
+  if (rec.mode === 'dir') { try { return (await qPerm(rec.handle, 'read')) === 'granted' ? 'ok' : 'perm'; } catch (e) { return e.code === 'slow' ? 'slow' : 'missing'; } }
   if (rec.mode === 'handle') {
-    try { if ((await rec.handle.queryPermission({ mode:'read' })) !== 'granted') return 'perm'; await fileFromTemplate(rec, false); }
-    catch (e) { return e.code === 'perm' ? 'perm' : 'missing'; }
+    try { if ((await qPerm(rec.handle, 'read')) !== 'granted') return 'perm'; await fileFromTemplate(rec, false); }
+    catch (e) { return e.code === 'perm' ? 'perm' : e.code === 'slow' ? 'slow' : 'missing'; }
   }
   const k = KINDS[rec.kind];
   if (k.staleDays === 1) return rec.lastModified >= startOfDay() ? 'ok' : 'stale';
@@ -549,6 +584,8 @@ const STATE_BADGE = {
   perm:   ['b-perm', 'Falta dar acceso'],
   missing:['b-stale', 'No se encuentra el archivo'],
   none:   ['b-none', 'Sin vincular'],
+  slow:   ['b-perm', 'El navegador no responde'],
+  checking:['b-none', 'Revisando…'],
 };
 
 // Vincular: con handle (Chrome/Edge en PC) o copia guardada (resto)
@@ -1087,7 +1124,7 @@ async function scanAttachments(interactive) {
   mail.dirState = dir ? 'ok' : 'none';
   if (dir) {
     try {
-      let perm = await dir.handle.queryPermission({ mode:'read' });
+      let perm = await qPerm(dir.handle, 'read');
       if (perm !== 'granted' && interactive) perm = await dir.handle.requestPermission({ mode:'read' });
       if (perm !== 'granted') mail.dirState = 'perm';
       else {
@@ -1491,7 +1528,7 @@ async function envioFolderFiles(interactive) {
   env.dirState = dir ? 'ok' : 'none';
   if (dir) {
     try {
-      let perm = await dir.handle.queryPermission({ mode:'read' });
+      let perm = await qPerm(dir.handle, 'read');
       if (perm !== 'granted' && interactive) perm = await dir.handle.requestPermission({ mode:'read' });
       if (perm !== 'granted') env.dirState = 'perm';
       else {
@@ -1501,9 +1538,9 @@ async function envioFolderFiles(interactive) {
             else if (e.kind === 'directory' && depth < 2) await walk(e, depth + 1, path + nm + '/');
           }
         };
-        await walk(dir.handle, 0, '');
+        await fsCall(walk(dir.handle, 0, ''), 20000);
       }
-    } catch (e) { env.dirState = 'missing'; }
+    } catch (e) { env.dirState = e.code === 'slow' ? 'slow' : 'missing'; }
   }
   env.manual.forEach(f => { const p = parseCalcName(f.name) || { fecha:'', suf:'' }; out.push({ name:f.name, file:f, src:'manual', ...p }); });
   out.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || a.suf.localeCompare(b.suf));
@@ -1577,7 +1614,8 @@ async function readCalcWorkbook(file) {
     const srows = w.parseAllRows(await readText(nameToPath[key]));
     return { rows: srows, get: ref => { const m = /^([A-Z]+)(\d+)$/.exec(ref); const row = srows.get(+m[2]); return row ? val(row.get(ref)) : null; } };
   };
-  return { file, bytes, entries, workbookXml, relsXml, nameToPath, ocPath, ocXml, data, dayCols, iFormulaRows, stale, form, sheetName: ocName, readSheet };
+  const formPath = fName ? nameToPath[fName] : null;
+  return { file, bytes, entries, workbookXml, relsXml, nameToPath, ocPath, ocXml, data, dayCols, iFormulaRows, stale, form, formPath, sheetName: ocName, readSheet };
 }
 
 // ── Cálculo ──
@@ -1739,6 +1777,12 @@ async function writeEnviar(x) {
   const newXml = w.applyCellEdits(wbk.ocXml, edits);
   const changed = new Map();
   changed.set(wbk.ocPath, w.utf8ToBytes(newXml));
+  // Hora de la cita cambiada en la app → Formulario de Entrega G6
+  x.horaWritten = false;
+  if (x.horaEdit != null && wbk.formPath && x.horaEdit !== wbk.form.hora) {
+    const fx = await w.readEntryText(wbk.entries, wbk.formPath, io.inflateRaw);
+    if (fx) { changed.set(wbk.formPath, w.utf8ToBytes(w.applyCellEdits(fx, [{ ref: 'G6', kind: 'number', value: String(+x.horaEdit.toFixed(10)), keepStyle: true }]))); x.horaWritten = true; }
+  }
   // Se quitaron fórmulas: la caché calcChain.xml queda obsoleta
   let entries = wbk.entries;
   let relsXml = wbk.relsXml;
@@ -1917,6 +1961,27 @@ function soloHtml(x, i) {
   return '<div class="solobox" id="envsolo-' + i + '"><b>' + l.length + (l.length === 1 ? ' tienda recibe' : ' tiendas reciben') + ' una sola clave con menos de ' + SOLO_MIN + ' unidades.</b> Revisá si vale la pena enviarlas (están marcadas en naranja en la tabla):' +
     '<div class="solo-list">' + l.map(o => '<span>Tienda ' + esc(o.z.r.A) + ' ' + esc(String(o.z.r.B || '').trim()) + ' ' + esc(String(o.z.r.C || '').trim()) + ' · <b>' + esc(o.z.r.E) + ': ' + o.e + '</b></span>').join('') + '</div></div>';
 }
+// Hora de la cita (Formulario de Entrega G6): editable; avisa si no coincide con la HORA del Control OC
+function refreshHora(i) {
+  const x = env.results[+i], fe = document.querySelector('#env-results [data-card="' + i + '"] .hora-fact');
+  if (x && fe) { fe.outerHTML = horaFactHtml(x, +i); wireHora(); }
+}
+function wireHora() {
+  const box = $('env-results'); if (!box) return;
+  const setHora = (i, f) => { const x = env.results[+i]; if (!x || f == null) return; x.horaEdit = f; refreshHora(i); };
+  box.querySelectorAll('.hora-in').forEach(inp => inp.onchange = () => setHora(inp.dataset.hora, fracOfHm(inp.value)));
+  box.querySelectorAll('[data-hora-ctl]').forEach(b => b.onclick = () => setHora(b.dataset.horaCtl, +b.dataset.v));
+}
+function horaFactHtml(x, i) {
+  if (!x.wbk.formPath) return '';
+  const h = horaOf(x);
+  const rec = (railState.recs || []).find(r => String(r.oc) === String(x.wbk.form.oc) && r.hora);
+  const ctl = rec ? fracOfHm(rec.hora) : null;
+  const dif = ctl != null && h != null && Math.round(ctl * 1440) !== Math.round(h * 1440);
+  return '<span class="fact hora-fact' + (dif ? ' warn' : '') + '">Hora cita <input type="time" class="hora-in" data-hora="' + i + '" value="' + esc(hmOf(h)) + '" aria-label="Hora de la cita (G6)">' +
+    (x.horaEdit != null && x.horaEdit !== x.wbk.form.hora ? '<em>sin guardar</em>' : '') +
+    (dif ? '<span>Control OC: <b>' + esc(fmtHora(ctl)) + '</b> <button class="linkbtn" data-hora-ctl="' + i + '" data-v="' + ctl + '">Usar</button></span>' : '') + '</span>';
+}
 function rowCells(x, z) {
   const r = z.r, c = z.c, e = envOf(x, z);
   const G = num(r.G);
@@ -2024,6 +2089,7 @@ function renderEnvioResults() {
       '<button class="btn primary" data-save="' + i + '">Guardar Excel con Enviar</button></div>' +
       '<div class="facts">' +
         (x.wbk.form.oc ? '<span class="fact">OC <b>' + esc(x.wbk.form.oc) + '</b>' + (x.wbk.form.cita ? ' · cita <b>' + esc(x.wbk.form.cita) + '</b>' : '') + '</span>' : '') +
+        horaFactHtml(x, i) +
         (x.fecha ? '<span class="fact">Entrega <b>' + esc(chipDate(x.fecha)) + '</b></span>' : '') +
         '<span class="fact">Tránsito: <b>' + (tr.length ? tr.map(dayLbl).join(' + ') : 'ninguno') + '</b></span>' +
         '<span class="fact"><b>' + x.res.rows.length + '</b> combinaciones de la OC</span>' +
@@ -2061,6 +2127,7 @@ function renderEnvioResults() {
   box.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => bulkEnviar(env.results[+b.dataset.i], b.dataset.bulk));
   const rb = $('btn-resumen'); if (rb) rb.onclick = openResumen;
   box.querySelectorAll('[data-fragua]').forEach(b => b.onclick = () => generarFragua(b.dataset.fragua, b));
+  wireHora();
   const frr = $('fr-rampa'); if (frr) frr.onchange = () => { const v = frr.value.trim() || FR_RAMPA_DEF; frr.value = v; env.rampa = v; DB.set('fraguaRampa', v).catch(() => {}); toast('Rampa ' + v + ' guardada para la Hoja para Fragua.'); };
   box.querySelectorAll('[data-colreset]').forEach(b => b.onclick = () => { env.colOrder = null; DB.set('envioCols', null).catch(() => {}); renderEnvioResults(); });
   if (!box.dataset.drag) { wireColDrag(box); box.dataset.drag = '1'; }
@@ -2143,10 +2210,11 @@ async function saveEnvio(x, btn) {
     sigs.push(savedName + '|' + blob.size);
     DB.set('envio-saved', sigs.slice(-50)).catch(() => {});
     clearTimeout(draftTimer); DB.set(draftKey(x), null).catch(() => {});
+    if (x.horaWritten) { x.wbk.form.hora = x.horaEdit; x.horaEdit = null; refreshHora(env.results.indexOf(x)); }
     setTimeout(() => refreshRail('guardado'), 800);
     const st = statsOf(x);
     const DIA = { S:'lunes', T:'martes', U:'miércoles', V:'jueves', W:'viernes', X:'sábado' };
-    toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades' + (x.dayWritten ? ', también en la columna ' + x.dayWritten + ' (enviado ' + DIA[x.dayWritten] + ')' : '') + ' y Sugerido (I) = ' + nf(st.S) + '.', 7000);
+    toast('Guardado "' + savedName + '": Enviar (H) = ' + nf(st.E) + ' unidades' + (x.dayWritten ? ', también en la columna ' + x.dayWritten + ' (enviado ' + DIA[x.dayWritten] + ')' : '') + (x.horaWritten ? ', hora de la cita ' + fmtHora(x.wbk.form.hora) + ' en G6' : '') + ' y Sugerido (I) = ' + nf(st.S) + '.', 7000);
   } catch (e) { toast('No se pudo guardar: ' + (e.message || e), 6000); }
   finally { btn.disabled = false; btn.textContent = old; }
 }
@@ -2215,7 +2283,7 @@ function fraguaOc(x, extra) {
   const d = x.fecha ? ymdDate(x.fecha) : null;
   const suf = fraguaSuf(x);
   return {
-    suf, oc: x.wbk.form.oc || '', cita: x.wbk.form.cita || '', hora: fmtHora(x.wbk.form.hora), rampa: env.rampa || FR_RAMPA_DEF,
+    suf, oc: x.wbk.form.oc || '', cita: x.wbk.form.cita || '', hora: fmtHora(horaOf(x)), rampa: env.rampa || FR_RAMPA_DEF,
     titulo: 'PANISA ' + suf + (d ? ' ' + DIA_LARGO[d.getDay()] + ' ' + dmyOf(d) : ''),
     stores, items, sum, gridPages: Math.max(1, Math.ceil(stores.length / 16)),
   };
@@ -2528,7 +2596,7 @@ async function generarFragua(which, btn) {
   let dir = templates.find(t => t.kind === 'pdfs');
   if (dir && dir.handle) {
     try {
-      let p = await dir.handle.queryPermission({ mode: 'readwrite' });
+      let p = await qPerm(dir.handle, 'readwrite');
       if (p !== 'granted') p = await dir.handle.requestPermission({ mode: 'readwrite' });
       if (p !== 'granted') dir = null;
     } catch (e) { dir = null; }
@@ -2537,14 +2605,14 @@ async function generarFragua(which, btn) {
   let gBack = null;
   if (which === 'all') {
     const t = templates.find(r => r.kind === 'garita');
-    if (t && t.handle) { try { let p = await t.handle.queryPermission({ mode: 'readwrite' }); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'readwrite' }); if (p === 'granted') gBack = t; } catch (e) {} }
+    if (t && t.handle) { try { let p = await qPerm(t.handle, 'readwrite'); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'readwrite' }); if (p === 'granted') gBack = t; } catch (e) {} }
     const co = templates.find(r => r.kind === 'controloc');
-    if (co && co.handle && co.mode === 'handle') { try { if (await co.handle.queryPermission({ mode: 'read' }) !== 'granted') await co.handle.requestPermission({ mode: 'read' }); } catch (e) {} }
+    if (co && co.handle && co.mode === 'handle') { try { if (await qPerm(co.handle, 'read') !== 'granted') await co.handle.requestPermission({ mode: 'read' }); } catch (e) {} }
   }
   const gDirs = [];
   if (which === 'all') for (const k of ['carpeta', 'pdfs', 'garita']) {
     const t = templates.find(r => r.kind === k); if (!t || !t.handle) continue;
-    try { let p = await t.handle.queryPermission({ mode: 'read' }); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'read' }); if (p === 'granted') gDirs.push(t); } catch (e) {}
+    try { let p = await qPerm(t.handle, 'read'); if (p !== 'granted') p = await t.handle.requestPermission({ mode: 'read' }); if (p === 'granted') gDirs.push(t); } catch (e) {}
   }
   const win = window.open('', '_blank');
   if (win) { try { win.document.write('<p style="font:16px Arial;padding:24px">Armando la Hoja para Fragua…</p>'); } catch (e) {} }
@@ -2637,11 +2705,14 @@ function resumenData() {
     return { it, pedido: v.pedido, enviar: v.enviar, restar: v.pedido - v.enviar, parr, bolsas, viajes, parrRest, totalParr: u && v.enviar ? Math.ceil(v.enviar / u) : 0, u };
   });
   const fecha = rs[0] ? rs[0].fecha : '';
-  const ocs = rs.map(x => ({ oc: x.wbk.form.oc, cita: x.wbk.form.cita, hora: x.wbk.form.hora, file: x.f.name }));
+  const ocs = rs.map(x => ({ oc: x.wbk.form.oc, cita: x.wbk.form.cita, hora: horaOf(x), file: x.f.name }));
   return { items, fecha, ocs,
     tPedido: items.reduce((a, b) => a + b.pedido, 0), tEnviar: items.reduce((a, b) => a + b.enviar, 0),
     tRestar: items.reduce((a, b) => a + b.restar, 0), tParr: items.reduce((a, b) => a + b.totalParr, 0) };
 }
+const horaOf = x => (x.horaEdit != null ? x.horaEdit : x.wbk.form.hora);
+const hmOf = f => { if (f == null) return ''; const t = Math.round(f * 1440); return String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+const fracOfHm = hm => { const m = /^(\d{1,2}):(\d{2})/.exec(hm || ''); return m ? (+m[1] * 60 + +m[2]) / 1440 : null; };
 const fmtHora = f => { if (f == null) return ''; const m = Math.round(f * 1440); let h = Math.floor(m / 60) % 24, mi = m % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + String(mi).padStart(2, '0') + ' ' + ap; };
 const dmyOf = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
 function parteTxt(r) {
@@ -2765,7 +2836,21 @@ async function openResumen() {
 }
 
 // ═════════════ Inicio ═════════════
+let homeToken = 0;
 async function renderHome() {
+  const tok = ++homeToken;
+  renderHomeRows(null);                        // al instante, con "Revisando…"
+  const items = [];
+  for (const k of KIND_ORDER) { const recs = templates.filter(t => t.kind === k); (recs.length ? recs : [null]).forEach(r => items.push(r)); }
+  const states = new Map();
+  await Promise.all(items.map(async r => { let st; try { st = await templateState(r); } catch (e) { st = e.code === 'slow' ? 'slow' : 'missing'; } states.set(r, st); }));
+  if (tok === homeToken) {
+    fsSlow = Array.from(states.values()).includes('slow');
+    renderHomeRows(states);
+    if (!fsSlow && railState.err === 'slow') loadRailData(false);   // ya responde: actualizar Próximas entregas
+  }
+}
+function renderHomeRows(states) {
   $('today').textContent = new Date().toLocaleDateString('es-GT', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).replace(/^./, c => c.toUpperCase());
   const rows = [];
   let needPerm = false;
@@ -2774,7 +2859,7 @@ async function renderHome() {
     const recs = templates.filter(t => t.kind === k).sort((a, b) => (a.vendor || '').localeCompare(b.vendor || ''));
     const list = recs.length ? recs : [null];
     for (const r of list) {
-      const st = await templateState(r);
+      const st = states ? (states.get(r) || 'missing') : (r ? 'checking' : 'none');
       if (st === 'perm') needPerm = true;
       const [bc, bt] = STATE_BADGE[r && r.mode === 'dir' && st === 'ok' ? 'dirok' : st];
       const title = k === 'cdpanisa' && r ? kd.label + ' · ' + r.vendor : kd.label;
@@ -2782,12 +2867,13 @@ async function renderHome() {
         '<div class="tpl-file">' + (r ? '<div class="fn" title="' + esc(r.name) + '">' + (r.mode === 'dir' ? '📁 ' : '') + esc(r.name) + '</div><div class="meta">' + (r.mode === 'dir' ? 'Vinculada ' + esc(fmtDate(r.linkedAt)) : 'Modificado ' + esc(fmtDate(r.lastModified)) + (r.mode === 'copy' ? ' · copia guardada' : '')) + '</div>' : '<div class="none">Ningún archivo vinculado</div>') + '</div>' +
         '<span class="badge ' + bc + '">' + bt + '</span>' +
         '<div class="tpl-act">' + (r
-          ? (st === 'perm' ? '<button class="btn primary" data-grant>Dar acceso</button>' : '') + '<button class="btn" data-relink="' + esc(r.id) + '" data-kind="' + k + '">Cambiar</button><button class="btn ghost" data-unlink="' + esc(r.id) + '">Quitar</button>'
+          ? (st === 'perm' ? '<button class="btn primary" data-grant>Dar acceso</button>' : '') + '<button class="btn' + (st === 'slow' ? ' primary' : '') + '" data-relink="' + esc(r.id) + '" data-kind="' + k + '">' + (st === 'slow' ? 'Volver a vincular' : 'Cambiar') + '</button><button class="btn ghost" data-unlink="' + esc(r.id) + '">Quitar</button>'
           : '<button class="btn primary" data-link="' + k + '">Vincular</button>') + '</div></div>');
     }
     if (kd.multi && recs.length) rows.push('<div class="tpl-add"><button class="btn" data-link="' + k + '">Agregar plantilla de otro vendor</button></div>');
   }
   $('tpl-list').innerHTML = rows.join('');
+  showFsSlow();
   $('mode-note').textContent = HAS_PICKER
     ? 'Se guarda un vínculo al archivo, no una copia: si lo editás en Excel, la próxima carga ya trae los cambios. Si lo guardás con otro nombre (por ejemplo V16), usá "Cambiar".'
     : 'En este navegador se guarda una copia del archivo. Cuando lo actualices, usá "Cambiar" para subir la versión nueva. En Chrome o Edge de escritorio se vincula el archivo directamente.';
@@ -2895,7 +2981,7 @@ async function loadRailData(interactive) {
   catch (e) { railState.recs = []; railState.err = e.code || 'err'; }
   // Fechas con Excel de cálculo en la carpeta de cálculos (por vendor: _1 / _2)
   try {
-    const files = await envioFolderFiles(interactive);
+    const files = await fsCall(envioFolderFiles(interactive), 20000);
     railState.calc = {};
     files.filter(f => f.src === 'carpeta' && f.fecha).forEach(f => { (railState.calc[f.fecha] = railState.calc[f.fecha] || new Set()).add(f.suf); });
     railState.lastCalc = Object.keys(railState.calc).sort().pop() || null;
@@ -2908,6 +2994,7 @@ function renderRailEntregas() {
   const head = '<div class="rb-h"><span>PRÓXIMAS ENTREGAS</span><button id="rb-reload" title="Actualizar entregas y calendario (Control OC y carpeta de cálculos)" aria-label="Actualizar entregas y calendario">↻</button></div>';
   if (railState.err === 'nolink') box.innerHTML = head + '<div class="rb-empty">Vinculá el Control OC FBD POD en Inicio para ver aquí las OC y citas.</div>';
   else if (railState.err === 'perm') box.innerHTML = head + '<div class="rb-empty">Hace falta dar acceso al Control OC.</div><button class="rail-btn" id="rb-perm" style="margin-top:6px;width:100%">Dar acceso</button>';
+  else if (railState.err === 'slow') box.innerHTML = head + '<div class="rb-empty">El navegador no responde al abrir el Control OC. Volvé a vincularlo en Inicio y tocá ↻.</div>';
   else if (railState.err) box.innerHTML = head + '<div class="rb-empty">No se pudo leer el Control OC.</div>';
   else {
     const t = ymdOf(new Date());
@@ -2988,6 +3075,7 @@ setInterval(() => { const k = ymdOf(new Date()); if (railState.lastDay !== k) { 
 // ═════════════ Arranque ═════════════
 (async function init() {
   renderNav(); renderDock(); updateNet();
+  const fr = $('fs-retry'); if (fr) fr.onclick = retryFs;
   await loadTemplates();
   const h = location.hash.slice(1);
   go(toolById(h) ? h : 'home', { user:false });
