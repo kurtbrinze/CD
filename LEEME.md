@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.30
+# Envíos al CD — PANISA (PWA) · V.2026.32
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -206,3 +206,14 @@ ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 - Las hojas se arman con el mismo formulario de QR Garita (reglas de impresión, campos como texto) y se convierten en imagen nítida (html2canvas, escala 2.5). Los QR se leen bien (probado decodificándolos).
 - Inicio: nueva «Carpeta de QR Garita (respaldo)». Si está vinculada, se guarda un PDF por hoja: «QR Garita - PANISA 1 - Cita N - DD-MM-AAAA.pdf».
 - Si el Control OC no está o no tiene la entrega anterior, se usa lo de antes: buscar el PDF guardado o elegirlo a mano.
+
+## V.2026.31 — La app no se queda en blanco si el navegador no responde
+- Problema visto: Edge dejó de responder a todas las consultas de acceso a archivos (permiso de carpetas y archivos vinculados); la app esperaba sin límite y Inicio y Próximas entregas quedaban vacíos.
+- Ahora toda consulta de acceso a archivos tiene tiempo límite (6 s; lectura 15 s; recorrida de carpeta 20 s).
+- Inicio muestra las plantillas al instante («Revisando…») y las revisa en paralelo; si no responde: «El navegador no responde», botón «Volver a vincular» en esa fila y un aviso: primero volver a vincular (lo que lo resolvió), si no, reiniciar el navegador (edge://restart o chrome://restart). El aviso se quita solo cuando todo responde.
+- Próximas entregas muestra su propio mensaje y se reintenta con ↻.
+
+## V.2026.32 — Hora de la cita (G6) desde el Control OC
+- Ingreso Pedidos: además de la cita (D6), escribe en Formulario de Entrega G6 la HORA de la tabla PANISA del Control OC (misma fila de la OC, con su cita y vendor). Acepta hora de Excel o texto («7:30 AM», «07:30»). Si no hay HORA, G6 queda como estaba y avisa.
+- Sugerido envío: «Hora cita» editable en cada OC. Si no coincide con el Control OC, se marca en naranja con «Usar» para tomar la del Control OC. Al «Guardar Excel con Enviar» se escribe en G6 (formato de hora intacto).
+- La Hoja para Fragua (PDF) y Correo a CEDI usan la hora editada.

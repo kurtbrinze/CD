@@ -1540,6 +1540,18 @@ async function getPdfHeaderInfo(pdfBytes, io) {
 // opts = { inventoryBytes?: Uint8Array } — if provided, the last tab of that
 // daily inventory workbook is copied verbatim into the "INV" sheet.
 // ---- Control OC: busca la CITA de una OC en la tabla PANISA ----
+// HORA del Control OC → fracción de día de Excel (0.2507 = 6:01 AM). Acepta número de Excel o texto "7:30 AM" / "07:30".
+function horaToFraction(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number' || /^\s*\d*\.?\d+\s*$/.test(String(v))) { const n = Number(v); if (!isFinite(n) || n < 0) return null; const f = n % 1; return f > 0 ? f : (n === 0 ? 0 : null); }
+  const m = /^\s*(\d{1,2})[:.](\d{2})(?::(\d{2}))?\s*([ap])?\.?\s*m?\.?\s*$/i.exec(String(v));
+  if (!m) return null;
+  let h = +m[1]; const mi = +m[2], se = +(m[3] || 0), ap = (m[4] || '').toLowerCase();
+  if (ap === 'p' && h < 12) h += 12; if (ap === 'a' && h === 12) h = 0;
+  if (h > 23 || mi > 59) return null;
+  return (h * 3600 + mi * 60 + se) / 86400;
+}
+function fractionToHora(f) { if (f == null) return ''; const t = Math.round(f * 1440); let h = Math.floor(t / 60) % 24; const mi = t % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + String(mi).padStart(2, '0') + ' ' + ap; }
 async function lookupCitaInControlOc(controlBytes, io, poNumber, tableName) {
   tableName = tableName || 'PANISA';
   const entries = parseZip(controlBytes);
@@ -1579,6 +1591,7 @@ async function lookupCitaInControlOc(controlBytes, io, poNumber, tableName) {
   const iOc = hit.cols.indexOf('OC'), iCita = hit.cols.indexOf('CITA');
   if (iOc < 0 || iCita < 0) throw new Error('A la tabla ' + tableName + ' le falta la columna ' + (iOc < 0 ? 'OC' : 'CITA') + '.');
   const colOc = indexToColLetter(c0 + iOc), colCita = indexToColLetter(c0 + iCita); // 1-based
+  const iHora = hit.cols.indexOf('HORA'), colHora = iHora >= 0 ? indexToColLetter(c0 + iHora) : null;
   const sstXml = await readText('xl/sharedStrings.xml');
   const sst = sstXml ? parseSharedStrings(sstXml) : [];
   const val = (raw) => { const v = readCellValue(raw); return v && typeof v === 'object' ? sst[v.sharedIndex] : v; };
@@ -1590,7 +1603,8 @@ async function lookupCitaInControlOc(controlBytes, io, poNumber, tableName) {
     if (oc == null || String(oc).trim().replace(/\.0+$/, '').replace(/^0+/, '') !== target) continue;
     const cita = val(cells.get(colCita + r));
     const citaStr = cita == null ? '' : (typeof cita === 'number' ? String(Math.round(cita)) : String(cita).trim());
-    return { found: true, cita: citaStr, row: r };
+    const hora = colHora ? horaToFraction(val(cells.get(colHora + r))) : null;
+    return { found: true, cita: citaStr, row: r, hora };
   }
   return { found: false, cita: '' };
 }
@@ -1888,6 +1902,11 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
             formEdits.push({ ref: 'D6', kind: 'number', value: r.cita, keepStyle: true });
             formularioUpdate.cita = r.cita;
             formularioUpdate.citaStatus = 'ok';
+            // Hora de la cita (G6) desde la columna HORA del Control OC
+            if (r.hora != null) {
+              formEdits.push({ ref: 'G6', kind: 'number', value: String(+r.hora.toFixed(10)), keepStyle: true });
+              formularioUpdate.hora = fractionToHora(r.hora);
+            } else warnings.push('La cita ' + r.cita + ' no tiene HORA en el Control OC: la celda G6 (hora de la cita) quedó con la hora que tenía.');
           }
         } catch (e) {
           formularioUpdate.citaStatus = 'error';
@@ -2261,7 +2280,8 @@ if (typeof module !== 'undefined' && module.exports) {
     try {
       const r = await lookupCitaInControlOc(await readFileAsBytes(state.ctrlFile), browserIo, po, 'PANISA');
       if (myToken !== state.citaToken) return;
-      if (r.found && /^\d+$/.test(r.cita)) show('ok', '✓ Formulario de Entrega: OC <b>' + escapeHtml(po) + '</b> en D8 y cita <b>' + escapeHtml(r.cita) + '</b> en D6.');
+      if (r.found && /^\d+$/.test(r.cita)) show('ok', '✓ Formulario de Entrega: OC <b>' + escapeHtml(po) + '</b> en D8, cita <b>' + escapeHtml(r.cita) + '</b> en D6' +
+        (r.hora != null ? ' y hora <b>' + escapeHtml(fractionToHora(r.hora)) + '</b> en G6.' : '. El Control OC no tiene HORA para esta cita: G6 queda como está.'));
       else if (r.found) show('warn', 'La OC <b>' + escapeHtml(po) + '</b> todavía no tiene cita en el Control OC' + (r.cita ? ' ("' + escapeHtml(r.cita) + '")' : '') + '. Se ingresará solo la OC en D8.');
       else show('warn', 'La OC <b>' + escapeHtml(po) + '</b> no está en la tabla PANISA del Control OC. Se ingresará solo la OC en D8.');
     } catch (e) {
@@ -2430,7 +2450,7 @@ if (typeof module !== 'undefined' && module.exports) {
     const fu = result.summary.formularioUpdate;
     const formHtml = fu && fu.po
       ? '<div class="inv-status-box">🧾 Formulario de Entrega: OC <b>' + escapeHtml(fu.po) + '</b> en D8' +
-        (fu.cita ? ' y cita <b>' + escapeHtml(fu.cita) + '</b> en D6.' : '; la cita (D6) quedó sin cambios — ver avisos.') + '</div>'
+        (fu.cita ? ', cita <b>' + escapeHtml(fu.cita) + '</b> en D6' + (fu.hora ? ' y hora <b>' + escapeHtml(fu.hora) + '</b> en G6.' : '; la hora (G6) quedó sin cambios.') : '; la cita (D6) y la hora (G6) quedaron sin cambios — ver avisos.') + '</div>'
       : '';
     const fd = result.summary.fraguaDate;
     const DIAS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
