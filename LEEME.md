@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.34
+# Envíos al CD — PANISA (PWA) · V.2026.35
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -229,3 +229,10 @@ ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 - El asunto, el cuerpo y los adjuntos incluyen todas las OC del día (antes solo una por vendor, como la pestaña eMAIL del Excel).
 - Con 3 o más OC el texto queda «A, B y C» (OC y citas). La hora es la de la primera cita, como en el Excel.
 - La tarjeta muestra cada OC con su cita y avisa si alguna no tiene cita.
+
+## V.2026.35 — Resumen para el Centro de Control
+Cada vez que se pintan las **Próximas entregas** del lateral, la app deja un
+resumen (las 4 fechas con proveedor, OC, cita y si ya está calculada) en
+`localStorage` con la clave `cc.insight.entregas` y avisa al Centro de Control
+por `postMessage`. Es lo que muestra la tarjeta de Entregas en el inicio del
+centro. No cambia nada de la lógica de las herramientas.
