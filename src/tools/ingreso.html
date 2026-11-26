@@ -350,7 +350,7 @@
         <div class="dz-label">Último cálculo<span class="dz-optional-tag">tránsito</span></div>
         <div class="dz-sub">El .xlsm de la entrega anterior</div>
         <div class="dz-filename" id="fname-calc"></div>
-        <input type="file" id="file-calc" accept=".xlsm">
+        <input type="file" id="file-calc" accept=".xlsm" multiple>
       </div>
     </div>
 
@@ -1647,6 +1647,31 @@ async function readLastCalc(bytes, io) {
   }
   return { vendor, oc, date, dayOf, data, ab2: numv(r2.get('AB2')) };
 }
+// Varios cálculos del mismo proveedor y el mismo día (una OC cada uno): se suman tienda por tienda y clave por clave
+async function readLastCalcs(list, io) {
+  const all = [];
+  for (const b of list) all.push(await readLastCalc(b, io));
+  if (all.length === 1) return { ...all[0], ocs: [all[0].oc || '—'], count: 1 };
+  const t = l => l.date ? l.date.getTime() : 0;
+  const maxT = Math.max(...all.map(t));
+  const use = all.filter(l => t(l) === maxT);
+  const base = use[0];
+  if (use.some(l => l.vendor != null && base.vendor != null && String(l.vendor) !== String(base.vendor))) throw new Error('Los últimos cálculos elegidos son de proveedores distintos.');
+  // Lo que cada OC mandó ese día (su columna del día y Enviar H) se suma; las columnas de días
+  // anteriores son el mismo tránsito copiado en los dos archivos, así que no se suman (se toma el mayor)
+  const ownCol = base.date ? TRANSIT_WEEK_COLS.find(c => base.dayOf[c] === base.date.getUTCDate()) : null;
+  const sumCols = new Set(['H', ownCol].filter(Boolean));
+  const data = new Map();
+  use.forEach(l => l.data.forEach((rec, k) => {
+    const cur = data.get(k) || {};
+    Object.keys(rec).forEach(c => {
+      if (rec[c] == null) return;
+      cur[c] = sumCols.has(c) ? (cur[c] || 0) + rec[c] : Math.max(cur[c] == null ? -Infinity : cur[c], rec[c]);
+    });
+    data.set(k, cur);
+  }));
+  return { ...base, data, ocs: use.map(l => l.oc || '—'), count: use.length };
+}
 function mondayOf(d) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.getTime(); }
 // Decide qué se copia: misma semana → S..X (+ AA, AB y AB2 de esa semana);
 // semana nueva → viernes/sábado pasan a AA/AB y S..X quedan vacías.
@@ -1930,7 +1955,7 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
   const lastCalcBytes = opts && opts.lastCalcBytes;
   if (lastCalcBytes) {
     try {
-      const last = await readLastCalc(lastCalcBytes, io);
+      const last = await readLastCalcs(Array.isArray(lastCalcBytes) ? lastCalcBytes : [lastCalcBytes], io);
       const ocTableName = Object.keys(nameToPath).find((n) => n.trim().toLowerCase() === 'oc table');
       const supplier = pdfHeader.supplierNumber ? String(pdfHeader.supplierNumber) : (xlsmVendorNumber ? String(xlsmVendorNumber) : '');
       const cdt = pdfHeader.cancelDate;
@@ -1973,7 +1998,7 @@ async function processOrder(pdfBytes, xlsmBytes, io, opts) {
           const newAB2 = plan.sameWeek ? last.ab2 : last.dayOf.X;
           if (newAB2 != null) edits.push({ ref: 'AB2', kind: 'number', value: String(newAB2), keepStyle: true });
           ocTableForChanged = { path: ocPath, xml: applyCellEdits(tXml, edits) };
-          transitUpdate = { sameWeek: plan.sameWeek, lastDate: fmtDMY(last.date), lastOc: last.oc, totals, filled, usedH, ab2: newAB2 };
+          transitUpdate = { sameWeek: plan.sameWeek, lastDate: fmtDMY(last.date), lastOc: last.ocs.join(' + '), lastCount: last.count, totals, filled, usedH, ab2: newAB2 };
           if (usedH) warnings.push('En ' + usedH + ' combinaciones el último cálculo no tenía su envío en la columna de su día; usé su columna Enviar (H).');
         }
       }
@@ -2141,7 +2166,7 @@ if (typeof module !== 'undefined' && module.exports) {
   const pill2 = document.getElementById('pill-2');
   const pill3 = document.getElementById('pill-3');
 
-  function setupDropzone(dz, input, onFile) {
+  function setupDropzone(dz, input, onFile, multi) {
     dz.addEventListener('click', (e) => {
       if (e.target.closest('.dz-clear')) return;
       input.click();
@@ -2150,7 +2175,7 @@ if (typeof module !== 'undefined' && module.exports) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
     });
     input.addEventListener('change', () => {
-      if (input.files && input.files[0]) onFile(input.files[0]);
+      if (input.files && input.files[0]) onFile(multi ? Array.from(input.files) : input.files[0]);
     });
     dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
@@ -2158,7 +2183,7 @@ if (typeof module !== 'undefined' && module.exports) {
       e.preventDefault();
       dz.classList.remove('dragover');
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) onFile(f);
+      if (f) onFile(multi ? Array.from(e.dataTransfer.files) : f);
     });
   }
 
@@ -2212,13 +2237,14 @@ if (typeof module !== 'undefined' && module.exports) {
   }
 
   function setCalcFile(f) {
-    state.calcFile = f;
-    fnameCalc.textContent = f.name;
+    const list = Array.isArray(f) ? f : [f];
+    state.calcFile = list[0]; state.calcFiles = list;
+    fnameCalc.textContent = list.map(x => x.name).join(' + ');
     dzCalc.classList.add('filled');
     runCalcCheck();
   }
   function clearCalcFile() {
-    state.calcFile = null;
+    state.calcFile = null; state.calcFiles = null;
     fileCalc.value = '';
     fnameCalc.textContent = '';
     dzCalc.classList.remove('filled');
@@ -2235,11 +2261,11 @@ if (typeof module !== 'undefined' && module.exports) {
     }
     show('ok', 'Leyendo el último cálculo…');
     try {
-      const last = await readLastCalc(await readFileAsBytes(state.calcFile), browserIo);
+      const last = await readLastCalcs(await Promise.all((state.calcFiles || [state.calcFile]).map(readFileAsBytes)), browserIo);
       let h = null;
       if (state.pdfFile) { try { h = await getPdfHeaderInfo(await readFileAsBytes(state.pdfFile), browserIo); } catch (e) {} }
       if (tok !== state.calcToken) return;
-      const lastTxt = 'Último cálculo: OC <b>' + escapeHtml(last.oc || '—') + '</b>, entrega <b>' + (last.date ? fmtDMY(last.date) : '—') + '</b>, vendor ' + escapeHtml(last.vendor || '—') + '.';
+      const lastTxt = (last.count > 1 ? 'Últimos cálculos (' + last.count + ' OC del mismo día, se suman): OC <b>' + escapeHtml(last.ocs.join(' + ')) : 'Último cálculo: OC <b>' + escapeHtml(last.oc || '—')) + '</b>, entrega <b>' + (last.date ? fmtDMY(last.date) : '—') + '</b>, vendor ' + escapeHtml(last.vendor || '—') + '.';
       if (!h || !h.cancelDate) { show('ok', lastTxt); return; }
       if (h.supplierNumber && last.vendor != null && String(last.vendor) !== String(h.supplierNumber)) { show('warn', lastTxt + ' <b>No es del mismo proveedor que el PDF (' + escapeHtml(h.supplierNumber) + ')</b>: no se va a copiar.'); return; }
       const plan = planTransit(last, Date.UTC(h.cancelDate.y, h.cancelDate.m - 1, h.cancelDate.d));
@@ -2364,7 +2390,7 @@ if (typeof module !== 'undefined' && module.exports) {
   setupDropzone(dzXlsm, fileXlsm, setXlsmFile);
   setupDropzone(dzInv, fileInv, setInvFile);
   setupDropzone(dzCtrl, fileCtrl, setCtrlFile);
-  setupDropzone(dzCalc, fileCalc, setCalcFile);
+  setupDropzone(dzCalc, fileCalc, setCalcFile, true);
   clearCalc.addEventListener('click', (e) => { e.stopPropagation(); clearCalcFile(); });
   clearCtrl.addEventListener('click', (e) => { e.stopPropagation(); clearCtrlFile(); });
   clearPdf.addEventListener('click', (e) => { e.stopPropagation(); clearPdfFile(); });
@@ -2411,7 +2437,7 @@ if (typeof module !== 'undefined' && module.exports) {
         readFileAsBytes(state.xlsmFile),
         state.invFile ? readFileAsBytes(state.invFile) : Promise.resolve(null),
         state.ctrlFile ? readFileAsBytes(state.ctrlFile) : Promise.resolve(null),
-        state.calcFile ? readFileAsBytes(state.calcFile) : Promise.resolve(null),
+        state.calcFile ? Promise.all((state.calcFiles || [state.calcFile]).map(readFileAsBytes)) : Promise.resolve(null),
       ]);
 
       setStatus(state.invFile
@@ -2457,7 +2483,7 @@ if (typeof module !== 'undefined' && module.exports) {
     const fdHtml = fd ? '<div class="inv-status-box">📅 Hoja para Fragua: fecha de entrega <b>' + escapeHtml(fd) + '</b> (' + DIAS_ES[new Date(+fd.slice(6), +fd.slice(3, 5) - 1, +fd.slice(0, 2)).getDay()] + ') en B633, tomada de la Cancel Date del PDF.</div>' : '';
     const tu = result.summary.transitUpdate;
     const DAYN = { S: 'lun', T: 'mar', U: 'mié', V: 'jue', W: 'vie', X: 'sáb', AA: 'vie ant', AB: 'sáb ant' };
-    const tuHtml = tu ? '<div class="inv-status-box">🚚 Tránsito copiado del cálculo del ' + escapeHtml(tu.lastDate) + (tu.lastOc ? ' (OC ' + escapeHtml(tu.lastOc) + ')' : '') + ' — ' + (tu.sameWeek ? 'misma semana' : 'semana nueva') + ': ' +
+    const tuHtml = tu ? '<div class="inv-status-box">🚚 Tránsito copiado ' + (tu.lastCount > 1 ? 'y sumado de ' + tu.lastCount + ' cálculos' : 'del cálculo') + ' del ' + escapeHtml(tu.lastDate) + (tu.lastOc ? ' (OC ' + escapeHtml(tu.lastOc) + ')' : '') + ' — ' + (tu.sameWeek ? 'misma semana' : 'semana nueva') + ': ' +
       (Object.keys(tu.totals).length ? ['AA', 'AB', 'S', 'T', 'U', 'V', 'W', 'X'].filter(c => tu.totals[c]).map(c => DAYN[c] + ' ' + tu.totals[c].toLocaleString('es-CL')).join(' · ') : 'sin unidades') + '.</div>' : '';
     if (result.summary.invUpdate || formHtml || fdHtml || tuHtml) {
       const iu = result.summary.invUpdate;

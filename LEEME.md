@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.32
+# Envíos al CD — PANISA (PWA) · V.2026.33
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -217,3 +217,10 @@ ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 - Ingreso Pedidos: además de la cita (D6), escribe en Formulario de Entrega G6 la HORA de la tabla PANISA del Control OC (misma fila de la OC, con su cita y vendor). Acepta hora de Excel o texto («7:30 AM», «07:30»). Si no hay HORA, G6 queda como estaba y avisa.
 - Sugerido envío: «Hora cita» editable en cada OC. Si no coincide con el Control OC, se marca en naranja con «Usar» para tomar la del Control OC. Al «Guardar Excel con Enviar» se escribe en G6 (formato de hora intacto).
 - La Hoja para Fragua (PDF) y Correo a CEDI usan la hora editada.
+
+## V.2026.33 — Varias OC del mismo proveedor el mismo día
+- Próximas entregas: muestra todas las OC de cada día (antes solo la primera de cada proveedor).
+- Ingreso Pedidos: para el tránsito toma todos los cálculos del último día del proveedor («Panisa 1», «Panisa 1_1», «Panisa 1_2»…) y los suma tienda por tienda y clave por clave: la columna de ese día y Enviar (H) se suman; los días anteriores (mismo tránsito en ambos archivos) no se duplican. La zona «Último cálculo» acepta varios archivos.
+- Sugerido envío: las OC del mismo proveedor y día se muestran en orden (sin sufijo o _1, luego _2…). En la segunda, lo decidido en la primera para la misma tienda y clave cuenta como tránsito (no se manda doble, se respeta el tope de 14 días); se recalcula sola al cambiar Enviar en la primera.
+- Hoja para Fragua: un botón por OC y «Todas las OC en un PDF»; el PDF de una sola OC lleva su número en el nombre si ese día hay otra del mismo proveedor. QR Garita: dos hojas por página horizontal; si hay más citas, siguen en otra página igual.
+- Los nombres de archivo los sigue poniendo el usuario (sufijo _1/_2 solo cuando hay una segunda OC).
