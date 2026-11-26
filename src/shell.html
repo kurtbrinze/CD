@@ -415,7 +415,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.33</div>
+<div class="ver" aria-label="Versión de la app">V.2026.34</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1008,16 +1008,27 @@ function computeI(data, fecha) {
   const { records, cells, dayMap } = data;
   const vend = ref => { const m = /"(\d{6,})"/.exec((cells[ref] && cells[ref].f) || ''); return m ? m[1] : (ref === 'I2' ? '240502812' : '240502811'); };
   const v2 = vend('I2'), v3 = vend('I3');
-  const ocOf = v => { const r = records.find(x => x.fecha === fecha && x.vendor === v); return r ? r.oc : 'No hay OC'; };
+  // Todas las OC de cada vendor ese día (puede haber más de una: OC manuales)
+  const ocsOf = v => Array.from(new Set(records.filter(x => x.fecha === fecha && x.vendor === v && x.oc && x.oc !== '-').map(x => String(x.oc)))).sort();
   const citaOf = oc => { const r = records.find(x => x.oc === oc); return r ? (r.cita || '0') : 'NO HAY CITA'; };
+  const join = l => l.length <= 1 ? (l[0] || '') : l.slice(0, -1).join(', ') + ' y ' + l[l.length - 1];
+  const o2 = ocsOf(v2), o3 = ocsOf(v3);
   const I = {};
   I.I1 = fecha.split('-').reverse().join('/');
-  I.I2 = ocOf(v2); I.I3 = ocOf(v3);
-  I.I4 = citaOf(I.I2); I.I8 = citaOf(I.I3);
+  // En el Excel I2/I3 son una OC por vendor; aquí pueden ser varias, unidas como "A y B"
+  I.I2 = o2.length ? join(o2) : 'No hay OC'; I.I3 = o3.length ? join(o3) : 'No hay OC';
+  I.I4 = o2.length ? join(o2.map(citaOf)) : 'NO HAY CITA'; I.I8 = o3.length ? join(o3.map(citaOf)) : 'NO HAY CITA';
+  // Con 3 o más OC, la plantilla ("I2 y I3") queda como "A, B y C"
+  const all = o2.concat(o3);
+  if (all.length > 2 && o2.length && o3.length) {
+    I.I2 = all.slice(0, -1).join(', '); I.I3 = all[all.length - 1];
+    const ac = all.map(citaOf); I.I4 = ac.slice(0, -1).join(', '); I.I8 = ac[ac.length - 1];
+  }
+  I.ocList = o2.concat(o3); I.ocBy = { [v2]: o2, [v3]: o3 }; I.citaOf = citaOf;
   const dow = ymdDate(fecha).getDay();
   I.I5 = String(dayMap[EN_DAYS[dow]] || ES_DAYS[dow]).toUpperCase();
   I.I6 = fecha.slice(8, 10);
-  const rc = records.find(x => x.cita === I.I4);
+  const rc = records.find(x => x.cita === (o2.length ? citaOf(o2[0]) : ''));
   I.I7 = rc && rc.hora ? hm12(rc.hora) : 'NO HAY HORA DE ENTREGA';
   return { I, vendors: [v2, v3] };
 }
@@ -1065,15 +1076,14 @@ function buildFields(data, fecha) {
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
   if (I.I2 === 'No hay OC') issues.push('No hay OC del vendor ' + vendors[0] + ' con fecha de entrega ' + I.I1 + '.');
   if (I.I3 === 'No hay OC') issues.push('No hay OC del vendor ' + vendors[1] + ' con fecha de entrega ' + I.I1 + '.');
-  if (I.I2 !== 'No hay OC' && !/\d/.test(I.I4)) issues.push('La OC ' + I.I2 + ' no tiene cita asignada.');
-  if (I.I3 !== 'No hay OC' && !/\d/.test(I.I8)) issues.push('La OC ' + I.I3 + ' no tiene cita asignada.');
+  I.ocList.forEach(oc => { if (!/\d{3,}/.test(I.citaOf(oc))) issues.push('La OC ' + oc + ' no tiene cita asignada.'); });
   if (/NO HAY/.test(I.I7)) issues.push('La cita ' + I.I4 + ' no tiene hora de entrega.');
   return {
     I, issues,
     to: cellText(cells.K13 && cells.K13.v).trim(),
     cc: cellText(cells.K14 && cells.K14.v).trim(),
     subject, body: lines.join('\n'),
-    ocs: [I.I2, I.I3].filter(x => /^\d+$/.test(x)),
+    ocs: I.ocList.filter(x => /^\d+$/.test(x)),
   };
 }
 
@@ -1210,8 +1220,7 @@ async function renderCorreo() {
       '<div class="date-line"><input type="date" id="mail-date" value="' + esc(mail.fecha) + '"><div class="dchips">' +
       up.map(d => '<button class="dchip' + (d === mail.fecha ? ' sel' : '') + '" data-d="' + d + '">' + esc(chipDate(d)) + '</button>').join('') + '</div></div>' +
       '<div class="src-note">' + (mail.fechaSrc === 'garita' ? 'Tomada de QR Garita.' : mail.fechaSrc === 'auto' ? 'Próxima fecha con OC. Si elegís una fecha en QR Garita, se usa esa.' : 'Elegida a mano.') + '</div>' +
-      '<div class="facts"><span class="fact' + (/^\d+$/.test(f.I.I2) ? '' : ' bad') + '">OC <b>' + esc(f.I.I2) + '</b> · cita <b>' + esc(f.I.I4) + '</b></span>' +
-      '<span class="fact' + (/^\d+$/.test(f.I.I3) ? '' : ' bad') + '">OC <b>' + esc(f.I.I3) + '</b> · cita <b>' + esc(f.I.I8) + '</b></span>' +
+      '<div class="facts">' + (f.I.ocList.length ? f.I.ocList.map(oc => { const c = f.I.citaOf(oc); return '<span class="fact' + (/\d{3,}/.test(c) ? '' : ' bad') + '">OC <b>' + esc(oc) + '</b> · cita <b>' + esc(c) + '</b></span>'; }).join('') : '<span class="fact bad">No hay OC</span>') +
       '<span class="fact' + (/NO HAY/.test(f.I.I7) ? ' bad' : '') + '">Hora <b>' + esc(f.I.I7) + '</b></span></div>' +
       (f.issues.length ? '<div class="warnbox" style="margin:12px 0 0">' + f.issues.map(esc).join('<br>') + '</div>' : '') +
     '</div>' +

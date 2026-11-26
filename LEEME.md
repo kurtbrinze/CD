@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.33
+# Envíos al CD — PANISA (PWA) · V.2026.34
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
@@ -224,3 +224,8 @@ ejecuta `python build.py` y vuelve a subir `dist/`. La app instalada muestra
 - Sugerido envío: las OC del mismo proveedor y día se muestran en orden (sin sufijo o _1, luego _2…). En la segunda, lo decidido en la primera para la misma tienda y clave cuenta como tránsito (no se manda doble, se respeta el tope de 14 días); se recalcula sola al cambiar Enviar en la primera.
 - Hoja para Fragua: un botón por OC y «Todas las OC en un PDF»; el PDF de una sola OC lleva su número en el nombre si ese día hay otra del mismo proveedor. QR Garita: dos hojas por página horizontal; si hay más citas, siguen en otra página igual.
 - Los nombres de archivo los sigue poniendo el usuario (sufijo _1/_2 solo cuando hay una segunda OC).
+
+## V.2026.34 — Correo a CEDI con todas las OC del día
+- El asunto, el cuerpo y los adjuntos incluyen todas las OC del día (antes solo una por vendor, como la pestaña eMAIL del Excel).
+- Con 3 o más OC el texto queda «A, B y C» (OC y citas). La hora es la de la primera cita, como en el Excel.
+- La tarjeta muestra cada OC con su cita y avisa si alguna no tiene cita.
