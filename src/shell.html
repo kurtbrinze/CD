@@ -415,7 +415,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.32</div>
+<div class="ver" aria-label="Versión de la app">V.2026.33</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -807,7 +807,7 @@ async function injectFile(id, inputId, file) {
   const input = d.getElementById(inputId);
   if (!input) throw new Error('No encontré el campo ' + inputId);
   const dt = new w.DataTransfer();
-  dt.items.add(new w.File([file], file.name, { type:file.type, lastModified:file.lastModified }));
+  (Array.isArray(file) ? file : [file]).forEach(f => dt.items.add(new w.File([f], f.name, { type:f.type, lastModified:f.lastModified })));
   injecting = true;
   try { input.files = dt.files; input.dispatchEvent(new w.Event('change', { bubbles:true })); }
   finally { injecting = false; }
@@ -908,8 +908,13 @@ async function ingresoPdfLoaded(file) {
       const cd = info.cancelDate;
       const ymd = cd.y + '-' + String(cd.m).padStart(2, '0') + '-' + String(cd.d).padStart(2, '0');
       const files = await envioFolderFiles(false);
-      const prev = files.filter(f => f.suf === VENDOR_SUFFIX[sup] && f.fecha && f.fecha < ymd).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
-      if (prev) { await injectFile('ingreso', 'file-calc', await fileOf(prev)); ingresoState.autoCalc = sup; msgs.push('Para el tránsito cargué el último cálculo "' + prev.name + '".'); }
+      const cands = files.filter(f => f.suf === VENDOR_SUFFIX[sup] && f.fecha && f.fecha < ymd);
+      const lastF = cands.map(f => f.fecha).sort().pop();
+      const prevs = cands.filter(f => f.fecha === lastF).sort((a, b) => calcSubOf(a.name) - calcSubOf(b.name) || a.name.localeCompare(b.name));
+      if (prevs.length) {
+        await injectFile('ingreso', 'file-calc', await Promise.all(prevs.map(fileOf))); ingresoState.autoCalc = sup;
+        msgs.push(prevs.length > 1 ? 'Para el tránsito cargué los ' + prevs.length + ' cálculos del último día (' + prevs.map(p => '"' + p.name + '"').join(' y ') + '); se suman.' : 'Para el tránsito cargué el último cálculo "' + prevs[0].name + '".');
+      }
       else if (templates.find(t => t.kind === 'calculos')) msgs.push('No encontré en la carpeta de cálculos uno anterior a esta entrega para el tránsito.');
     } catch (e) {}
   }
@@ -1504,6 +1509,8 @@ const env = { params:{ ...ENVIO_DEFAULTS }, files:[], picked:null, results:[], f
 // Nombres aceptados para los Excel de cálculo:
 //   nuevo:  "11_02 Noviembre 2026 PANISA 1.xlsm"  (MM_DD Mes AAAA PANISA N)
 //   viejo:  "07_Octubre_2026_Panisa_2.xlsm"       (DD_Mes_AAAA_Panisa_N)
+// N.º de OC dentro del mismo día: "Panisa 1.xlsm" o "Panisa 1_1" = 1, "Panisa 1_2" = 2…
+function calcSubOf(name) { const m = /panisa[_\s.-]*\d[_\s.-]+(\d{1,2})\s*(?:\.xls[xm])?$/i.exec(String(name).normalize('NFC').trim()); return m ? +m[1] : 1; }
 function parseCalcName(name) {
   const n = name.normalize('NFC');
   const mesIdx = txt => { let m = txt.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (m === 'setiembre') m = 'septiembre'; return MESES_ES.indexOf(m); };
@@ -1644,7 +1651,7 @@ function deliveryInfo(wbk, fecha, transitDays) {
   const before = idx > 0 ? weekOrder.slice(0, idx) : (idx === 0 ? [] : null);
   return { delivCol, transit, before };
 }
-function calcRow(r, P, dinfo) {
+function calcRow(r, P, dinfo, extra) {
   const F = num(r.F);
   const K = num(r.K), M = num(r.M), Q = num(r.Q), R = num(r.R), G = num(r.G);
   const fc = [Q, R].filter(v => v != null);
@@ -1655,7 +1662,8 @@ function calcRow(r, P, dinfo) {
   const W = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
   const d = Math.max(W / 7, 1 / 7);
   const G0 = Math.max(G || 0, 0);
-  const transit = dinfo.transit.reduce((a, c) => a + (num(r[c]) || 0), 0);
+  extra = extra || 0;   // lo ya decidido para esta tienda y clave en otra OC del mismo día
+  const transit = dinfo.transit.reduce((a, c) => a + (num(r[c]) || 0), 0) + extra;
   const stock = G0 + transit;
   const step = F % 5 === 0 ? 5 : 1;
   const need = d * P.target - stock;
@@ -1681,7 +1689,8 @@ function calcRow(r, P, dinfo) {
   const semana = before != null ? before + s : null;
   if (G == null) motivo += ' · sin dato de INV';
   if (!fc.length) motivo += ' · sin FCST';
-  return { s, W, d, stock, transit, ad, semana, motivo, tag, O };
+  if (extra) motivo += ' · incluye ' + extra + ' de otra OC del mismo día';
+  return { s, W, d, stock, transit, ad, semana, motivo, tag, O, extra };
 }
 const fmt1 = x => (Math.round(x * 10) / 10).toLocaleString('es-GT');
 
@@ -1905,9 +1914,36 @@ async function runFor(list, label, ctx = {}, preRead) {
       env.results.push(x);
     } catch (e) { env.results.push({ f, error: e.message || String(e) }); }
   }
+  // Orden: PANISA 1 y 2; dentro del mismo día, la primera OC (sin sufijo o _1) antes que la _2
+  env.results.sort((a, b) => String(a.f.suf || '').localeCompare(String(b.f.suf || '')) || calcSubOf(a.f.name) - calcSubOf(b.f.name) || a.f.name.localeCompare(b.f.name));
   env.label = label;
   pickMsg('');
   renderEnvioResults();
+}
+// Varias OC del mismo proveedor el mismo día: en cada una, lo decidido en las anteriores
+// para la misma tienda y clave cuenta como tránsito (no se manda doble y se respeta el tope de días)
+function applySameDay() {
+  const groups = {};
+  env.results.forEach(x => { if (x.error || !x.res || !x.fecha) return; const k = (x.f.suf || '') + '|' + x.fecha; (groups[k] = groups[k] || []).push(x); });
+  for (const g of Object.values(groups)) {
+    const acc = new Map();
+    g.forEach((x, idx) => {
+      x.prevSameDay = idx ? g.slice(0, idx).map(p => p.wbk.form.oc || p.f.name) : [];
+      x.nextSameDay = idx < g.length - 1;
+      if (idx || x.res.rows.some(z => z.c.extra)) x.res.rows.forEach(z => { z.c = calcRow(z.r, env.params, x.res.dinfo, idx ? (acc.get(String(num(z.r.A)) + '|' + String(z.r.E).trim()) || 0) : 0); });
+      x.res.rows.forEach(z => { const k = String(num(z.r.A)) + '|' + String(z.r.E).trim(); acc.set(k, (acc.get(k) || 0) + envOf(x, z)); });
+    });
+  }
+}
+let sameDayTimer = null;
+function scheduleSameDay() {
+  clearTimeout(sameDayTimer);
+  sameDayTimer = setTimeout(() => {
+    const a = document.activeElement, ai = a && a.dataset ? a.dataset.i : null, ar = a && a.dataset ? a.dataset.row : null;
+    const sel = a && typeof a.selectionStart === 'number' ? a.selectionStart : null;
+    renderEnvioResults();
+    if (ai != null && ar != null) { const n = document.querySelector('#env-results .env-in[data-i="' + ai + '"][data-row="' + ar + '"]'); if (n) { n.focus(); try { if (sel != null) n.setSelectionRange(sel, sel); } catch (e) {} } }
+  }, 700);
 }
 
 function statsOf(x) {
@@ -2054,6 +2090,7 @@ function wireColDrag(box) {
 }
 
 function renderEnvioResults() {
+  applySameDay();
   const box = $('env-results'); if (!box) return;
   const P = env.params;
   let html = '<div class="mcard"><h2>Ajustes del cálculo</h2><div class="date-line" style="gap:18px">' +
@@ -2071,7 +2108,7 @@ function renderEnvioResults() {
     html += '<div class="mcard sumbar frag"><div><h2>Hoja para Fragua (PDF)</h2><p class="sub" style="margin:0">Cuadros por tienda (2 copias) y resumen por clave de cada OC, con lo que está en Enviar. El de las dos OC lleva al final los QR Garita de la entrega anterior en una hoja horizontal (los arma la app con el Control OC). ' +
       (pdir ? 'Se guarda en la carpeta <b>' + esc(pdir.name) + '</b>.' : (HAS_DIR ? 'Sin carpeta de PDF completos vinculada en Inicio: se descarga.' : 'Se descarga.')) + '</p></div>' +
       '<div class="send-row"><label class="fr-rampa">Rampa <input id="fr-rampa" type="text" inputmode="numeric" value="' + esc(env.rampa || FR_RAMPA_DEF) + '" aria-label="Rampa para la Hoja para Fragua"></label>' + okx.map(o => '<button class="btn" data-fragua="' + o.i + '">PANISA ' + esc(fraguaSuf(o.x)) + (o.x.wbk.form.oc ? ' · OC ' + esc(o.x.wbk.form.oc) : '') + '</button>').join('') +
-      (okx.length > 1 ? '<button class="btn primary" data-fragua="all">Las dos OC en un PDF</button>' : '') + '</div></div>';
+      (okx.length > 1 ? '<button class="btn primary" data-fragua="all">' + (okx.length > 2 ? 'Todas las OC (' + okx.length + ') en un PDF' : 'Las dos OC en un PDF') + '</button>' : '') + '</div></div>';
   }
   for (const [i, x] of env.results.entries()) {
     if (x.error) { html += '<div class="mcard"><h2>' + esc(x.f.name) + '</h2><div class="warnbox">' + esc(x.error) + '</div></div>'; continue; }
@@ -2097,6 +2134,8 @@ function renderEnvioResults() {
       '<div class="sumgrid"><div class="facts" id="envsum-' + i + '">' + envSummaryHtml(x) + '</div>' +
       '<div class="itemsum-wrap" id="envitems-' + i + '">' + itemSummaryHtml(x) + '</div></div>' +
       soloHtml(x, i) +
+      (x.prevSameDay && x.prevSameDay.length ? '<div class="infobox" style="margin:12px 0 0">Otra OC de PANISA ' + esc(x.f.suf || '') + ' el mismo día: el cálculo ya incluye lo decidido en la OC ' + x.prevSameDay.map(esc).join(' y ') +
+        ' (se suma al tránsito de cada tienda y clave). Si cambiás Enviar en esa OC, esta se recalcula sola.</div>' : '') +
       (x.warn.length ? '<div class="warnbox" style="margin:12px 0 0">' + x.warn.map(esc).join('<br>') + '</div>' : '') +
       (x.useFile ? '<div class="infobox">La columna Enviar ya traía valores en el archivo: los cargué como tu decisión. <button class="btn" data-bulk="sug" data-i="' + i + '">Reemplazar por el sugerido' + scope + '</button></div>' : '') +
       (x.draftCount ? '<div class="infobox">Recuperé ' + x.draftCount + ' ' + (x.draftCount === 1 ? 'cambio que no habías guardado' : 'cambios que no habías guardado') + ' en este archivo.</div>' : '') +
@@ -2169,6 +2208,7 @@ function onEnvInput(inp, commit) {
   const sem = tr.querySelector('.sem'); sem.textContent = k.semana ?? ''; sem.classList.toggle('alto', k.semana != null && k.semana > z.c.W * 1.25);
   $('envsum-' + inp.dataset.i).innerHTML = envSummaryHtml(x);
   $('envitems-' + inp.dataset.i).innerHTML = itemSummaryHtml(x);
+  if (x.nextSameDay) scheduleSameDay();   // recalcula la OC siguiente del mismo día
 }
 function bulkEnviar(x, mode) {
   const rows = x.res.rows.filter(z => !x.filterItem || z.r.E === x.filterItem);
@@ -2298,7 +2338,7 @@ async function buildFraguaPdf(ocs, gar) {
   const color = (k, what) => { const c = C[k]; if (what === 'draw') doc.setDrawColor(...c); else if (what === 'fill') doc.setFillColor(...c); else doc.setTextColor(...c); };
   const font = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
   const fitSize = (txt, st, sz, maxw, min) => { font(st, sz); while (sz > (min || 3) && doc.getTextWidth(txt) > maxw) { sz -= 0.25; font(st, sz); } return sz; };
-  const total = ocs.reduce((a, o) => a + o.gridPages * FR_COPIAS + 1, 0) + (gar && gar.items.length ? 1 : 0);
+  const total = ocs.reduce((a, o) => a + o.gridPages * FR_COPIAS + 1, 0) + (gar && gar.items.length ? Math.ceil(gar.items.length / 2) : 0);
   let page = 0;
   const newPage = () => { if (page > 0) doc.addPage(); page++; };
   const header = (o, sub) => {
@@ -2402,18 +2442,22 @@ async function buildFraguaPdf(ocs, gar) {
   }
   // ── QR Garita de la entrega anterior: las hojas lado a lado en una hoja horizontal ──
   if (gar && gar.items.length) {
-    doc.addPage('letter', 'l'); page++;
-    const LW = 792, LH = 612, LM = 22, G = 18, top = 34;
+    // Dos hojas de QR Garita por página horizontal; si hay más citas, siguen en otra página igual
+    const LW = 792, LH = 612, LM = 22, G = 18, top = 34, per = 2;
     const d = ymdDate(gar.fecha);
-    font('bold', 11); color('ink'); doc.text('QR Garita · entrega anterior: ' + DIA_LARGO[d.getDay()].toLowerCase() + ' ' + dmyOf(d), LM, 22);
-    font('normal', 8); color('gray');
-    doc.text(gar.items.map(it => 'Cita ' + it.g.cita + ' (PANISA ' + it.suf + ')').join(' y ') + '      Hoja ' + page + ' de ' + total, LW - LM, 22, { align: 'right' });
-    const n = gar.items.length, slotW = (LW - 2 * LM - G * (n - 1)) / n, slotH = LH - top - LM;
+    const slotW = (LW - 2 * LM - G * (per - 1)) / per, slotH = LH - top - LM;
     const sc = Math.min(...gar.items.map(it => Math.min(slotW / it.w, slotH / it.h)));
-    gar.items.forEach((it, k) => {
-      const w = it.w * sc, h = it.h * sc;
-      doc.addImage(it.png, 'PNG', LM + k * (slotW + G) + (slotW - w) / 2, top + (slotH - h) / 2, w, h, undefined, 'FAST');
-    });
+    for (let p0 = 0; p0 < gar.items.length; p0 += per) {
+      const grp = gar.items.slice(p0, p0 + per);
+      doc.addPage('letter', 'l'); page++;
+      font('bold', 11); color('ink'); doc.text('QR Garita · entrega anterior: ' + DIA_LARGO[d.getDay()].toLowerCase() + ' ' + dmyOf(d), LM, 22);
+      font('normal', 8); color('gray');
+      doc.text(grp.map(it => 'Cita ' + it.g.cita + ' (PANISA ' + it.suf + ')').join(' y ') + '      Hoja ' + page + ' de ' + total, LW - LM, 22, { align: 'right' });
+      grp.forEach((it, k) => {
+        const w = it.w * sc, h = it.h * sc;
+        doc.addImage(it.png, 'PNG', LM + k * (slotW + G) + (slotW - w) / 2, top + (slotH - h) / 2, w, h, undefined, 'FAST');
+      });
+    }
     color('ink');
   }
   return doc.output('blob');
@@ -2540,7 +2584,7 @@ async function garitaAuto(calcFecha) {
     if (!g.hora && r.hora) g.hora = r.hora;
     if (!g.placa && r.placa) g.placa = r.placa;
   });
-  groups.sort((a, b) => SUF_OF[a.vendor].localeCompare(SUF_OF[b.vendor]));
+  groups.sort((a, b) => SUF_OF[a.vendor].localeCompare(SUF_OF[b.vendor]) || a.cita.localeCompare(b.cita));
   const w = await toolHelper('garita');
   const items = [];
   for (const g of groups) {
@@ -2583,7 +2627,9 @@ async function appendPdfs(blob, files) {
   return new Blob([await out.save()], { type: 'application/pdf' });
 }
 function fraguaName(ocs, fecha) {
-  const sufs = ocs.map(o => o.suf).join(' y ');
+  let sufs = Array.from(new Set(ocs.map(o => o.suf))).join(' y ');
+  // Si ese día hay otra OC del mismo proveedor, el PDF de una sola OC lleva su número (para no pisar el de la otra)
+  if (ocs.length === 1 && env.results.filter(x => !x.error && x.res && fraguaSuf(x) === ocs[0].suf).length > 1) sufs += ' OC ' + ocs[0].oc;
   if (!fecha) return 'Hoja para Fragua PANISA ' + sufs + '.pdf';
   const [y, m, d] = fecha.split('-'); const mes = MESES_ES[+m - 1];
   return m + '_' + d + ' ' + mes[0].toUpperCase() + mes.slice(1) + ' ' + y + ' Fragua PANISA ' + sufs + '.pdf';
@@ -3010,10 +3056,12 @@ function renderRailEntregas() {
       const extra = rows.filter(r => !provs.includes(provCorto(r)));
       return '<div class="rb-day' + (f === t ? ' hoy' : '') + '">' + esc(lbl) + '</div>' +
         provs.map(pv => {
-          const r = rows.find(x => provCorto(x) === pv);
-          if (!r) return '<div class="rb-row"><span>' + pv + '</span><span>-</span><span>-</span></div>';
-          const cita = r.cita && /\d/.test(r.cita) ? r.cita : '';
-          return '<div class="rb-row"><span>' + pv + '</span><span>' + esc(r.oc) + '</span><span' + (cita ? '' : ' class="nc"') + '>' + esc(cita || 'sin cita') + '</span></div>';
+          const rr = rows.filter(x => provCorto(x) === pv).sort((a, b) => String(a.oc).localeCompare(String(b.oc)));
+          if (!rr.length) return '<div class="rb-row"><span>' + pv + '</span><span>-</span><span>-</span></div>';
+          return rr.map(r => {
+            const cita = r.cita && /\d/.test(r.cita) ? r.cita : '';
+            return '<div class="rb-row"><span>' + pv + '</span><span>' + esc(r.oc) + '</span><span' + (cita ? '' : ' class="nc"') + '>' + esc(cita || 'sin cita') + '</span></div>';
+          }).join('');
         }).join('') +
         extra.map(r => '<div class="rb-row"><span>' + esc(provCorto(r)) + '</span><span>' + esc(r.oc) + '</span><span>' + esc(r.cita || '-') + '</span></div>').join('');
     }).join('');
