@@ -415,7 +415,7 @@ dialog::backdrop{background:rgba(13,33,64,.45)}
   </main>
 </div>
 
-<div class="ver" aria-label="Versión de la app">V.2026.34</div>
+<div class="ver" aria-label="Versión de la app">V.2026.35</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -3044,6 +3044,42 @@ async function loadRailData(interactive) {
   renderRailEntregas(); renderRailCal();
 }
 const SUF_OF = { '240502811': '1', '240502812': '2' };
+/* Resumen para la tarjeta de Entregas en el Centro de Control: las mismas
+   próximas entregas del lateral (4 fechas con OC, cita y si ya está
+   calculada). Se deja en localStorage —el centro sirve esta app desde su
+   mismo sitio y lo lee directo— y se avisa al centro por postMessage. */
+let resumenCDPrevio = '';
+function publicarResumenCD() {
+  try {
+    const t = ymdOf(new Date());
+    let datos;
+    if (railState.err) datos = { estado: railState.err === 'nolink' ? 'sin-vincular' : 'sin-acceso', dias: [] };
+    else {
+      const recs = railState.recs.filter(r => r.fecha >= t && r.oc && r.oc !== '-');
+      const fechas = Array.from(new Set(recs.map(r => r.fecha))).sort().slice(0, 4);
+      datos = { estado: 'ok', dias: fechas.map(f => ({
+        fecha: f,
+        entregas: recs.filter(r => r.fecha === f)
+          .sort((a, b) => provCorto(a).localeCompare(provCorto(b)) || String(a.oc).localeCompare(String(b.oc)))
+          .map(r => {
+            const cita = r.cita && /\d/.test(r.cita) ? String(r.cita) : '';
+            const calc = (railState.calc || {})[f];
+            const calculado = !!(calc && calc.has(SUF_OF[r.vendor])) || f === railState.lastCalc;
+            /* Igual que los colores del calendario: hoy se entrega; después,
+               calculado (ya hay Excel en la carpeta) o por calcular. */
+            const estado = f === t ? 'hoy' : calculado ? 'calculado' : cita ? 'por-calcular' : 'sin-cita';
+            return { prov: provCorto(r), oc: String(r.oc), cita, estado };
+          }),
+      })) };
+    }
+    const firma = JSON.stringify(datos);
+    if (firma === resumenCDPrevio) return;
+    resumenCDPrevio = firma;
+    const msg = { v: 1, app: 'entregas', actualizado: new Date().toISOString(), datos };
+    localStorage.setItem('cc.insight.entregas', JSON.stringify(msg));
+    if (window.parent !== window) window.parent.postMessage({ tipo: 'cc:insight', id: 'entregas', insight: msg }, '*');
+  } catch (e) { /* el resumen nunca debe romper la app */ }
+}
 function renderRailEntregas() {
   const box = $('rail-entregas'); if (!box) return;
   const head = '<div class="rb-h"><span>PRÓXIMAS ENTREGAS</span><button id="rb-reload" title="Actualizar entregas y calendario (Control OC y carpeta de cálculos)" aria-label="Actualizar entregas y calendario">↻</button></div>';
@@ -3075,6 +3111,7 @@ function renderRailEntregas() {
         extra.map(r => '<div class="rb-row"><span>' + esc(provCorto(r)) + '</span><span>' + esc(r.oc) + '</span><span>' + esc(r.cita || '-') + '</span></div>').join('');
     }).join('');
   }
+  publicarResumenCD();
   const rl = $('rb-reload'); if (rl) rl.onclick = async () => { rl.disabled = true; rl.classList.add('spin'); mail.dataKey = ''; await loadRailData(true); toast('Entregas y calendario actualizados.', 2500); };
   const pm = $('rb-perm'); if (pm) pm.onclick = () => loadRailData(true);
 }
