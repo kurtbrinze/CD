@@ -1,4 +1,4 @@
-# Envíos al CD — PANISA (PWA) · V.2026.39
+# Envíos al CD — PANISA (PWA) · V.2026.40
 
 Una sola app con las herramientas de entregas al CD, en este orden:
 
