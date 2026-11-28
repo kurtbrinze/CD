@@ -1121,7 +1121,7 @@ table,td,th{font-variant-numeric:tabular-nums}
   </main>
 </div>
 
-<div class="ver rz-solo-fuera" aria-label="Versión de la app">V.2026.38</div>
+<div class="ver rz-solo-fuera" aria-label="Versión de la app">V.2026.39</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -2223,15 +2223,16 @@ const env = { params:{ ...ENVIO_DEFAULTS }, files:[], picked:null, results:[], f
 
 // Nombres aceptados para los Excel de cálculo:
 //   nuevo:  "11_02 Noviembre 2026 PANISA 1.xlsm"  (MM_DD Mes AAAA PANISA N)
+//   corto:  "01_04 2027 PANISA 1.xlsm"            (MM_DD AAAA PANISA N, sin el mes)
 //   viejo:  "07_Octubre_2026_Panisa_2.xlsm"       (DD_Mes_AAAA_Panisa_N)
 // N.º de OC dentro del mismo día: "Panisa 1.xlsm" o "Panisa 1_1" = 1, "Panisa 1_2" = 2…
 function calcSubOf(name) { const m = /panisa[_\s.-]*\d[_\s.-]+(\d{1,2})\s*(?:\.xls[xm])?$/i.exec(String(name).normalize('NFC').trim()); return m ? +m[1] : 1; }
 function parseCalcName(name) {
   const n = name.normalize('NFC');
   const mesIdx = txt => { let m = txt.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (m === 'setiembre') m = 'septiembre'; return MESES_ES.indexOf(m); };
-  let m = /^(\d{1,2})[_\s.-]+(\d{1,2})[_\s.-]+([a-záéíóúñ]+)[_\s.-]+(\d{4})[_\s.-]+panisa[_\s.-]*(\d)/i.exec(n);
+  let m = /^(\d{1,2})[_\s.-]+(\d{1,2})[_\s.-]+(?:([a-záéíóúñ]+)[_\s.-]+)?(\d{4})[_\s.-]+panisa[_\s.-]*(\d)/i.exec(n);
   if (m) {
-    const mi = mesIdx(m[3]);
+    const mi = m[3] ? mesIdx(m[3]) : -1;
     // Si el número y el nombre del mes no coinciden, manda el número (MM_DD del inicio):
     // es lo que ordena la carpeta y lo primero que se cambia al copiar el archivo del día anterior.
     const num = +m[1], okNum = num >= 1 && num <= 12;
