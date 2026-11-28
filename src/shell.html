@@ -1121,7 +1121,7 @@ table,td,th{font-variant-numeric:tabular-nums}
   </main>
 </div>
 
-<div class="ver rz-solo-fuera" aria-label="Versión de la app">V.2026.37</div>
+<div class="ver rz-solo-fuera" aria-label="Versión de la app">V.2026.38</div>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -2232,9 +2232,14 @@ function parseCalcName(name) {
   let m = /^(\d{1,2})[_\s.-]+(\d{1,2})[_\s.-]+([a-záéíóúñ]+)[_\s.-]+(\d{4})[_\s.-]+panisa[_\s.-]*(\d)/i.exec(n);
   if (m) {
     const mi = mesIdx(m[3]);
-    const mm = mi >= 0 ? mi + 1 : +m[1];   // si el número y el nombre del mes no coinciden, manda el nombre
+    // Si el número y el nombre del mes no coinciden, manda el número (MM_DD del inicio):
+    // es lo que ordena la carpeta y lo primero que se cambia al copiar el archivo del día anterior.
+    const num = +m[1], okNum = num >= 1 && num <= 12;
+    const mm = okNum ? num : (mi >= 0 ? mi + 1 : 0);
     if (mm < 1 || mm > 12 || +m[2] < 1 || +m[2] > 31) return null;
-    return { fecha: m[4] + '-' + String(mm).padStart(2, '0') + '-' + String(m[2]).padStart(2, '0'), suf: m[5] };
+    const r = { fecha: m[4] + '-' + String(mm).padStart(2, '0') + '-' + String(m[2]).padStart(2, '0'), suf: m[5] };
+    if (okNum && mi >= 0 && mi + 1 !== num) r.mesDistinto = m[3];
+    return r;
   }
   m = /^(\d{1,2})[_\s.-]+([a-záéíóúñ]+)[_\s.-]+(\d{4})[_\s.-]+panisa[_\s.-]*(\d)/i.exec(n);
   if (!m) return null;
@@ -2624,6 +2629,7 @@ async function runFor(list, label, ctx = {}, preRead) {
       if (ctx.oc && wbk.form.oc && String(wbk.form.oc) !== ctx.oc) warn.push('Ojo: el Formulario de Entrega de este archivo tiene la OC ' + wbk.form.oc + ', no la ' + ctx.oc + '.');
       if (!res.dinfo.transit.length && fecha) warn.push('No encontré en la fila 2 los días previos a la entrega: el cálculo no suma envíos en tránsito.');
       if (!fecha) warn.push('No pude saber la fecha de entrega por el nombre del archivo: el cálculo no suma envíos en tránsito.');
+      if (f.mesDistinto) warn.push('El nombre del archivo dice «' + f.mesDistinto + '» pero empieza con ' + f.name.slice(0, 5) + ': lo tomé como entrega del ' + chipDate(f.fecha) + '. Si es correcto, conviene renombrarlo.');
       const x = { f, wbk, res, fecha, warn };
       await setupEnviar(x);
       env.results.push(x);
